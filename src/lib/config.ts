@@ -2,13 +2,11 @@
 
 import { ExpertProfile } from './types';
 
-// A interface para cada pergunta permanece a mesma
 export interface Pergunta {
   texto: string;
   audioUrl: string;
 }
 
-// O array de perguntas agora contém todas as novas questões
 export const PERGUNTAS_DNA: Pergunta[] = [
   // 1. IDENTIDADE & NARRATIVA PESSOAL
   { texto: "Quem é você além dos crachás que carrega?", audioUrl: "/audio/identidade_1.mp3" },
@@ -109,3 +107,15 @@ export const criarPerfilInicial = (): ExpertProfile => ({
   padroesComportamentais: [],
   resumo: ''
 });
+
+// Variáveis de template para corrigir o erro de build
+export const CARTA_ESPELHO_TEMPLATE = `
+## Carta Espelho
+(Este é um template para a análise da "Carta Espelho". O conteúdo será gerado dinamicamente.)
+`;
+
+export const RELATORIO_FINAL_TEMPLATE = `
+# Relatório de Análise de Perfil
+## Síntese Geral
+{resumo}
+`;
