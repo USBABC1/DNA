@@ -96,7 +96,8 @@ export default function HomePage() {
   const [amostraVoz, setAmostraVoz] = useState<File | null>(null);
 
   const audioRef = useRef<HTMLAudioElement>(null);
-  const recognition = useRef<SpeechRecognition | null>(null);
+  // CORREÇÃO: Mudança de tipo para any para evitar erro de TypeScript
+  const recognition = useRef<any>(null);
 
   const falarPergunta = useCallback(async (texto: string) => {
     setErro(null);
@@ -164,17 +165,26 @@ export default function HomePage() {
     }
   }, [indicePergunta, proximaPergunta, perfil, status]);
 
+  // CORREÇÃO: useEffect com tratamento adequado de tipos para compatibilidade com navegadores
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
-      if (!SpeechRecognition) return;
+      // Type assertion para lidar com compatibilidade entre navegadores
+      const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
+      
+      if (!SpeechRecognition) {
+        console.warn('Speech Recognition não é suportado neste navegador');
+        return;
+      }
+      
       const recog = new SpeechRecognition();
       recog.continuous = false;
       recog.lang = 'pt-BR';
       recog.interimResults = false;
-      recog.onresult = (event) => processarResposta(event.results[0][0].transcript);
-      recog.onerror = (event) => console.error('Erro no STT:', event.error);
-      recog.onend = () => { if (status === 'recording') setStatus('waiting_for_user'); };
+      recog.onresult = (event: any) => processarResposta(event.results[0][0].transcript);
+      recog.onerror = (event: any) => console.error('Erro no STT:', event.error);
+      recog.onend = () => { 
+        if (status === 'recording') setStatus('waiting_for_user'); 
+      };
       recognition.current = recog;
     }
   }, [processarResposta, status]);
