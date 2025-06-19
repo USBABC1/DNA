@@ -121,7 +121,11 @@ const DNAInterface = () => {
     }
 
     setRespostas(prev => [...prev, transcricao]);
-    const perfilAtualizado = analisarFragmento(perfil, transcricao);
+
+    // ===== LINHA CORRIGIDA =====
+    // A ordem dos argumentos foi invertida para coincidir com a definição da função.
+    const perfilAtualizado = analisarFragmento(transcricao, perfil);
+    
     setPerfil(perfilAtualizado);
 
     fazerProximaPergunta();
@@ -131,7 +135,6 @@ const DNAInterface = () => {
     const sintese = gerarSinteseFinal(perfil);
     setRelatorioFinal(sintese);
     setStatus('finished');
-    stopAudio();
   };
 
   return (
