@@ -1,4 +1,4 @@
-// Caminho: src/app/api/coqui-clone/route.ts
+// Caminho: src/app/api/coqui-clone/routes.ts
 
 import { NextRequest, NextResponse } from 'next/server';
 
