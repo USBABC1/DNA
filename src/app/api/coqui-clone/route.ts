@@ -2,7 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
-// Função auxiliar para tentar buscar o áudio da resposta do Hugging Face
+// Função auxiliar para buscar o áudio, pois o serviço pode demorar para responder
 async function fetchAudioFromHuggingFace(url: string, retries = 5, delay = 1000) {
     for (let i = 0; i < retries; i++) {
         try {
@@ -41,16 +41,7 @@ export async function POST(req: NextRequest) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     fn_index: 1,
-                    data: [
-                        text,
-                        "pt",
-                        voiceUrl,
-                        null,
-                        false,
-                        true,
-                        true,
-                        true,
-                    ]
+                    data: [ text, "pt", voiceUrl, null, false, true, true, true ]
                 })
             }
         );
@@ -63,6 +54,8 @@ export async function POST(req: NextRequest) {
         const responseText = await response.text();
         let predictionResult;
 
+        // ESTE BLOCO 'TRY...CATCH' É A CORREÇÃO PARA O SEU PROBLEMA
+        // Ele impede que o código quebre se a resposta não for um JSON válido.
         try {
             predictionResult = JSON.parse(responseText);
         } catch (e) {
