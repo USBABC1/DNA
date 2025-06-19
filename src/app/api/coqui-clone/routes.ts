@@ -1,4 +1,5 @@
 // src/app/api/coqui-clone/route.ts
+// IMPORTANTE: O arquivo deve ser nomeado "route.ts" (singular), não "routes.ts"
 
 import { NextRequest, NextResponse } from 'next/server';
 import Replicate from 'replicate';
