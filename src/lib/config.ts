@@ -2,6 +2,9 @@
 import { ExpertProfile, Pergunta } from './types';
 
 export const PERGUNTAS_DNA: Pergunta[] = [
+  // 0. Apresentação
+  { texto: "Olá. Bem-vindo ao DNA, Deep Narrative Analysis. Uma jornada interativa de autoanálise através da sua narrativa. Vamos começar.", audioUrl: "/audio/pergunta_0.mp3" },
+
   // 1. IDENTIDADE & NARRATIVA PESSOAL
   { texto: "Quem é você além dos crachás que carrega?", audioUrl: "/audio/pergunta_1.mp3" },
   { texto: "Se sua vida fosse um livro, qual seria o título atual deste capítulo?", audioUrl: "/audio/pergunta_2.mp3" },
