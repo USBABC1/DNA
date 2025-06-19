@@ -2,6 +2,12 @@
 // Este ficheiro define todas as estruturas de dados (interfaces) usadas na aplicação.
 // Ter tipos bem definidos ajuda a evitar erros e torna o código mais fácil de entender.
 
+// Interface para uma única pergunta
+export interface Pergunta {
+  texto: string;
+  audioUrl: string;
+}
+
 // Interface para as métricas do Big Five
 export interface BigFiveMetrics {
   Openness: number;
