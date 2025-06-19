@@ -1,11 +1,6 @@
 // Caminho: src/lib/config.ts
 
-import { ExpertProfile } from './types';
-
-export interface Pergunta {
-  texto: string;
-  audioUrl: string;
-}
+import { ExpertProfile, Pergunta } from './types';
 
 export const PERGUNTAS_DNA: Pergunta[] = [
   // 1. IDENTIDADE & NARRATIVA PESSOAL
@@ -100,22 +95,86 @@ export const PERGUNTAS_DNA: Pergunta[] = [
 ];
 
 export const criarPerfilInicial = (): ExpertProfile => ({
-  pontosFortes: [],
-  areasDesenvolvimento: [],
-  motivacoes: [],
-  estiloComunicacao: [],
-  padroesComportamentais: [],
-  resumo: ''
+    cobertura_dominios: {
+      'IDENTIDADE & NARRATIVA PESSOAL': 0,
+      'VALORES & PRINCÍPIOS': 0,
+      'CRENÇAS SOBRE SI': 0,
+      'CRENÇAS SOBRE OUTROS/MUNDO': 0,
+      'EXPERIÊNCIAS FORMATIVAS': 0,
+      'PADRÕES EMOCIONAIS': 0,
+      'COGNIÇÃO & DECISÃO': 0,
+      'CONTRADIÇÕES & PONTOS CEGOS': 0,
+      'AMBIÇÕES & MEDOS': 0,
+    },
+    metricas: {
+      big_five: {
+        Openness: 0,
+        Conscientiousness: 0,
+        Extraversion: 0,
+        Agreeableness: 0,
+        Neuroticism: 0,
+      },
+      valores_schwartz: {
+        'Self-Direction': 0,
+        Benevolence: 0,
+        Universalism: 0,
+      },
+      motivadores: {
+        Autonomy: 0,
+        Purpose: 0,
+        Belonging: 0,
+      },
+      analise_vocal: {
+        hesitacoes: 0,
+      },
+    },
+    analise_narrativa: {
+      contradicoes_detectadas: [],
+      metaforas_centrais: [],
+    },
+    fragmentos_processados: 0,
 });
 
-// Variáveis de template para corrigir o erro de build
 export const CARTA_ESPELHO_TEMPLATE = `
 ## Carta Espelho
-(Este é um template para a análise da "Carta Espelho". O conteúdo será gerado dinamicamente.)
+Pelo que você compartilhou, percebo uma força motriz principal em você que é a busca por **{motivador_principal}**. Parece que ter a liberdade para traçar seu próprio caminho e tomar suas decisões é fundamental. Isso se conecta com um valor secundário de **{valor_secundario}**, uma necessidade de sentir que pertence e é compreendido.
+
+Seu valor central parece ser a **{valor_principal}**. Isso se manifesta em como você interage com o mundo e com os outros. No seu perfil de personalidade (Big Five), isso se reflete em um traço de **{traco_big_five}**, sugerindo uma forte conexão entre seus valores e sua forma de ser.
 `;
 
 export const RELATORIO_FINAL_TEMPLATE = `
 # Relatório de Análise de Perfil
-## Síntese Geral
-{resumo}
+
+{carta_espelho}
+
+---
+
+### Análise Detalhada
+
+**Metáforas Centrais:**
+As imagens que você usa para descrever suas experiências, como "{metaforas}", revelam muito sobre sua percepção do mundo.
+
+**Hierarquia de Valores (Schwartz):**
+Seus valores mais presentes são: {valores_hierarquia}.
+- Self-Direction: {self_direction}
+- Benevolence: {benevolence}
+- Universalism: {universalism}
+
+**Conflitos de Valores:**
+Foi detectado um possível ponto de tensão entre: {conflitos_valores}.
+
+**Perfil Big Five:**
+- Abertura a Experiências (Openness): {openness}
+- Conscienciosidade (Conscientiousness): {conscientiousness}
+- Extroversão (Extraversion): {extraversion}
+- Amabilidade (Agreeableness): {agreeableness}
+- Neuroticismo (Neuroticism): {neuroticism}
+
+**Motivadores Primários:**
+- Autonomia: {autonomy}
+- Propósito: {purpose}
+- Pertencimento: {belonging}
+
+**Análise Vocal (Sinais de Processamento):**
+- Hesitações/Contradições: {hesitacoes}
 `;
