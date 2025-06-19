@@ -3,73 +3,44 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { Icosahedron, MeshDistortMaterial, Stars } from '@react-three/drei';
+import { Stars } from '@react-three/drei';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Mic, Play, Square, Loader, BrainCircuit, BotMessageSquare, FileText } from 'lucide-react';
 
 import { PERGUNTAS_DNA, criarPerfilInicial } from '../lib/config';
 import { analisarFragmento, gerarSinteseFinal } from '../lib/analysisEngine';
 import { ExpertProfile, SessionStatus, Pergunta } from '../lib/types';
-
 import { initAudio, playAudioFromUrl, startRecording, stopRecording } from '../services/webAudioService';
 
-
-/**
- * Converte o áudio gravado (Blob) em texto.
- * **Ação necessária:** Substitua o conteúdo desta função pela integração
- * com seu serviço de Speech-to-Text (STT).
- */
+// Placeholder para a função de transcrição (Ação do usuário necessária aqui)
 async function transcribeAudio(audioBlob: Blob): Promise<string> {
-  console.log("Enviando áudio para transcrição (tamanho):", audioBlob.size);
-  
-  // ===================================================================
-  // !! INTEGRAÇÃO DO SERVIÇO DE SPEECH-TO-TEXT (STT) !!
-  // ===================================================================
-  // Exemplo de como enviar o áudio para uma API de transcrição:
-  /*
-  const formData = new FormData();
-  formData.append('file', audioBlob, 'resposta.webm');
-
-  try {
-    const response = await fetch('/api/stt', { // --> SEU ENDPOINT DE TRANSCRIÇÃO
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!response.ok) {
-      throw new Error(`Falha na transcrição: ${response.statusText}`);
-    }
-
-    const result = await response.json();
-    return result.transcript; // Ajuste conforme a resposta da sua API
-  } catch (error) {
-    console.error("Erro na transcrição:", error);
-    alert("Ocorreu um erro ao transcrever sua resposta. Por favor, tente novamente.");
-    return ""; // Retorna string vazia em caso de erro
-  }
-  */
-  // ===================================================================
-
-  // **Texto provisório enquanto a API de STT não é implementada:**
+  console.log("Enviando áudio para transcrição:", audioBlob.size);
   alert("Integração com a API de transcrição pendente. Usando texto provisório.");
-  return "Esta é uma transcrição provisória. A gravação funcionou, mas é necessário conectar a um serviço de Speech-to-Text na função 'transcribeAudio' em page.tsx.";
+  return "Esta é uma transcrição provisória para fins de design. A gravação funcionou, mas é necessário conectar a um serviço de Speech-to-Text na função 'transcribeAudio'.";
 }
 
+const containerVariants = {
+  hidden: { opacity: 0, scale: 0.95 },
+  visible: { opacity: 1, scale: 1, transition: { staggerChildren: 0.1 } },
+  exit: { opacity: 0, scale: 0.95 },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100 } },
+};
 
 const DNAInterface = () => {
   const [status, setStatus] = useState<SessionStatus>('idle');
   const [perguntaAtual, setPerguntaAtual] = useState<Pergunta | null>(null);
-  const [respostas, setRespostas] = useState<string[]>([]);
   const [perfil, setPerfil] = useState<ExpertProfile>(criarPerfilInicial());
   const [relatorioFinal, setRelatorioFinal] = useState<string>('');
-
   const perguntaIndex = useRef(0);
 
-  useEffect(() => {
-    initAudio();
-  }, []);
+  useEffect(() => { initAudio(); }, []);
 
   const iniciarSessao = () => {
     perguntaIndex.current = 0;
-    setRespostas([]);
     setPerfil(criarPerfilInicial());
     setRelatorioFinal('');
     fazerProximaPergunta();
@@ -80,54 +51,43 @@ const DNAInterface = () => {
       const pergunta = PERGUNTAS_DNA[perguntaIndex.current];
       setPerguntaAtual(pergunta);
       setStatus('listening');
-      await playAudioFromUrl(pergunta.audioUrl, () => {
-        setStatus('waiting_for_user');
-      });
+      await playAudioFromUrl(pergunta.audioUrl, () => setStatus('waiting_for_user'));
       perguntaIndex.current++;
     } else {
       finalizarSessao();
     }
   };
-
+  
   const handleStartRecording = async () => {
-      try {
-          await startRecording();
-          setStatus('recording');
-      } catch (error) {
-          // O erro já é tratado no serviço com um alert
-          setStatus('waiting_for_user');
-      }
+    try {
+      await startRecording();
+      setStatus('recording');
+    } catch (error) {
+      setStatus('waiting_for_user');
+    }
   };
 
   const handleStopRecording = async () => {
-      try {
-          setStatus('processing');
-          const audioBlob = await stopRecording();
-          await processarResposta(audioBlob);
-      } catch (error) {
-          console.error("Erro ao parar gravação:", error);
-          setStatus('waiting_for_user'); // Reverte o status em caso de erro
-      }
+    try {
+      setStatus('processing');
+      const audioBlob = await stopRecording();
+      await processarResposta(audioBlob);
+    } catch (error) {
+      console.error("Erro ao parar gravação:", error);
+      setStatus('waiting_for_user');
+    }
   };
 
   const processarResposta = async (audioBlob: Blob) => {
     const transcricao = await transcribeAudio(audioBlob);
-
     if (!transcricao.trim()) {
-      alert("Sua resposta não pôde ser processada ou estava vazia. Vamos tentar a mesma pergunta novamente.");
-      perguntaIndex.current--; 
+      alert("Sua resposta não pôde ser processada. Tente a mesma pergunta novamente.");
+      perguntaIndex.current--;
       fazerProximaPergunta();
       return;
     }
-
-    setRespostas(prev => [...prev, transcricao]);
-
-    // ===== LINHA CORRIGIDA =====
-    // A ordem dos argumentos foi invertida para coincidir com a definição da função.
     const perfilAtualizado = analisarFragmento(transcricao, perfil);
-    
     setPerfil(perfilAtualizado);
-
     fazerProximaPergunta();
   };
 
@@ -137,60 +97,92 @@ const DNAInterface = () => {
     setStatus('finished');
   };
 
+  const renderContent = () => {
+    switch (status) {
+      case 'idle':
+        return (
+          <motion.div key="idle" variants={containerVariants} initial="hidden" animate="visible" exit="exit" className="text-center">
+            <motion.div variants={itemVariants} className="mb-4">
+              <BrainCircuit className="mx-auto h-24 w-24 text-primary" strokeWidth={1}/>
+            </motion.div>
+            <motion.h1 variants={itemVariants} className="text-4xl md:text-5xl font-bold font-heading mb-4">DNA - Deep Narrative Analysis</motion.h1>
+            <motion.p variants={itemVariants} className="text-lg text-muted-foreground mb-8">Uma jornada interativa de autoanálise através da sua narrativa.</motion.p>
+            <motion.div variants={itemVariants}>
+              <button onClick={iniciarSessao} className="flex items-center gap-2 mx-auto px-8 py-3 bg-primary text-primary-foreground font-bold rounded-full text-lg hover:bg-primary/90 transition-all duration-300 transform hover:scale-105 shadow-lg shadow-primary/30">
+                <Play />
+                Iniciar Análise
+              </button>
+            </motion.div>
+          </motion.div>
+        );
+      
+      case 'listening':
+      case 'waiting_for_user':
+      case 'recording':
+      case 'processing':
+        return (
+          <motion.div key="session" variants={containerVariants} initial="hidden" animate="visible" exit="exit" className="text-center">
+            <motion.div variants={itemVariants} className="mb-6">
+              <BotMessageSquare className="mx-auto h-16 w-16 text-primary/70" strokeWidth={1.5}/>
+            </motion.div>
+            {perguntaAtual && <motion.p variants={itemVariants} className="text-2xl md:text-3xl font-heading mb-8 min-h-[100px]">{perguntaAtual.texto}</motion.p>}
+            
+            <motion.div variants={itemVariants} className="h-20 flex items-center justify-center">
+              {status === 'listening' && <p className="text-muted-foreground animate-pulse">Ouvindo a pergunta...</p>}
+              {status === 'waiting_for_user' && 
+                <button onClick={handleStartRecording} className="flex items-center gap-2 px-8 py-3 bg-secondary text-foreground font-bold rounded-full text-lg hover:bg-secondary/80 transition-all duration-300 transform hover:scale-105">
+                  <Mic /> Gravar Resposta
+                </button>}
+              {status === 'recording' && 
+                <button onClick={handleStopRecording} className="flex items-center gap-2 px-8 py-3 bg-red-600 text-white font-bold rounded-full text-lg transition-all duration-300 animate-pulse">
+                  <Square /> Parar Gravação
+                </button>}
+              {status === 'processing' && 
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Loader className="animate-spin" /> Processando...
+                </div>}
+            </motion.div>
+          </motion.div>
+        );
+
+      case 'finished':
+        return (
+          <motion.div key="finished" variants={containerVariants} initial="hidden" animate="visible" exit="exit" className="w-full">
+             <motion.div variants={itemVariants} className="text-center mb-8">
+              <FileText className="mx-auto h-20 w-20 text-primary" strokeWidth={1}/>
+              <h1 className="text-4xl font-bold font-heading mt-4">Seu Relatório de Análise Narrativa</h1>
+            </motion.div>
+            <motion.div variants={itemVariants} className="glass-card p-6 text-left whitespace-pre-wrap font-mono text-sm leading-relaxed overflow-auto max-h-[50vh]">
+                {relatorioFinal}
+            </motion.div>
+            <motion.div variants={itemVariants} className="text-center mt-8">
+               <button onClick={iniciarSessao} className="flex items-center gap-2 mx-auto px-8 py-3 bg-primary text-primary-foreground font-bold rounded-full text-lg hover:bg-primary/90 transition-all duration-300 transform hover:scale-105 shadow-lg shadow-primary/30">
+                <Play />
+                Fazer Nova Análise
+              </button>
+            </motion.div>
+          </motion.div>
+        );
+      
+      default: return null;
+    }
+  };
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white p-4">
+    <main className="relative flex flex-col items-center justify-center min-h-screen bg-background p-4 overflow-hidden">
       <div className="absolute inset-0 z-0">
         <Canvas>
-          <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade />
-          <ambientLight intensity={0.5} />
-          <pointLight position={[10, 10, 10]} />
-          <Icosahedron args={[2, 4]}>
-            <MeshDistortMaterial color="#0c0c1c" attach="material" distort={0.5} speed={2} />
-          </Icosahedron>
+          <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
         </Canvas>
+        <div className="absolute inset-0 bg-background/50" />
       </div>
 
-      <div className="z-10 text-center p-8 bg-black bg-opacity-50 rounded-lg max-w-2xl">
-        <h1 className="text-4xl font-bold mb-4">DNA - Deep Narrative Analysis</h1>
-        
-        {status === 'idle' && (
-          <button onClick={iniciarSessao} className="px-6 py-2 bg-purple-600 rounded-lg text-lg hover:bg-purple-700 transition">
-            Iniciar Análise
-          </button>
-        )}
-
-        {(status === 'listening' || status === 'waiting_for_user' || status === 'recording' || status === 'processing') && perguntaAtual && (
-          <div>
-            <p className="text-2xl mb-4">{perguntaAtual.texto}</p>
-            {status === 'waiting_for_user' && (
-              <button onClick={handleStartRecording} className="px-6 py-2 bg-green-600 rounded-lg text-lg hover:bg-green-700 transition">
-                Gravar Resposta
-              </button>
-            )}
-            {status === 'recording' && (
-               <button onClick={handleStopRecording} className="px-6 py-2 bg-red-600 rounded-lg text-lg hover:bg-red-700 transition animate-pulse">
-                Parar Gravação
-              </button>
-            )}
-            {status === 'processing' && (
-              <p className="text-lg text-yellow-400 animate-pulse">Processando sua resposta...</p>
-            )}
-          </div>
-        )}
-
-        {status === 'finished' && (
-          <div className="text-left">
-            <h2 className="text-3xl font-bold mb-4">Relatório de Análise</h2>
-            <pre className="whitespace-pre-wrap bg-gray-800 p-4 rounded-lg">{relatorioFinal}</pre>
-          </div>
-        )}
-
-        <div className="mt-8 text-sm text-gray-400">
-          <p>Perguntas respondidas: {respostas.length} / {PERGUNTAS_DNA.length}</p>
-          <p>Fragmentos processados: {perfil.fragmentos_processados}</p>
-        </div>
+      <div className="z-10 w-full max-w-2xl md:max-w-3xl">
+        <AnimatePresence mode="wait">
+          {renderContent()}
+        </AnimatePresence>
       </div>
-    </div>
+    </main>
   );
 };
 
