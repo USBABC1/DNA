@@ -8,7 +8,6 @@ import { PERGUNTAS_DNA, criarPerfilInicial } from '../lib/config';
 import { analisarFragmento, gerarSinteseFinal } from '../lib/analysisEngine';
 import { ExpertProfile, SessionStatus } from '../lib/types';
 
-
 // --- Componente de Fundo 3D ---
 const Scene = () => {
   const ref = useRef<any>();
@@ -32,6 +31,11 @@ const VoiceUploader = ({ onVoiceSelect, isSessionActive, fileName }: { onVoiceSe
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      // Verificar se é um arquivo .wav
+      if (!file.name.toLowerCase().endsWith('.wav')) {
+        alert('Por favor, selecione apenas arquivos .wav');
+        return;
+      }
       onVoiceSelect(file);
     }
   };
@@ -40,10 +44,20 @@ const VoiceUploader = ({ onVoiceSelect, isSessionActive, fileName }: { onVoiceSe
       <p className="text-gray-300 text-sm overflow-hidden text-ellipsis whitespace-nowrap pr-4">
         Amostra: <span className="font-bold text-white">{fileName || 'Nenhuma'}</span>
       </p>
-      <button onClick={() => fileInputRef.current?.click()} disabled={isSessionActive} className="flex-shrink-0 px-4 py-2 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 disabled:bg-gray-500/50 transition-colors">
+      <button 
+        onClick={() => fileInputRef.current?.click()} 
+        disabled={isSessionActive} 
+        className="flex-shrink-0 px-4 py-2 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 disabled:bg-gray-500/50 transition-colors"
+      >
         Carregar .wav
       </button>
-      <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".wav" className="hidden" />
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        onChange={handleFileChange} 
+        accept=".wav,audio/wav" 
+        className="hidden" 
+      />
     </div>
   );
 };
@@ -52,8 +66,18 @@ const VoiceUploader = ({ onVoiceSelect, isSessionActive, fileName }: { onVoiceSe
 const MicButton = ({ status, onClick }: { status: SessionStatus; onClick: () => void }) => {
   const isActive = status === 'waiting_for_user' || status === 'recording';
   return (
-    <button onClick={onClick} disabled={!isActive} className={`relative w-16 h-16 rounded-full text-white transition-all duration-300 flex items-center justify-center ${status === 'recording' ? 'bg-red-500 animate-pulse' : 'bg-white/10'} ${isActive ? 'hover:bg-white/20' : 'cursor-not-allowed opacity-50'} border border-white/20`} >
-      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm-1 4a4 4 0 108 0V4a4 4 0 10-8 0v4zM2 9a1 1 0 011-1h1a1 1 0 110 2H3a1 1 0 01-1-1zm14 0a1 1 0 011-1h1a1 1 0 110 2h-1a1 1 0 01-1-1z" clipRule="evenodd" /><path d="M10 12a4 4 0 00-4 4v1a1 1 0 102 0v-1a2 2 0 114 0v1a1 1 0 102 0v-1a4 4 0 00-4-4z" /></svg>
+    <button 
+      onClick={onClick} 
+      disabled={!isActive} 
+      className={`relative w-16 h-16 rounded-full text-white transition-all duration-300 flex items-center justify-center ${
+        status === 'recording' ? 'bg-red-500 animate-pulse' : 'bg-white/10'
+      } ${
+        isActive ? 'hover:bg-white/20' : 'cursor-not-allowed opacity-50'
+      } border border-white/20`} 
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" viewBox="0 0 20 20" fill="currentColor">
+        <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd" />
+      </svg>
     </button>
   );
 };
@@ -70,8 +94,21 @@ const TextInput = ({ status, onSubmit }: { status: SessionStatus; onSubmit: (tex
     };
     return (
         <form onSubmit={handleSubmit} className="w-full flex-grow flex gap-4">
-            <input type="text" value={text} onChange={(e) => setText(e.target.value)} placeholder={isActive ? "Ou digite sua resposta aqui..." : "Aguarde..."} disabled={!isActive} className="w-full bg-white/5 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all" />
-            <button type="submit" disabled={!isActive} className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-500 disabled:cursor-not-allowed transition-colors">Enviar</button>
+            <input 
+                type="text" 
+                value={text} 
+                onChange={(e) => setText(e.target.value)} 
+                placeholder={isActive ? "Ou digite sua resposta aqui..." : "Aguarde..."} 
+                disabled={!isActive} 
+                className="w-full bg-white/5 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all" 
+            />
+            <button 
+                type="submit" 
+                disabled={!isActive || !text.trim()} 
+                className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-500 disabled:cursor-not-allowed transition-colors"
+            >
+                Enviar
+            </button>
         </form>
     );
 };
@@ -80,10 +117,14 @@ const ReportView = ({ report, onReset }: { report: string; onReset: () => void }
   <div className="w-full max-w-3xl mx-auto p-6 bg-black/20 backdrop-blur-lg rounded-lg shadow-lg border border-white/10">
     <h2 className="text-2xl font-bold mb-4 text-white">Relatório Final</h2>
     <pre className="whitespace-pre-wrap bg-black/30 p-4 rounded-md text-sm text-gray-200 font-mono overflow-auto max-h-[50vh]">{report}</pre>
-    <button onClick={onReset} className="mt-6 w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors">Iniciar Nova Sessão</button>
+    <button 
+      onClick={onReset} 
+      className="mt-6 w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors"
+    >
+      Iniciar Nova Sessão
+    </button>
   </div>
 );
-
 
 // --- Componente Principal ---
 export default function HomePage() {
@@ -96,7 +137,6 @@ export default function HomePage() {
   const [amostraVoz, setAmostraVoz] = useState<File | null>(null);
 
   const audioRef = useRef<HTMLAudioElement>(null);
-  // CORREÇÃO: Mudança de tipo para any para evitar erro de TypeScript
   const recognition = useRef<any>(null);
 
   const falarPergunta = useCallback(async (texto: string) => {
@@ -114,21 +154,53 @@ export default function HomePage() {
       formData.append('text', texto);
       formData.append('voice_file', amostraVoz);
 
+      console.log('Enviando requisição para /api/coqui-clone...');
+
       const response = await fetch('/api/coqui-clone', {
         method: 'POST',
         body: formData,
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.details || errorData.error || 'Falha ao gerar o áudio.');
+        let errorData;
+        const contentType = response.headers.get('content-type');
+        
+        if (contentType && contentType.includes('application/json')) {
+          errorData = await response.json();
+        } else {
+          const errorText = await response.text();
+          errorData = { error: errorText || `HTTP ${response.status}` };
+        }
+        
+        throw new Error(errorData.details || errorData.error || `Erro HTTP ${response.status}`);
       }
 
       const audioBlob = await response.blob();
+      console.log('Audio blob size:', audioBlob.size);
+
       if (audioRef.current) {
-        audioRef.current.src = URL.createObjectURL(audioBlob);
-        audioRef.current.play();
-        audioRef.current.onended = () => setStatus('waiting_for_user');
+        const audioUrl = URL.createObjectURL(audioBlob);
+        audioRef.current.src = audioUrl;
+        
+        audioRef.current.onloadeddata = () => {
+          console.log('Audio loaded, playing...');
+          audioRef.current?.play();
+        };
+        
+        audioRef.current.onended = () => {
+          console.log('Audio ended');
+          URL.revokeObjectURL(audioUrl); // Limpar URL
+          setStatus('waiting_for_user');
+        };
+        
+        audioRef.current.onerror = (e) => {
+          console.error('Audio error:', e);
+          setErro('Erro ao reproduzir o áudio');
+          setStatus('waiting_for_user');
+        };
       }
 
     } catch (error) {
@@ -165,10 +237,8 @@ export default function HomePage() {
     }
   }, [indicePergunta, proximaPergunta, perfil, status]);
 
-  // CORREÇÃO: useEffect com tratamento adequado de tipos para compatibilidade com navegadores
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      // Type assertion para lidar com compatibilidade entre navegadores
       const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
       
       if (!SpeechRecognition) {
@@ -228,8 +298,12 @@ export default function HomePage() {
           <h1 className="text-5xl font-bold text-white">Reator de Perfil</h1>
           <p className="text-xl text-gray-300">Use sua própria voz para uma jornada de autoconhecimento.</p>
           <VoiceUploader onVoiceSelect={setAmostraVoz} isSessionActive={isSessionActive} fileName={amostraVoz?.name ?? ''} />
-          {erro && <p className="text-red-400 text-sm mt-2">{erro}</p>}
-          <button onClick={iniciarSessao} disabled={!amostraVoz} className="w-full bg-purple-600 text-white py-3 px-8 rounded-lg text-xl hover:bg-purple-700 disabled:bg-gray-500/50 disabled:cursor-not-allowed transition-colors shadow-lg shadow-purple-500/20">
+          {erro && <p className="text-red-400 text-sm mt-2 bg-red-900/20 p-2 rounded border border-red-500/30">{erro}</p>}
+          <button 
+            onClick={iniciarSessao} 
+            disabled={!amostraVoz} 
+            className="w-full bg-purple-600 text-white py-3 px-8 rounded-lg text-xl hover:bg-purple-700 disabled:bg-gray-500/50 disabled:cursor-not-allowed transition-colors shadow-lg shadow-purple-500/20"
+          >
             Iniciar Sessão
           </button>
         </div>
@@ -239,7 +313,7 @@ export default function HomePage() {
     return (
       <div className="w-full max-w-3xl flex flex-col items-center gap-6">
         <VoiceUploader onVoiceSelect={setAmostraVoz} isSessionActive={isSessionActive} fileName={amostraVoz?.name ?? ''} />
-        {erro && <p className="text-red-400 text-sm mt-2">{erro}</p>}
+        {erro && <p className="text-red-400 text-sm mt-2 bg-red-900/20 p-3 rounded border border-red-500/30 w-full">{erro}</p>}
         <p className="text-3xl font-light text-white/90 italic h-24 text-center">"{perguntaAtual}"</p>
         <div className="w-full flex items-center gap-4">
             <MicButton status={status} onClick={toggleGravacao} />
