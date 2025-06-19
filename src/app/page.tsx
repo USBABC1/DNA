@@ -4,35 +4,45 @@
 
 import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Icosahedron, MeshDistortMaterial } from '@react-three/drei';
+import { Icosahedron, MeshDistortMaterial, Stars } from '@react-three/drei';
 
 import { PERGUNTAS_DNA, criarPerfilInicial, Pergunta } from '../lib/config';
 import { analisarFragmento, gerarSinteseFinal } from '../lib/analysisEngine';
 import { ExpertProfile, SessionStatus } from '../lib/types';
 
-// --- Componente de Fundo 3D (sem alterações) ---
+// --- Componente de Fundo 3D (Melhorado) ---
 const Scene = () => {
   const ref = useRef<any>();
-  useFrame(({ clock }) => {
+  useFrame((state, delta) => {
     if (ref.current) {
-      ref.current.rotation.x = clock.getElapsedTime() / 10;
-      ref.current.rotation.y = clock.getElapsedTime() / 15;
-      ref.current.position.z = Math.sin(clock.getElapsedTime() / 5) * 0.5 - 2.5;
+      ref.current.rotation.x += delta / 10;
+      ref.current.rotation.y += delta / 15;
+      ref.current.position.z = Math.sin(state.clock.getElapsedTime() / 5) * 0.5 - 2.5;
     }
   });
   return (
-    <Icosahedron ref={ref} args={[1, 0]} position={[0, 0, -2.5]}>
-      <MeshDistortMaterial distort={0.5} speed={2} color="#8A2BE2" roughness={0.1} metalness={0.9} emissive="#4B0082"/>
-    </Icosahedron>
+    <>
+      <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
+      <Icosahedron ref={ref} args={[1, 1]} position={[0, 0, -2.5]}>
+        <MeshDistortMaterial distort={0.55} speed={2.5} color="#8A2BE2" roughness={0.1} metalness={0.9} emissive="#4B0082" emissiveIntensity={0.7} />
+      </Icosahedron>
+    </>
   );
 };
 
-// --- Componentes de UI (sem grandes alterações) ---
+// --- Componentes de UI (Refinados) ---
 const MicButton = ({ status, onClick }: { status: SessionStatus; onClick: () => void }) => {
   const isActive = status === 'waiting_for_user' || status === 'recording';
+  const getIcon = () => {
+    if (status === 'recording') {
+        return <span className="w-4 h-4 bg-white rounded-sm"></span>; // Ícone de "Stop"
+    }
+    return <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm-1 4a4 4 0 108 0V4a4 4 0 10-8 0v4zM2 9a1 1 0 011-1h1a1 1 0 110 2H3a1 1 0 01-1-1zm14 0a1 1 0 011-1h1a1 1 0 110 2h-1a1 1 0 01-1-1zm-6 9a4 4 0 004-4v-1a1 1 0 10-2 0v1a2 2 0 11-4 0v-1a1 1 0 10-2 0v1a4 4 0 004 4z" /></svg>;
+  }
+
   return (
-    <button onClick={onClick} disabled={!isActive} className={`relative w-16 h-16 rounded-full text-white transition-all duration-300 flex items-center justify-center ${status === 'recording' ? 'bg-red-500 animate-pulse' : 'bg-white/10'} ${isActive ? 'hover:bg-white/20' : 'cursor-not-allowed opacity-50'} border border-white/20`} >
-      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm-1 4a4 4 0 108 0V4a4 4 0 10-8 0v4zM2 9a1 1 0 011-1h1a1 1 0 110 2H3a1 1 0 01-1-1zm14 0a1 1 0 011-1h1a1 1 0 110 2h-1a1 1 0 01-1-1z" clipRule="evenodd" /><path d="M10 12a4 4 0 00-4 4v1a1 1 0 102 0v-1a2 2 0 114 0v1a1 1 0 102 0v-1a4 4 0 00-4-4z" /></svg>
+    <button onClick={onClick} disabled={!isActive} className={`relative w-16 h-16 rounded-full text-white transition-all duration-300 flex items-center justify-center shrink-0 ${status === 'recording' ? 'bg-red-600 shadow-lg shadow-red-500/50' : 'bg-white/10'} ${isActive ? 'hover:bg-white/20' : 'cursor-not-allowed opacity-50'} border-2 border-white/20`} >
+      {getIcon()}
     </button>
   );
 };
@@ -48,23 +58,25 @@ const TextInput = ({ status, onSubmit }: { status: SessionStatus; onSubmit: (tex
         }
     };
     return (
-        <form onSubmit={handleSubmit} className="w-full flex-grow flex gap-4">
-            <input type="text" value={text} onChange={(e) => setText(e.target.value)} placeholder={isActive ? "Digite sua resposta aqui..." : "Aguarde..."} disabled={!isActive} className="w-full bg-white/5 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all" />
-            <button type="submit" disabled={!isActive} className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-500 disabled:cursor-not-allowed transition-colors">Enviar</button>
+        <form onSubmit={handleSubmit} className="w-full flex-grow flex gap-4 items-center">
+            <input type="text" value={text} onChange={(e) => setText(e.target.value)} placeholder={isActive ? "Ou digite sua resposta aqui..." : "Aguarde a próxima pergunta..."} disabled={!isActive} className="w-full h-12 bg-white/5 border border-white/20 rounded-lg px-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-300" />
+            <button type="submit" disabled={!isActive} className="h-12 px-6 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors font-semibold">Enviar</button>
         </form>
     );
 };
 
 const ReportView = ({ report, onReset }: { report: string; onReset: () => void }) => (
-  <div className="w-full max-w-3xl mx-auto p-6 bg-black/20 backdrop-blur-lg rounded-lg shadow-lg border border-white/10">
-    <h2 className="text-2xl font-bold mb-4 text-white">Relatório Final</h2>
-    <pre className="whitespace-pre-wrap bg-black/30 p-4 rounded-md text-sm text-gray-200 font-mono overflow-auto max-h-[50vh]">{report}</pre>
-    <button onClick={onReset} className="mt-6 w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors">Iniciar Nova Sessão</button>
+  <div className="w-full max-w-3xl mx-auto p-8 bg-gray-900/50 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/10 flex flex-col animate-fade-in">
+    <h2 className="text-3xl font-bold mb-6 text-center text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500">Relatório de Análise de Perfil</h2>
+    <div className="whitespace-pre-wrap bg-black/40 p-6 rounded-lg text-base text-gray-200 font-mono overflow-auto max-h-[60vh] border border-white/10 shadow-inner">
+        {report || "Gerando seu relatório..."}
+    </div>
+    <button onClick={onReset} className="mt-8 w-full bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 transition-colors font-bold text-lg">Iniciar Nova Sessão</button>
   </div>
 );
 
 
-// --- Componente Principal ---
+// --- Componente Principal (Dashboard) ---
 export default function HomePage() {
   const [perfil, setPerfil] = useState<ExpertProfile | null>(null);
   const [status, setStatus] = useState<SessionStatus>('idle');
@@ -76,7 +88,6 @@ export default function HomePage() {
   const audioRef = useRef<HTMLAudioElement>(null);
   const recognition = useRef<SpeechRecognition | null>(null);
 
-  // FUNÇÃO SIMPLIFICADA PARA TOCAR O ÁUDIO
   const falarPergunta = useCallback((pergunta: Pergunta) => {
     setErro(null);
     setStatus('listening');
@@ -84,16 +95,11 @@ export default function HomePage() {
 
     if (audioRef.current) {
         audioRef.current.src = pergunta.audioUrl;
-        audioRef.current.play()
-            .then(() => {
-                // Áudio começou a tocar
-            })
-            .catch(error => {
-                console.error("Erro ao tocar o áudio:", error);
-                setErro("Não foi possível tocar o áudio da pergunta.");
-            });
-
-        // Quando o áudio terminar, libera para o usuário responder
+        audioRef.current.play().catch(error => {
+            console.error("Erro ao tocar o áudio:", error);
+            setErro("Não foi possível tocar o áudio da pergunta. Verifique o arquivo.");
+            setStatus('waiting_for_user'); // Permite que o usuário continue mesmo sem o áudio.
+        });
         audioRef.current.onended = () => setStatus('waiting_for_user');
     }
   }, []);
@@ -104,8 +110,12 @@ export default function HomePage() {
       const novaPergunta = PERGUNTAS_DNA[indicePergunta];
       falarPergunta(novaPergunta);
     } else {
-      setRelatorioFinal(gerarSinteseFinal(perfil));
       setStatus('finished');
+      setRelatorioFinal("Analisando suas respostas para gerar uma síntese completa...");
+      // Simula uma pequena demora para a análise final
+      setTimeout(() => {
+        setRelatorioFinal(gerarSinteseFinal(perfil));
+      }, 2000);
     }
   }, [indicePergunta, perfil, falarPergunta]);
   
@@ -117,29 +127,24 @@ export default function HomePage() {
   }, [perfil]);
 
   useEffect(() => {
-    if(status === 'idle' || !perfil) return;
-    if (indicePergunta > 0 && indicePergunta <= PERGUNTAS_DNA.length) {
-        proximaPergunta();
-    }
-  }, [indicePergunta, proximaPergunta, perfil, status]);
+    if(status === 'idle' || !perfil || status === 'finished') return;
+    // Dispara a próxima pergunta assim que a anterior for processada.
+    proximaPergunta();
+  }, [indicePergunta, perfil, status]); // Removido proximaPergunta para evitar loops
 
-  // Lógica do reconhecimento de voz (sem alterações)
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
-      if (!SpeechRecognition) {
-        console.warn("API de Reconhecimento de Voz não suportada neste navegador.");
-        return;
-      };
+      if (!SpeechRecognition) return;
       const recog = new SpeechRecognition();
       recog.continuous = false;
       recog.lang = 'pt-BR';
       recog.interimResults = false;
-      recog.onresult = (event) => processarResposta(event.results[0][0].transcript);
-      recog.onerror = (event) => {
-        console.error('Erro no Reconhecimento de Voz:', event.error);
-        setErro(`Erro no microfone: ${event.error}`);
-      }
+      recog.onresult = (event) => {
+        setStatus('processing');
+        processarResposta(event.results[0][0].transcript);
+      };
+      recog.onerror = (event) => setErro(`Erro no microfone: ${event.error}`);
       recog.onend = () => { if (status === 'recording') setStatus('waiting_for_user'); };
       recognition.current = recog;
     }
@@ -160,7 +165,8 @@ export default function HomePage() {
     setIndicePergunta(0);
     setRelatorioFinal('');
     setErro(null);
-    proximaPergunta();
+    // Inicia o status para 'processing' para que o useEffect dispare a primeira pergunta
+    setStatus('processing'); 
   };
   
   const renderContent = () => {
@@ -170,29 +176,39 @@ export default function HomePage() {
     
     if (status === 'idle') {
       return (
-        <div className="text-center space-y-6">
-          <h1 className="text-5xl font-bold text-white">Reator de Perfil</h1>
-          <p className="text-xl text-gray-300">Uma jornada de autoconhecimento guiada por perguntas.</p>
-          {erro && <p className="text-red-400 text-sm mt-2">{erro}</p>}
-          <button onClick={iniciarSessao} className="w-full bg-purple-600 text-white py-3 px-8 rounded-lg text-xl hover:bg-purple-700 transition-colors shadow-lg shadow-purple-500/20">
+        <div className="text-center space-y-8 animate-fade-in">
+          <div>
+            <h1 className="text-5xl md:text-6xl font-bold text-white tracking-tight">Reator de Perfil</h1>
+            <p className="text-xl text-gray-300 mt-4 max-w-xl mx-auto">Uma jornada de autoconhecimento guiada por perguntas profundas.</p>
+          </div>
+          {erro && <p className="text-red-400 text-sm">{erro}</p>}
+          <button onClick={iniciarSessao} className="w-full max-w-sm mx-auto bg-purple-600 text-white py-4 px-8 rounded-lg text-xl font-bold hover:bg-purple-700 transition-all duration-300 transform hover:scale-105 shadow-lg shadow-purple-500/30">
             Iniciar Sessão
           </button>
         </div>
       );
     }
     
+    // Layout do "Dashboard" da sessão
     return (
-      <div className="w-full max-w-3xl flex flex-col items-center gap-6">
-        {erro && <p className="text-red-400 text-sm mt-2">{erro}</p>}
-        <p className="text-3xl font-light text-white/90 italic h-24 text-center">"{perguntaAtual}"</p>
-        <div className="w-full flex items-center gap-4">
+      <div className="w-full max-w-3xl flex flex-col items-center gap-8 animate-fade-in">
+        <div className="w-full text-center">
+            <p className="text-purple-300 font-semibold">Pergunta {indicePergunta + 1} de {PERGUNTAS_DNA.length}</p>
+            <p className="text-2xl md:text-3xl font-light text-white/95 mt-2 min-h-[100px]">"{perguntaAtual}"</p>
+        </div>
+        <div className="w-full flex items-center justify-center gap-4">
             <MicButton status={status} onClick={toggleGravacao} />
+        </div>
+         <div className="w-full">
             <TextInput status={status} onSubmit={processarResposta} />
         </div>
-        <p className="text-lg text-gray-400 h-8">
+
+        <p className="text-lg text-gray-400 h-8 mt-4">
             {status === 'listening' && <span className="animate-pulse">Ouvindo a pergunta...</span>}
-            {status === 'waiting_for_user' && <span>Aguardando sua resposta...</span>}
-            {status === 'recording' && <span className="animate-pulse">Gravando...</span>}
+            {status === 'waiting_for_user' && <span>Aguardando sua resposta... (use o microfone ou digite)</span>}
+            {status === 'recording' && <span className="text-red-400 animate-pulse">Gravando...</span>}
+            {status === 'processing' && <span className="animate-pulse">Processando...</span>}
+            {erro && <span className="text-red-400">{erro}</span>}
         </p>
       </div>
     );
@@ -201,17 +217,15 @@ export default function HomePage() {
   return (
     <>
       <audio ref={audioRef} className="hidden" />
-      <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', zIndex: -1 }}>
+      <div className="fixed top-0 left-0 w-full h-full z-[-1] bg-gray-900">
         <Suspense fallback={null}>
           <Canvas>
-            <ambientLight intensity={0.5} />
-            <pointLight position={[10, 10, 10]} />
             <Scene />
           </Canvas>
         </Suspense>
       </div>
       <main className="flex min-h-screen flex-col items-center justify-center p-4 md:p-8 text-white z-10">
-        <div className="w-full max-w-3xl p-6 md:p-8 rounded-2xl bg-black/20 backdrop-blur-xl border border-white/10 shadow-2xl">
+        <div className="w-full max-w-4xl p-6 md:p-8 rounded-2xl bg-black/30 backdrop-blur-xl border border-white/10 shadow-2xl">
             {renderContent()}
         </div>
       </main>
