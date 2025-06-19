@@ -62,7 +62,8 @@ export async function POST(req: NextRequest) {
     
     // Chamar o modelo XTTS-v2 no Replicate
     const output = await replicate.run(
-      "lucataco/xtts-v2:6b2385a8c03b072a3b2241f0a359239864a66a72e8e9714b537b3b6460e57581",
+        "lucataco/xtts-v2:684bc3855b37866c0c65add2ff39c78f3dea3f4ff103a436465326e0f438d55e", // <-- LATEST, CORRECT VERSION
+
       {
         input: {
           text: text,
