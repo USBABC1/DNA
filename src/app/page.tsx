@@ -10,7 +10,7 @@ import { PERGUNTAS_DNA, criarPerfilInicial, Pergunta } from '../lib/config';
 import { analisarFragmento, gerarSinteseFinal } from '../lib/analysisEngine';
 import { ExpertProfile, SessionStatus } from '../lib/types';
 
-// --- Componente de Fundo 3D (Melhorado) ---
+// --- Componente de Fundo 3D ---
 const Scene = () => {
   const ref = useRef<any>();
   useFrame((state, delta) => {
@@ -30,12 +30,12 @@ const Scene = () => {
   );
 };
 
-// --- Componentes de UI (Refinados) ---
+// --- Componentes de UI ---
 const MicButton = ({ status, onClick }: { status: SessionStatus; onClick: () => void }) => {
   const isActive = status === 'waiting_for_user' || status === 'recording';
   const getIcon = () => {
     if (status === 'recording') {
-        return <span className="w-4 h-4 bg-white rounded-sm"></span>; // Ícone de "Stop"
+        return <span className="w-4 h-4 bg-white rounded-sm"></span>;
     }
     return <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm-1 4a4 4 0 108 0V4a4 4 0 10-8 0v4zM2 9a1 1 0 011-1h1a1 1 0 110 2H3a1 1 0 01-1-1zm14 0a1 1 0 011-1h1a1 1 0 110 2h-1a1 1 0 01-1-1zm-6 9a4 4 0 004-4v-1a1 1 0 10-2 0v1a2 2 0 11-4 0v-1a1 1 0 10-2 0v1a4 4 0 004 4z" /></svg>;
   }
@@ -98,7 +98,7 @@ export default function HomePage() {
         audioRef.current.play().catch(error => {
             console.error("Erro ao tocar o áudio:", error);
             setErro("Não foi possível tocar o áudio da pergunta. Verifique o arquivo.");
-            setStatus('waiting_for_user'); // Permite que o usuário continue mesmo sem o áudio.
+            setStatus('waiting_for_user');
         });
         audioRef.current.onended = () => setStatus('waiting_for_user');
     }
@@ -112,7 +112,6 @@ export default function HomePage() {
     } else {
       setStatus('finished');
       setRelatorioFinal("Analisando suas respostas para gerar uma síntese completa...");
-      // Simula uma pequena demora para a análise final
       setTimeout(() => {
         setRelatorioFinal(gerarSinteseFinal(perfil));
       }, 2000);
@@ -128,9 +127,8 @@ export default function HomePage() {
 
   useEffect(() => {
     if(status === 'idle' || !perfil || status === 'finished') return;
-    // Dispara a próxima pergunta assim que a anterior for processada.
     proximaPergunta();
-  }, [indicePergunta, perfil, status]); // Removido proximaPergunta para evitar loops
+  }, [indicePergunta, perfil, status]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -140,11 +138,11 @@ export default function HomePage() {
       recog.continuous = false;
       recog.lang = 'pt-BR';
       recog.interimResults = false;
-      recog.onresult = (event) => {
+      recog.onresult = (event: SpeechRecognitionEvent) => {
         setStatus('processing');
         processarResposta(event.results[0][0].transcript);
       };
-      recog.onerror = (event) => setErro(`Erro no microfone: ${event.error}`);
+      recog.onerror = (event: SpeechRecognitionErrorEvent) => setErro(`Erro no microfone: ${event.error}`);
       recog.onend = () => { if (status === 'recording') setStatus('waiting_for_user'); };
       recognition.current = recog;
     }
@@ -165,7 +163,6 @@ export default function HomePage() {
     setIndicePergunta(0);
     setRelatorioFinal('');
     setErro(null);
-    // Inicia o status para 'processing' para que o useEffect dispare a primeira pergunta
     setStatus('processing'); 
   };
   
@@ -189,7 +186,6 @@ export default function HomePage() {
       );
     }
     
-    // Layout do "Dashboard" da sessão
     return (
       <div className="w-full max-w-3xl flex flex-col items-center gap-8 animate-fade-in">
         <div className="w-full text-center">
