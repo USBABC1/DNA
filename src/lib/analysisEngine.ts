@@ -72,7 +72,9 @@ export const analisarFragmento = (
 export const gerarSinteseFinal = (perfil: ExpertProfile): string => {
   console.log('[ANALYSIS_ENGINE] Gerando síntese final...');
 
-  const { motivadores, valores_schwartz, big_five, analise_narrativa } = perfil;
+  // Fix: Access motivadores through the correct path
+  const { motivadores, valores_schwartz, big_five } = perfil.metricas;
+  const { analise_narrativa } = perfil;
 
   // Lógica para encontrar os valores principais
   const motivador_principal = Object.keys(motivadores).reduce((a, b) => (motivadores[a as keyof typeof motivadores] > motivadores[b as keyof typeof motivadores] ? a : b));
