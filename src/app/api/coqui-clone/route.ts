@@ -26,7 +26,6 @@ export async function POST(req: NextRequest) {
     console.log('[API HuggingFace-Clone] Recebido um pedido POST.');
 
     try {
-        // 1. Obter o texto e a URL do áudio do corpo da requisição
         const { text, voiceUrl } = await req.json();
 
         if (!text || !voiceUrl) {
@@ -35,7 +34,6 @@ export async function POST(req: NextRequest) {
 
         console.log('[API HuggingFace-Clone] A iniciar a predição no Hugging Face Space...');
         
-        // 2. Chamar a API do Hugging Face Space para o modelo XTTS-v2
         const response = await fetch(
             "https://coqui-xtts.hf.space/run/predict",
             {
@@ -43,37 +41,46 @@ export async function POST(req: NextRequest) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     data: [
-                        text,           // O texto a ser falado
-                        voiceUrl,       // A URL pública para o ficheiro .wav
-                        "pt",           // O idioma
+                        text,
+                        voiceUrl,
+                        "pt",
                     ]
                 })
             }
         );
 
+        // **INÍCIO DA MUDANÇA IMPORTANTE**
+        // Primeiro, verificamos se a resposta foi bem-sucedida
         if (!response.ok) {
             const errorText = await response.text();
             throw new Error(`A chamada para a API do Hugging Face falhou. Status: ${response.status}. Detalhes: ${errorText}`);
         }
-
-        const predictionResult = await response.json();
         
-        // A resposta do HF contém um array 'data', e o primeiro item é o áudio
+        // Lemos a resposta como texto para poder inspecioná-la com segurança
+        const responseText = await response.text();
+        let predictionResult;
+
+        try {
+            // Tentamos converter o texto em JSON
+            predictionResult = JSON.parse(responseText);
+        } catch (e) {
+            // Se falhar, significa que não era um JSON. O erro real é o próprio texto.
+            console.error("A resposta do Hugging Face não era um JSON válido:", responseText);
+            throw new Error(`Resposta inesperada do servidor do Hugging Face: ${responseText}`);
+        }
+        // **FIM DA MUDANÇA IMPORTANTE**
+        
         const audioData = predictionResult?.data?.[0];
 
         if (!audioData || !audioData.url) {
-             throw new Error('A resposta do Hugging Face não continha um URL de áudio válido.');
+             throw new Error(`A resposta do Hugging Face não continha um URL de áudio válido. Resposta recebida: ${JSON.stringify(predictionResult)}`);
         }
         
         console.log('[API HuggingFace-Clone] Predição concluída. A obter o URL do áudio.');
 
-        // 3. Fazer o download do áudio a partir do URL retornado
-        // O endpoint de áudio do Hugging Face pode não estar pronto imediatamente, então tentamos algumas vezes
         const audioResponse = await fetchAudioFromHuggingFace(audioData.url);
-        
         const audioBlob = await audioResponse.blob();
 
-        // 4. Enviar o áudio de volta para o cliente
         return new NextResponse(audioBlob, {
             status: 200,
             headers: { 'Content-Type': 'audio/wav' },
