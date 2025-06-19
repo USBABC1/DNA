@@ -34,29 +34,26 @@ export async function POST(req: NextRequest) {
 
         console.log('[API HuggingFace-Clone] A iniciar a predição no Hugging Face Space...');
         
-        // **INÍCIO DA CORREÇÃO**
-        // O corpo da requisição foi atualizado para corresponder aos 8 parâmetros da documentação
         const response = await fetch(
-            "https://coqui-xtts.hf.space/run/predict", // Endpoint da API
+            "https://coqui-xtts.hf.space/run/predict",
             {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    fn_index: 1, // O índice da função na API do Gradio
+                    fn_index: 1,
                     data: [
-                        text,       // Parâmetro 1: O texto a ser falado
-                        "pt",       // Parâmetro 2: O idioma
-                        voiceUrl,   // Parâmetro 3: A URL do áudio de referência
-                        null,       // Parâmetro 4: Áudio do microfone (não usado)
-                        false,      // Parâmetro 5: Usar microfone (não usado)
-                        true,       // Parâmetro 6: Limpar a voz de referência (recomendado)
-                        true,       // Parâmetro 7: Não autodetectar idioma (já estamos definindo como 'pt')
-                        true,       // Parâmetro 8: Checkbox de "Concordo"
+                        text,
+                        "pt",
+                        voiceUrl,
+                        null,
+                        false,
+                        true,
+                        true,
+                        true,
                     ]
                 })
             }
         );
-        // **FIM DA CORREÇÃO**
 
         if (!response.ok) {
             const errorText = await response.text();
@@ -73,7 +70,6 @@ export async function POST(req: NextRequest) {
             throw new Error(`Resposta inesperada do servidor do Hugging Face: ${responseText}`);
         }
         
-        // A resposta do Gradio contém um array 'data', e o áudio é o segundo item (índice 1)
         const audioData = predictionResult?.data?.[1];
 
         if (!audioData || !audioData.url) {
