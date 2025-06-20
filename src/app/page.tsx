@@ -1,4 +1,3 @@
-// Caminho: src/app/page.tsx
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -12,12 +11,41 @@ import { analisarFragmento, gerarSinteseFinal } from '../lib/analysisEngine';
 import { ExpertProfile, SessionStatus, Pergunta } from '../lib/types';
 import { initAudio, playAudioFromUrl, startRecording, stopRecording } from '../services/webAudioService';
 
-// Placeholder para a função de transcrição (Ação do usuário necessária aqui)
+/**
+ * Envia o áudio para a nossa rota de API interna para ser transcrito pela Deepgram.
+ * @param audioBlob O áudio gravado no formato Blob.
+ * @returns A transcrição em texto.
+ */
 async function transcribeAudio(audioBlob: Blob): Promise<string> {
-  console.log("Enviando áudio para transcrição:", audioBlob.size);
-  alert("Integração com a API de transcrição pendente. Usando texto provisório.");
-  return "Esta é uma transcrição provisória para fins de design. A gravação funcionou, mas é necessário conectar a um serviço de Speech-to-Text na função 'transcribeAudio'.";
+  console.log("Enviando áudio para a API de transcrição:", audioBlob.size, audioBlob.type);
+
+  try {
+    // Faz a chamada para a nossa própria API interna (/api/transcribe)
+    const response = await fetch('/api/transcribe', {
+      method: 'POST',
+      body: audioBlob, // Envia o blob diretamente no corpo
+      headers: {
+        // O Content-Type é definido automaticamente pelo navegador ao enviar um Blob
+      },
+    });
+
+    if (!response.ok) {
+      // Se a resposta não for OK, lança um erro com a mensagem do servidor
+      const errorData = await response.json();
+      throw new Error(errorData.error || `Erro do servidor: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log("Transcrição recebida:", data.transcript);
+    return data.transcript; // Retorna a transcrição recebida do servidor
+
+  } catch (error) {
+    console.error('Não foi possível transcrever o áudio:', error);
+    // Retorna uma mensagem de erro amigável que pode ser mostrada ao usuário
+    return "Desculpe, não consegui processar sua resposta. Vamos tentar a próxima pergunta.";
+  }
 }
+
 
 const containerVariants = {
   hidden: { opacity: 0, scale: 0.95 },
@@ -63,6 +91,7 @@ const DNAInterface = () => {
       await startRecording();
       setStatus('recording');
     } catch (error) {
+      console.error("Erro ao iniciar gravação:", error);
       setStatus('waiting_for_user');
     }
   };
@@ -71,6 +100,12 @@ const DNAInterface = () => {
     try {
       setStatus('processing');
       const audioBlob = await stopRecording();
+      // Garante que o blob tem um tamanho mínimo antes de enviar
+      if (audioBlob.size < 1000) {
+        console.warn("Gravação muito curta, pulando processamento.");
+        fazerProximaPergunta();
+        return;
+      }
       await processarResposta(audioBlob);
     } catch (error) {
       console.error("Erro ao parar gravação:", error);
@@ -80,9 +115,11 @@ const DNAInterface = () => {
 
   const processarResposta = async (audioBlob: Blob) => {
     const transcricao = await transcribeAudio(audioBlob);
-    if (!transcricao.trim()) {
-      alert("Sua resposta não pôde ser processada. Tente a mesma pergunta novamente.");
-      perguntaIndex.current--;
+    // Verifica se a transcrição está vazia ou contém a mensagem de erro
+    if (!transcricao.trim() || transcricao.startsWith("Desculpe, não consegui processar")) {
+      console.log("Transcrição vazia ou com erro, tentando a pergunta novamente.");
+      // Volta para a pergunta anterior para que o usuário possa tentar de novo.
+      perguntaIndex.current--; 
       fazerProximaPergunta();
       return;
     }
@@ -149,17 +186,17 @@ const DNAInterface = () => {
         return (
           <motion.div key="finished" variants={containerVariants} initial="hidden" animate="visible" exit="exit" className="w-full">
              <motion.div variants={itemVariants} className="text-center mb-8">
-              <FileText className="mx-auto h-20 w-20 text-primary" strokeWidth={1}/>
-              <h1 className="text-4xl font-bold font-heading mt-4">Seu Relatório de Análise Narrativa</h1>
-            </motion.div>
+               <FileText className="mx-auto h-20 w-20 text-primary" strokeWidth={1}/>
+               <h1 className="text-4xl font-bold font-heading mt-4">Seu Relatório de Análise Narrativa</h1>
+             </motion.div>
             <motion.div variants={itemVariants} className="glass-card p-6 text-left whitespace-pre-wrap font-mono text-sm leading-relaxed overflow-auto max-h-[50vh]">
                 {relatorioFinal}
             </motion.div>
             <motion.div variants={itemVariants} className="text-center mt-8">
-               <button onClick={iniciarSessao} className="flex items-center gap-2 mx-auto px-8 py-3 bg-primary text-primary-foreground font-bold rounded-full text-lg hover:bg-primary/90 transition-all duration-300 transform hover:scale-105 shadow-lg shadow-primary/30">
-                <Play />
-                Fazer Nova Análise
-              </button>
+                <button onClick={iniciarSessao} className="flex items-center gap-2 mx-auto px-8 py-3 bg-primary text-primary-foreground font-bold rounded-full text-lg hover:bg-primary/90 transition-all duration-300 transform hover:scale-105 shadow-lg shadow-primary/30">
+                  <Play />
+                  Fazer Nova Análise
+                </button>
             </motion.div>
           </motion.div>
         );
