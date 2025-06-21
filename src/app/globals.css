@@ -34,7 +34,7 @@
   /* Gradients */
   --gradient-primary: linear-gradient(135deg, #944a00 0%, #00cc6a 100%);
   --gradient-secondary: linear-gradient(135deg, #1a1a1a 0%, #333333 100%);
-  --gradient-accent: linear-gradient(135deg, #00ff88 0%, #ffffff 100%);
+  --gradient-accent: linear-gradient(135deg, #b86b00 0%, #ffffff 100%);
   
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
