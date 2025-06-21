@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { 
-  Mic, 
-  Square, 
-  Loader, 
-  ArrowRight, 
-  FileText, 
-  Check, 
+import {
+  Mic,
+  Square,
+  Loader,
+  ArrowRight,
+  FileText,
+  Check,
   AlertTriangle,
   Brain,
   Sparkles,
@@ -488,8 +488,10 @@ const PremiumWelcomeScreen = ({ onStart }: { onStart: () => void }) => (
             className="text-7xl md:text-8xl font-black"
             style={{
               background: 'linear-gradient(135deg, #22c55e 0%, #3b82f6 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
+              WebkitBackgroundClip: 'text', // Original, mantido caso o usuário queira assim mas camelCase é melhor
+              webkitBackgroundClip: 'text',  // CORRIGIDO para camelCase
+              WebkitTextFillColor: 'transparent', // Original, mantido
+              webkitTextFillColor: 'transparent', // CORRIGIDO para camelCase
               backgroundClip: 'text'
             }}
           >
@@ -656,7 +658,7 @@ const PremiumSessionScreen = ({
       <div className="space-y-12">
         <div className="w-full">
           <div
-            key={pergunta?.texto}
+            key={pergunta?.texto} // Using text as key might be problematic if texts are not unique or change
             className="p-8 rounded-3xl"
             style={{
               background: 'rgba(255, 255, 255, 0.05)',
@@ -688,12 +690,13 @@ const PremiumSessionScreen = ({
             
             <div className="text-center">
               <p className="text-2xl md:text-3xl font-medium text-white leading-relaxed min-h-[120px] flex items-center justify-center">
-                {pergunta?.texto</p>
+                {pergunta?.texto}
+              </p> {/* CORRIGIDO: </p> movido para fora de {} */}
             </div>
           </div>
         </div>
         
-        <div className="control-section">
+        <div className="control-section"> {/* Assuming these classes are defined in your global CSS */}
           <div className="status-display">
             <div className="status-content">
               <statusConfig.icon className={`status-icon ${statusConfig.color}`} />
@@ -787,7 +790,7 @@ const PremiumReportScreen = ({
         await navigator.share({
           title: 'Meu Relatório DNA',
           text: 'Confira minha análise psicológica completa!',
-          url: window.location.href
+          url: window.location.href // This will share the current page URL
         });
       } catch (error) {
         console.log('Erro ao compartilhar:', error);
@@ -796,7 +799,7 @@ const PremiumReportScreen = ({
   };
 
   return (
-    <div className="w-full max-w-6xl">
+    <div className="w-full max-w-6xl"> {/* Assuming styling from global CSS for report-header etc. */}
       <div className="report-header">
         <div className="completion-badge">
           <div className="badge-glow"></div>
@@ -835,7 +838,7 @@ const PremiumReportScreen = ({
         </div>
         
         <div className="report-content">
-          <div className="report-text">
+          <div className="report-text" style={{ whiteSpace: 'pre-wrap' }}> {/* Ensure newlines in report are rendered */}
             {sintese}
           </div>
         </div>
@@ -859,7 +862,7 @@ const ErrorScreen = ({
   message: string; 
   onRetry: () => void;
 }) => (
-  <div className="error-container">
+  <div className="error-container"> {/* Assuming styling from global CSS */}
     <div className="error-icon">
       <AlertTriangle className="w-16 h-16 text-red-400 mx-auto" />
     </div>
@@ -889,34 +892,41 @@ export default function DNAAnalysisApp() {
       setError(null);
       await audioService.initAudio();
       setIsAudioInitialized(true);
-      setSessionStatus('listening');
-      await playCurrentQuestion();
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Erro desconhecido ao inicializar');
+      // Wait for playCurrentQuestion to complete before setting status for user interaction
+      // Start by playing the first question
+      if (PERGUNTAS_DNA.length > 0) {
+        await playCurrentQuestionInternal(PERGUNTAS_DNA[0]);
+      } else {
+        setSessionStatus('finished'); // Or some other appropriate status if no questions
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro desconhecido ao inicializar');
     }
-  }, []);
+  }, []); // Removed playCurrentQuestionInternal from deps, it's defined inside or stable
 
-  const playCurrentQuestion = useCallback(async () => {
-    if (!currentQuestion) return;
+  const playCurrentQuestionInternal = useCallback(async (questionToPlay: Pergunta) => {
+    if (!questionToPlay) return;
     
     setSessionStatus('listening');
     try {
-      await audioService.playAudioFromUrl(currentQuestion.audioUrl, () => {
+      await audioService.playAudioFromUrl(questionToPlay.audioUrl, () => {
         setSessionStatus('waiting_for_user');
       });
-    } catch (error) {
-      console.error('Erro ao reproduzir áudio:', error);
-      setSessionStatus('waiting_for_user');
+    } catch (err) {
+      console.error('Erro ao reproduzir áudio:', err);
+      setError(err instanceof Error ? err.message : 'Erro ao reproduzir áudio da pergunta.');
+      setSessionStatus('waiting_for_user'); // Still allow user to proceed or retry
     }
-  }, [currentQuestion]);
+  }, []);
+
 
   const startRecording = useCallback(async () => {
     try {
       setError(null);
       await audioService.startRecording();
       setSessionStatus('recording');
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Erro ao iniciar gravação');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao iniciar gravação');
     }
   }, []);
 
@@ -932,20 +942,23 @@ export default function DNAAnalysisApp() {
       procuro encontrar um equilíbrio entre meus valores pessoais e as expectativas sociais.`;
       
       // Processar análise
+      if (!currentQuestion) {
+        throw new Error("Current question is undefined during analysis.");
+      }
       const updatedProfile = analysisEngine.analisarFragmento(
         mockTranscription, 
         expertProfile, 
-        currentQuestion!
+        currentQuestion
       );
       
       setExpertProfile(updatedProfile);
       
       // Avançar para próxima pergunta ou finalizar
       if (currentQuestionIndex < PERGUNTAS_DNA.length - 1) {
-        setCurrentQuestionIndex(prev => prev + 1);
-        setTimeout(() => {
-          setSessionStatus('listening');
-          playCurrentQuestion();
+        const nextIndex = currentQuestionIndex + 1;
+        setCurrentQuestionIndex(nextIndex);
+        setTimeout(async () => { // Make timeout callback async to await playCurrentQuestionInternal
+          await playCurrentQuestionInternal(PERGUNTAS_DNA[nextIndex]);
         }, 1500);
       } else {
         // Gerar relatório final
@@ -953,10 +966,11 @@ export default function DNAAnalysisApp() {
         setFinalReport(finalSynthesis);
         setSessionStatus('finished');
       }
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Erro ao processar gravação');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao processar gravação');
+      setSessionStatus('waiting_for_user'); // Revert to a safe state
     }
-  }, [currentQuestion, currentQuestionIndex, expertProfile, playCurrentQuestion]);
+  }, [currentQuestion, currentQuestionIndex, expertProfile, playCurrentQuestionInternal]);
 
   const restart = useCallback(() => {
     setSessionStatus('idle');
@@ -971,14 +985,26 @@ export default function DNAAnalysisApp() {
     setError(null);
     if (!isAudioInitialized) {
       initializeApp();
+    } else if (currentQuestion) { // If audio is initialized, retry playing current question or allow recording
+      playCurrentQuestionInternal(currentQuestion);
     } else {
-      setSessionStatus('waiting_for_user');
+       // Fallback or specific error handling if currentQuestion is not set
+       restart(); // Or set an error message
     }
-  }, [isAudioInitialized, initializeApp]);
+  }, [isAudioInitialized, initializeApp, currentQuestion, playCurrentQuestionInternal, restart]);
+
+  // Effect to play question when index changes and not initial load (handled by initializeApp)
+  useEffect(() => {
+    if (sessionStatus === 'listening' && currentQuestion && isAudioInitialized && currentQuestionIndex > 0) {
+      // This logic might be redundant if stopRecording handles the transition correctly
+      // Consider if playCurrentQuestionInternal should be called here or only after initializeApp and stopRecording
+    }
+  }, [currentQuestionIndex, sessionStatus, currentQuestion, isAudioInitialized, playCurrentQuestionInternal]);
+
 
   if (error) {
     return (
-      <div className="app-container">
+      <div className="app-container"> {/* Assuming styling from global CSS */}
         <DNAParticles />
         <div className="content-wrapper">
           <ErrorScreen message={error} onRetry={handleRetry} />
@@ -994,7 +1020,7 @@ export default function DNAAnalysisApp() {
   }
 
   return (
-    <div className="app-container">
+    <div className="app-container"> {/* Assuming styling from global CSS */}
       <DNAParticles />
       
       <div className="content-wrapper">
@@ -1002,7 +1028,7 @@ export default function DNAAnalysisApp() {
           <PremiumWelcomeScreen onStart={initializeApp} />
         )}
         
-        {sessionStatus !== 'idle' && sessionStatus !== 'finished' && (
+        {sessionStatus !== 'idle' && sessionStatus !== 'finished' && currentQuestion && (
           <PremiumSessionScreen
             pergunta={currentQuestion}
             status={sessionStatus}
