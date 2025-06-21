@@ -1,98 +1,113 @@
-// Caminho: src/services/webAudioService.ts
+// src/services/webAudioService.ts
 
-let audioContext: AudioContext;
+let audioContext: AudioContext | null = null;
 let source: AudioBufferSourceNode | null = null;
-let mediaRecorder: MediaRecorder | null = null;
-let audioChunks: Blob[] = [];
 
 export const initAudio = () => {
-  // Inicializa o AudioContext apenas no lado do cliente
-  if (typeof window !== 'undefined') {
+  if (!audioContext) {
     audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
   }
 };
 
 export const stopAudio = () => {
   if (source) {
+    source.onended = null; // Remove o callback para não acionar a lógica de fim de áudio
     source.stop();
     source = null;
   }
 };
 
-/**
- * Reproduz um arquivo de áudio a partir de uma URL.
- * @param url A URL do arquivo .mp3 da pergunta.
- * @param onEnded Callback a ser executado quando o áudio terminar.
- */
-export const playAudioFromUrl = async (url: string, onEnded: () => void) => {
-  stopAudio();
-
-  try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Falha ao buscar o áudio: ${response.statusText}`);
+export const playAudioFromUrl = (url: string, onEnded: () => void): Promise<void> => {
+  return new Promise(async (resolve, reject) => {
+    if (!audioContext) {
+      // Embora a inicialização seja feita na ação do usuário, isso serve como uma garantia.
+      initAudio();
+      if (!audioContext) {
+        return reject(new Error('AudioContext não pôde ser inicializado.'));
+      }
     }
 
-    const audioData = await response.arrayBuffer();
-    const audioBuffer = await audioContext.decodeAudioData(audioData);
-
-    source = audioContext.createBufferSource();
-    source.buffer = audioBuffer;
-    source.connect(audioContext.destination);
-    source.onended = onEnded;
-    source.start(0);
-  } catch (error) {
-    console.error('Erro ao reproduzir áudio da URL:', error);
-    onEnded(); // Continua o fluxo mesmo se o áudio falhar
-  }
-};
-
-// --- Funções de Gravação de Áudio do Usuário ---
-
-/**
- * Inicia a gravação de áudio do microfone do usuário.
- */
-export const startRecording = async (): Promise<void> => {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert('A gravação de áudio não é suportada neste navegador.');
-        throw new Error('Media Devices API not supported.');
+    // Garante que o contexto de áudio seja retomado se estiver suspenso (necessário para autoplay)
+    if (audioContext.state === 'suspended') {
+      await audioContext.resume();
     }
 
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream);
-        audioChunks = [];
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Erro ao buscar áudio: ${response.statusText}`);
+      }
+      const arrayBuffer = await response.arrayBuffer();
+      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
-        mediaRecorder.ondataavailable = event => {
-            audioChunks.push(event.data);
-        };
+      if (source) {
+        source.stop();
+      }
 
-        mediaRecorder.start();
-    } catch (err) {
-        console.error('Erro ao iniciar a gravação:', err);
-        alert('Não foi possível iniciar a gravação. Verifique as permissões do microfone em seu navegador.');
+      source = audioContext.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(audioContext.destination);
+
+      // --- CORREÇÃO APLICADA AQUI ---
+      // Agendamos o início para 0.1 segundo no futuro no relógio do AudioContext.
+      // Isso dá ao pipeline de áudio tempo para se preparar e evita o corte no início.
+      const startTime = audioContext.currentTime + 0.1;
+      source.start(startTime);
+      // --- FIM DA CORREÇÃO ---
+
+      source.onended = () => {
+        onEnded();
+        resolve();
+      };
+    } catch (error) {
+      console.error('Falha ao tocar áudio:', error);
+      reject(error);
     }
+  });
 };
 
-/**
- * Para a gravação e retorna o áudio gravado como um Blob.
- */
+
+// Funções de gravação permanecem as mesmas
+let mediaRecorder: MediaRecorder | null = null;
+let audioChunks: Blob[] = [];
+
+export const startRecording = (): Promise<void> => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        return reject(new Error('API de gravação não é suportada neste navegador.'));
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(stream);
+      audioChunks = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        audioChunks.push(event.data);
+      };
+
+      mediaRecorder.start();
+      resolve();
+    } catch (err) {
+      console.error('Erro ao acessar o microfone:', err);
+      reject(err);
+    }
+  });
+};
+
 export const stopRecording = (): Promise<Blob> => {
-    return new Promise((resolve, reject) => {
-        if (!mediaRecorder) {
-            return reject('O gravador de mídia não foi inicializado.');
-        }
+  return new Promise((resolve) => {
+    if (!mediaRecorder) {
+      throw new Error('O MediaRecorder não foi iniciado.');
+    }
 
-        mediaRecorder.onstop = () => {
-            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-            
-            // Para as tracks do microfone para que o ícone de gravação suma
-            if (mediaRecorder?.stream) {
-              mediaRecorder.stream.getTracks().forEach(track => track.stop());
-            }
-            resolve(audioBlob);
-        };
+    mediaRecorder.onstop = () => {
+      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+      // Para o stream do microfone para que o ícone de gravação suma
+      mediaRecorder?.stream.getTracks().forEach(track => track.stop());
+      resolve(audioBlob);
+    };
 
-        mediaRecorder.stop();
-    });
+    mediaRecorder.stop();
+  });
 };
