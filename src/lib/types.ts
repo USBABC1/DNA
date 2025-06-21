@@ -1,5 +1,4 @@
 // src/lib/types.ts
-// Este ficheiro define todas as estruturas de dados (interfaces) usadas na aplicação.
 
 // Interface para uma única pergunta
 export interface Pergunta {
@@ -10,7 +9,7 @@ export interface Pergunta {
 
 // Interface para as métricas do Big Five
 export interface BigFiveMetrics {
-  [key: string]: number; // <--- ADICIONADO PARA CORRIGIR O ERRO
+  [key: string]: number;
   Openness: number;
   Conscientiousness: number;
   Extraversion: number;
@@ -20,7 +19,7 @@ export interface BigFiveMetrics {
 
 // Interface para os valores de Schwartz
 export interface SchwartzValues {
-  [key: string]: number; // <--- ADICIONADO PARA CORRIGIR O ERRO
+  [key: string]: number;
   'Self-Direction': number;
   Stimulation: number;
   Hedonism: number;
@@ -35,7 +34,7 @@ export interface SchwartzValues {
 
 // Interface para os motivadores primários
 export interface PrimaryMotivators {
-  [key: string]: number; // <--- ADICIONADO PARA CORRIGIR O ERRO
+  [key: string]: number;
   Purpose: number;
   Autonomy: number;
   Mastery: number;
@@ -65,6 +64,7 @@ export interface ExpertProfile {
 
 // Define os possíveis estados da sessão para controlar a UI
 export type SessionStatus =
+  | 'presenting' // <-- NOVO ESTADO ADICIONADO
   | 'idle'
   | 'listening'
   | 'waiting_for_user'
