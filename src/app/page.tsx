@@ -205,7 +205,6 @@ const PremiumWelcomeScreen = ({ onStart }: { onStart: () => void }) => (
         <h1 className="hero-title">
           <span className="title-main">DNA</span>
           <span className="title-sub">Deep Narrative Analysis</span>
-          <div className="title-accent">Powered by Advanced AI</div>
         </h1>
         
         <p className="hero-description">
@@ -690,8 +689,8 @@ export default function DnaPage() {
           transition={{ delay: 1.5 }}
           className="footer-content"
         >
-          <p>DNA - Deep Narrative Analysis © 2024</p>
-          <p>Powered by Advanced AI & Psychological Science</p>
+          <p>DNA - Deep Narrative Analysis © 2025</p>
+          <p>UP LANÇAMENTOS</p>
         </motion.div>
       </footer>
     </main>
