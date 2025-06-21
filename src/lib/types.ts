@@ -5,11 +5,12 @@
 export interface Pergunta {
   texto: string;
   audioUrl: string;
-  dominio: string; // Assegura que o domínio está sempre presente
+  dominio: string; 
 }
 
 // Interface para as métricas do Big Five
 export interface BigFiveMetrics {
+  [key: string]: number; // <--- ADICIONADO PARA CORRIGIR O ERRO
   Openness: number;
   Conscientiousness: number;
   Extraversion: number;
@@ -19,6 +20,7 @@ export interface BigFiveMetrics {
 
 // Interface para os valores de Schwartz
 export interface SchwartzValues {
+  [key: string]: number; // <--- ADICIONADO PARA CORRIGIR O ERRO
   'Self-Direction': number;
   Stimulation: number;
   Hedonism: number;
@@ -33,19 +35,17 @@ export interface SchwartzValues {
 
 // Interface para os motivadores primários
 export interface PrimaryMotivators {
+  [key: string]: number; // <--- ADICIONADO PARA CORRIGIR O ERRO
   Purpose: number;
   Autonomy: number;
   Mastery: number;
   Connection: number;
 }
 
-// --- TIPOS CORRIGIDOS E ADICIONADOS ---
-// Estes tipos criam um conjunto válido de strings a partir das chaves das interfaces acima,
-// resolvendo o erro de importação no analysisEngine.ts.
+// Tipos para as chaves das métricas
 export type BigFive = keyof BigFiveMetrics;
 export type ValorSchwartz = keyof SchwartzValues;
 export type Motivador = keyof PrimaryMotivators;
-// --- FIM DA CORREÇÃO ---
 
 // A estrutura principal que armazena todo o perfil do expert
 export interface ExpertProfile {
