@@ -2,28 +2,41 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 224 71.4% 4.1%;
-    --card: 0 0% 100%;
-    --card-foreground: 224 71.4% 4.1%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 224 71.4% 4.1%;
-    --primary: 220 82% 50%;
-    --primary-foreground: 210 20% 98%;
-    --secondary: 220 14.3% 95.9%;
-    --secondary-foreground: 220 8.9% 46.1%;
-    --muted: 220 14.3% 95.9%;
-    --muted-foreground: 220 8.9% 46.1%;
-    --accent: 220 14.3% 95.9%;
-    --accent-foreground: 220 8.9% 46.1%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 20% 98%;
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 224 71.4% 4.1%;
-    --radius: 0.5rem;
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 142.1 76.2% 36.3%;
+    --primary-foreground: 355.7 100% 97.3%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 142.1 76.2% 36.3%;
+    --radius: 0.75rem;
+    
+    /* Custom DNA colors */
+    --dna-primary: 142.1 76.2% 36.3%;
+    --dna-secondary: 217.2 91.2% 59.8%;
+    --dna-accent: 47.9 95.8% 53.1%;
+    --dna-surface: 240 5.9% 10%;
+    --dna-surface-elevated: 240 3.7% 15.9%;
+    --dna-text-primary: 0 0% 98%;
+    --dna-text-secondary: 240 5% 64.9%;
+    --dna-gradient-start: 142.1 76.2% 36.3%;
+    --dna-gradient-end: 217.2 91.2% 59.8%;
   }
 }
 
@@ -31,8 +44,169 @@
   * {
     @apply border-border;
   }
+  
   body {
-    @apply bg-secondary text-foreground;
+    @apply bg-background text-foreground font-sans antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
+    background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(240 10% 2%) 100%);
+    min-height: 100vh;
   }
+  
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer components {
+  .dna-gradient {
+    background: linear-gradient(135deg, hsl(var(--dna-gradient-start)) 0%, hsl(var(--dna-gradient-end)) 100%);
+  }
+  
+  .dna-glass {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .dna-glow {
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
+  }
+  
+  .dna-text-gradient {
+    background: linear-gradient(135deg, hsl(var(--dna-primary)) 0%, hsl(var(--dna-secondary)) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .dna-card {
+    @apply dna-glass rounded-2xl p-8 transition-all duration-500;
+  }
+  
+  .dna-card:hover {
+    @apply dna-glow;
+    transform: translateY(-2px);
+  }
+  
+  .dna-button-primary {
+    @apply dna-gradient text-white font-semibold py-4 px-8 rounded-xl shadow-lg;
+    @apply hover:shadow-xl hover:scale-105 transition-all duration-300;
+    @apply focus:outline-none focus:ring-4 focus:ring-green-500/30;
+  }
+  
+  .dna-button-secondary {
+    @apply dna-glass text-white font-medium py-3 px-6 rounded-lg;
+    @apply hover:bg-white/10 transition-all duration-300;
+    @apply focus:outline-none focus:ring-2 focus:ring-white/30;
+  }
+  
+  .dna-progress-bar {
+    @apply w-full h-2 bg-white/10 rounded-full overflow-hidden;
+  }
+  
+  .dna-progress-fill {
+    @apply h-full dna-gradient transition-all duration-700 ease-out;
+  }
+  
+  .dna-pulse-ring {
+    @apply absolute inset-0 rounded-full animate-pulse-ring;
+    background: radial-gradient(circle, rgba(34, 197, 94, 0.4) 0%, transparent 70%);
+  }
+  
+  .dna-recording-indicator {
+    @apply relative flex items-center justify-center;
+  }
+  
+  .dna-recording-indicator::before {
+    content: '';
+    @apply absolute inset-0 rounded-full animate-ping;
+    background: radial-gradient(circle, rgba(239, 68, 68, 0.6) 0%, transparent 70%);
+  }
+  
+  .dna-floating-particles {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: -1;
+  }
+  
+  .dna-particle {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    background: rgba(34, 197, 94, 0.3);
+    border-radius: 50%;
+    animation: float 20s infinite linear;
+  }
+  
+  @keyframes float {
+    0% {
+      transform: translateY(100vh) rotate(0deg);
+      opacity: 0;
+    }
+    10% {
+      opacity: 1;
+    }
+    90% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(-100vh) rotate(360deg);
+      opacity: 0;
+    }
+  }
+  
+  .dna-typing-indicator {
+    @apply flex space-x-1;
+  }
+  
+  .dna-typing-dot {
+    @apply w-2 h-2 bg-green-500 rounded-full animate-bounce;
+  }
+  
+  .dna-typing-dot:nth-child(2) {
+    animation-delay: 0.1s;
+  }
+  
+  .dna-typing-dot:nth-child(3) {
+    animation-delay: 0.2s;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--dna-primary));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--dna-secondary));
+}
+
+/* Selection styling */
+::selection {
+  background: hsl(var(--dna-primary) / 0.3);
+  color: hsl(var(--foreground));
+}
+
+/* Focus styles */
+.focus-visible {
+  @apply outline-none ring-2 ring-green-500/50 ring-offset-2 ring-offset-background;
 }
