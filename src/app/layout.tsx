@@ -86,14 +86,14 @@ export const metadata: Metadata = {
       {
         rel: 'mask-icon',
         url: '/safari-pinned-tab.svg',
-        color: '#8b5cf6',
+        color: '#00f28c',
       },
     ],
   },
   manifest: '/site.webmanifest',
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#8b5cf6' },
-    { media: '(prefers-color-scheme: dark)', color: '#1a1a2e' },
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#000000' },
   ],
   viewport: {
     width: 'device-width',
@@ -143,7 +143,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="DNA Narrativo" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="msapplication-config" content="/browserconfig.xml" />
-        <meta name="msapplication-TileColor" content="#8b5cf6" />
+        <meta name="msapplication-TileColor" content="#000000" />
         <meta name="msapplication-tap-highlight" content="no" />
         
         {/* Schema.org structured data */}
@@ -175,11 +175,7 @@ export default function RootLayout({
         className={`
           ${inter.className} 
           antialiased 
-          min-h-screen 
-          bg-gradient-to-br 
-          from-purple-900 
-          via-blue-900 
-          to-pink-900
+          min-h-screen
           overflow-x-hidden
         `}
         suppressHydrationWarning
@@ -189,7 +185,7 @@ export default function RootLayout({
           href="#main-content" 
           className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 z-50 bg-white text-black px-4 py-2 rounded-md"
         >
-        
+        Pular para o conteúdo principal
         </a>
 
         {/* Indicador de carregamento global */}
