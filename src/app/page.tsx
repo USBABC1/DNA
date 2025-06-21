@@ -2,6 +2,7 @@
 
 // Importações essenciais do React e bibliotecas
 import React from 'react';
+import * as THREE from 'three'; // <-- CORREÇÃO: Importação adicionada
 
 // Componentes de UI e utilitários
 import { Button } from '@/components/ui/button';
