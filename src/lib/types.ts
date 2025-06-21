@@ -1,11 +1,11 @@
 // src/lib/types.ts
 // Este ficheiro define todas as estruturas de dados (interfaces) usadas na aplicação.
-// Ter tipos bem definidos ajuda a evitar erros e torna o código mais fácil de entender.
 
 // Interface para uma única pergunta
 export interface Pergunta {
   texto: string;
   audioUrl: string;
+  dominio: string; // Assegura que o domínio está sempre presente
 }
 
 // Interface para as métricas do Big Five
@@ -20,45 +20,54 @@ export interface BigFiveMetrics {
 // Interface para os valores de Schwartz
 export interface SchwartzValues {
   'Self-Direction': number;
+  Stimulation: number;
+  Hedonism: number;
+  Achievement: number;
+  Power: number;
+  Security: number;
+  Conformity: number;
+  Tradition: number;
   Benevolence: number;
   Universalism: number;
 }
 
 // Interface para os motivadores primários
 export interface PrimaryMotivators {
-  Autonomy: number;
   Purpose: number;
-  Belonging: number;
+  Autonomy: number;
+  Mastery: number;
+  Connection: number;
 }
 
-// Interface para a análise vocal (simplificada para a web)
-export interface VocalAnalysis {
-  hesitacoes: number;
-}
+// --- TIPOS CORRIGIDOS E ADICIONADOS ---
+// Estes tipos criam um conjunto válido de strings a partir das chaves das interfaces acima,
+// resolvendo o erro de importação no analysisEngine.ts.
+export type BigFive = keyof BigFiveMetrics;
+export type ValorSchwartz = keyof SchwartzValues;
+export type Motivador = keyof PrimaryMotivators;
+// --- FIM DA CORREÇÃO ---
 
 // A estrutura principal que armazena todo o perfil do expert
 export interface ExpertProfile {
-  cobertura_dominios: {
-    [key: string]: number; // Permite chaves de string com valores numéricos
+  bigFive: BigFiveMetrics;
+  valoresSchwartz: SchwartzValues;
+  motivadores: PrimaryMotivators;
+  coberturaDominios: {
+    [key: string]: number;
   };
   metricas: {
-    big_five: BigFiveMetrics;
-    valores_schwartz: SchwartzValues;
-    motivadores: PrimaryMotivators;
-    analise_vocal: VocalAnalysis;
+    contradicoes: number;
+    metaforas: number;
   };
-  analise_narrativa: {
-    contradicoes_detectadas: string[];
-    metaforas_centrais: string[];
-  };
-  fragmentos_processados: number;
+  metaforasCentrais: string[];
+  conflitosDeValorDetectados: string[];
 }
 
 // Define os possíveis estados da sessão para controlar a UI
 export type SessionStatus =
-  | 'idle' // Ocioso, antes de começar
-  | 'listening' // A IA está a falar (TTS)
-  | 'waiting_for_user' // A aguardar a resposta do utilizador
-  | 'recording' // O utilizador está a gravar
-  | 'processing' // A processar a resposta do utilizador
-  | 'finished'; // A sessão terminou e o relatório está pronto
+  | 'idle'
+  | 'listening'
+  | 'waiting_for_user'
+  | 'recording'
+  | 'processing'
+  | 'finished';
