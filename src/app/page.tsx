@@ -1,8 +1,11 @@
 "use client";
 
+// Importações do React e de bibliotecas de UI
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mic, Square, Play, BarChart2, AlertCircle, LoaderCircle, Sparkles, Brain, MessageCircle, CheckCircle, ArrowRight, Volume2, RotateCcw } from "lucide-react";
+
+// Nossas importações de lógica e configuração do projeto
 import { PERGUNTAS_DNA, criarPerfilInicial } from "../lib/config";
 import { ExpertProfile, Pergunta, SessionStatus } from "../lib/types";
 import { analisarFragmento, gerarSinteseFinal } from "../lib/analysisEngine";
@@ -30,7 +33,7 @@ export default function Home() {
 
   const perguntaIndex = useRef(0);
 
-  // Lógica real do nosso projeto
+  // Lógica funcional do nosso projeto
   const iniciarSessao = () => {
     initAudio();
     perguntaIndex.current = 0;
@@ -164,17 +167,17 @@ export default function Home() {
               <div className="glass-card p-6 text-center">
                 <MessageCircle className="w-10 h-10 text-purple-400 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">Entrevista Inteligente</h3>
-                <p className="text-gray-400 text-sm">Perguntas personalizadas baseadas em IA</p>
+                <p className="text-gray-400 text-sm">Perguntas personalizadas</p>
               </div>
               <div className="glass-card p-6 text-center">
                 <Brain className="w-10 h-10 text-pink-400 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">Análise Profunda</h3>
-                <p className="text-gray-400 text-sm">Algoritmos avançados de personalidade</p>
+                <p className="text-gray-400 text-sm">Algoritmos de personalidade</p>
               </div>
               <div className="glass-card p-6 text-center">
                 <BarChart2 className="w-10 h-10 text-blue-400 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">Relatório Detalhado</h3>
-                <p className="text-gray-400 text-sm">Insights acionáveis para seu crescimento</p>
+                <p className="text-gray-400 text-sm">Insights para seu crescimento</p>
               </div>
             </motion.div>
 
@@ -203,7 +206,6 @@ export default function Home() {
       case "processing":
         return (
           <div className="text-center max-w-4xl mx-auto">
-            {/* Progress Bar */}
             <div className="mb-8">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm font-medium text-gray-400">
@@ -223,8 +225,8 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Question Card */}
             <motion.div
+              key={perguntaIndex.current}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               className="glass-card p-8 md:p-12 mb-8"
@@ -239,9 +241,8 @@ export default function Home() {
                 {perguntaAtual?.texto}
               </h2>
 
-              {/* Audio Status */}
               {status === 'listening' && (
-                <div className="flex items-center justify-center mb-6">
+                <div className="flex items-center justify-center">
                   <div className="flex items-center bg-purple-500/20 rounded-full px-4 py-2">
                     <Volume2 className="w-5 h-5 text-purple-400 mr-2" />
                     <span className="text-purple-400 text-sm">Reproduzindo áudio...</span>
@@ -250,7 +251,6 @@ export default function Home() {
               )}
             </motion.div>
 
-            {/* Error Message */}
             {error && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
@@ -262,17 +262,13 @@ export default function Home() {
               </motion.div>
             )}
 
-            {/* Recording Controls */}
             <div className="flex flex-col items-center">
               {status === 'waiting_for_user' && (
                 <motion.button 
                   onClick={handleStartRecording}
-                  className="recording-button group relative"
+                  className="relative"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  initial={{ opacity: 0, scale: 0 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.5 }}
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-red-500 to-pink-500 rounded-full animate-pulse opacity-30" />
                   <div className="relative bg-gradient-to-r from-red-500 to-pink-500 rounded-full p-6 shadow-2xl">
@@ -284,7 +280,7 @@ export default function Home() {
               {status === 'recording' && (
                 <motion.button 
                   onClick={handleStopRecording}
-                  className="recording-button group relative"
+                  className="relative"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
@@ -296,23 +292,17 @@ export default function Home() {
               )}
 
               {(status === 'listening' || status === 'processing') && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="flex flex-col items-center"
-                >
-                  <div className="relative">
-                    <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full animate-ping opacity-30" />
-                    <div className="relative bg-gradient-to-r from-purple-500 to-pink-500 rounded-full p-6">
-                      <LoaderCircle className="w-10 h-10 text-white animate-spin" />
-                    </div>
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full animate-ping opacity-30" />
+                  <div className="relative bg-gradient-to-r from-purple-500 to-pink-500 rounded-full p-6">
+                    <LoaderCircle className="w-10 h-10 text-white animate-spin" />
                   </div>
-                </motion.div>
+                </div>
               )}
 
               <motion.p 
                 className="mt-6 text-lg text-gray-300 font-medium"
-                key={status} // Adicionado para forçar a re-animação
+                key={`${status}-text`}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
@@ -394,7 +384,6 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 text-white relative overflow-hidden p-4">
-      {/* Animated Background */}
       <div className="absolute inset-0 z-0">
         <div className="absolute -top-1/4 -left-1/4 w-1/2 h-1/2 bg-gradient-to-br from-purple-500/20 to-pink-500/10 rounded-full blur-3xl animate-blob" />
         <div className="absolute -bottom-1/4 -right-1/4 w-1/2 h-1/2 bg-gradient-to-tl from-blue-500/20 to-cyan-500/10 rounded-full blur-3xl animate-blob animation-delay-2000" />
