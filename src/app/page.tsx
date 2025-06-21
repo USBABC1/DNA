@@ -11,22 +11,11 @@ import {
   Check, 
   AlertTriangle,
   Brain,
-  Sparkles,
   Timer,
   Volume2,
-  VolumeX,
-  BarChart3,
-  Users,
-  Target,
-  Zap,
-  Play,
-  Pause,
   Download,
   Share2,
-  Award,
-  TrendingUp,
-  Eye,
-  Lightbulb
+  Award
 } from 'lucide-react';
 import { PERGUNTAS_DNA, criarPerfilInicial } from '../lib/config';
 import { analisarFragmento, gerarSinteseFinal } from '../lib/analysisEngine';
@@ -51,99 +40,6 @@ const DNAParticles = () => (
   </div>
 );
 
-// Componente para ondas de áudio animadas
-const AudioWaves = ({ isActive }: { isActive: boolean }) => (
-  <div className="audio-waves">
-    {[...Array(5)].map((_, i) => (
-      <div
-        key={i}
-        className={`audio-wave ${isActive ? 'active' : ''}`}
-        style={{ animationDelay: `${i * 0.1}s` }}
-      />
-    ))}
-  </div>
-);
-
-// Componente para indicador de progresso avançado
-const AdvancedProgressIndicator = ({ current, total }: { current: number; total: number }) => {
-  const progress = (current / total) * 100;
-  
-  return (
-    <div className="w-full mb-8">
-      <div className="flex justify-between items-center mb-4">
-        <div>
-          <h3 className="text-lg font-semibold text-white">Pergunta {current} de {total}</h3>
-          <p className="text-sm text-white/60">Análise em progresso...</p>
-        </div>
-        <div className="progress-circle">
-          <svg className="w-12 h-12 transform -rotate-90">
-            <circle cx="24" cy="24" r="20" stroke="rgba(255,255,255,0.1)" strokeWidth="4" fill="none" />
-            <circle
-              cx="24"
-              cy="24"
-              r="20"
-              stroke="url(#progressGradient)"
-              strokeWidth="4"
-              fill="none"
-              strokeDasharray={`${2 * Math.PI * 20}`}
-              strokeDashoffset={`${2 * Math.PI * 20 * (1 - progress / 100)}`}
-              className="transition-all duration-1000 ease-out"
-            />
-          </svg>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-md font-bold text-white">{Math.round(progress)}%</span>
-          </div>
-        </div>
-      </div>
-      
-      <div className="w-full bg-white/10 rounded-full h-2">
-        <div 
-          className="bg-primary h-2 rounded-full transition-all duration-500"
-          style={{ width: `${progress}%`}}
-        ></div>
-      </div>
-    </div>
-  );
-};
-
-// Componente para estatísticas em tempo real - ATUALIZADO
-const EnhancedLiveStats = ({ perfil }: { perfil: ExpertProfile }) => {
-  const totalResponses = Object.values(perfil.coberturaDominios).reduce((a, b) => a + b, 0);
-  const dominantTrait = Object.entries(perfil.bigFive)
-    .sort(([,a], [,b]) => b - a)[0]?.[0] || '...';
-  
-  const stats = [
-    { icon: Check, value: totalResponses, label: 'Concluídas' },
-    { icon: BarChart3, value: totalResponses, label: 'Respostas Analisadas' },
-    { icon: Target, value: perfil.metricas.metaforas, label: 'Metáforas' },
-    { icon: Zap, value: perfil.metricas.contradicoes, label: 'Padrões Complexos' },
-    { icon: Users, value: dominantTrait.slice(0, 8), label: 'Traço Dominante' },
-  ];
-  
-  return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="grid grid-cols-2 gap-3"
-    >
-      {stats.map((stat, index) => (
-        <motion.div
-          key={index}
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: index * 0.1 }}
-          className="stat-card group"
-        >
-          <div className="stat-content">
-            <p className="stat-label">{stat.label}</p>
-            <p className="stat-value">{stat.value}</p>
-          </div>
-        </motion.div>
-      ))}
-    </motion.div>
-  );
-};
-
 // Componente de estatísticas simples para a tela de boas-vindas
 const WelcomeStats = () => (
     <div className="welcome-stats">
@@ -166,7 +62,7 @@ const WelcomeStats = () => (
     </div>
 );
 
-// Componente para a tela inicial - ATUALIZADO
+// Componente para a tela inicial
 const PremiumWelcomeScreen = ({ onStart }: { onStart: () => void }) => (
   <motion.div
     initial={{ opacity: 0, scale: 0.95 }}
@@ -185,29 +81,22 @@ const PremiumWelcomeScreen = ({ onStart }: { onStart: () => void }) => (
         <h1 className="hero-title">
           Chance To Overcome <br/> Your Potential
         </h1>
-        
         <p className="hero-description">
           Uma jornada interativa de autoanálise através da sua narrativa. 
           Utilizamos inteligência artificial para revelar as camadas mais profundas da sua personalidade.
         </p>
       </motion.div>
-      
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.4 }}
         className="cta-section"
       >
-        <button
-          onClick={onStart}
-          className="cta-button group"
-        >
+        <button onClick={onStart} className="cta-button group">
           <span className="cta-text">Começar Análise</span>
           <ArrowRight className="cta-icon" />
-          <div className="cta-glow"></div>
         </button>
       </motion.div>
-
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -220,8 +109,49 @@ const PremiumWelcomeScreen = ({ onStart }: { onStart: () => void }) => (
   </motion.div>
 );
 
+// --- Componentes da Tela de Sessão (Atualizados) ---
 
-// Componente para a tela de sessão premium - ATUALIZADO
+const AdvancedProgressIndicator = ({ current, total }: { current: number; total: number }) => {
+  const progress = total > 0 ? (current / total) * 100 : 0;
+  
+  return (
+    <div className="w-full space-y-2">
+      <div className="flex justify-between text-sm">
+        <span className="font-semibold text-white">Pergunta {current} de {total}</span>
+        <span className="text-white/70">{Math.round(progress)}%</span>
+      </div>
+      <div className="progress-bar-container">
+        <div className="progress-bar-fill" style={{ width: `${progress}%`}} />
+      </div>
+    </div>
+  );
+};
+
+const EnhancedLiveStats = ({ perfil }: { perfil: ExpertProfile }) => {
+  const totalResponses = Object.values(perfil.coberturaDominios).reduce((a, b) => a + b, 0);
+  const dominantTrait = Object.entries(perfil.bigFive)
+    .sort(([,a], [,b]) => b - a)[0]?.[0] || '...';
+  
+  const stats = [
+    { label: 'Concluídas', value: totalResponses },
+    { label: 'Respostas Analisadas', value: totalResponses },
+    { label: 'Metáforas Detectadas', value: perfil.metricas.metaforas },
+    { label: 'Padrões Complexos', value: perfil.metricas.contradicoes },
+    { label: 'Traço Dominante', value: dominantTrait },
+  ];
+  
+  return (
+    <div className="stats-list">
+      {stats.map((stat) => (
+        <div key={stat.label} className="stat-item">
+          <span className="stat-label">{stat.label}</span>
+          <span className="stat-value">{stat.value}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 const PremiumSessionScreen = ({
   pergunta,
   status,
@@ -239,92 +169,61 @@ const PremiumSessionScreen = ({
   currentIndex: number;
   total: number;
 }) => {
-  const [timer, setTimer] = useState(0);
-  const [audioMuted, setAudioMuted] = useState(false);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    if (status === 'recording') {
-      intervalRef.current = setInterval(() => {
-        setTimer(prev => prev + 1);
-      }, 1000);
-    } else {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      setTimer(0);
-    }
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [status]);
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
-    const secs = (seconds % 60).toString().padStart(2, '0');
-    return `${mins}:${secs}`;
-  };
-
-  const getStatusConfig = () => {
+  const getStatusMessage = () => {
     switch (status) {
-      case 'listening': return { message: 'Reproduzindo pergunta...', icon: Volume2, color: 'text-blue-400', showWaves: true };
-      case 'waiting_for_user': return { message: 'Pronto para gravar sua resposta', icon: Mic, color: 'text-green-400', showWaves: false };
-      case 'recording': return { message: 'Gravando sua narrativa...', icon: Square, color: 'text-red-400', showWaves: true };
-      case 'processing': return { message: 'Analisando padrões narrativos...', icon: Brain, color: 'text-purple-400', showWaves: false };
-      default: return { message: '', icon: Mic, color: 'text-white', showWaves: false };
+      case 'listening': return 'Ouvindo a pergunta...';
+      case 'waiting_for_user': return 'Pressione o botão para gravar sua resposta';
+      case 'recording': return 'Gravando...';
+      case 'processing': return 'Processando sua narrativa...';
+      default: return '';
     }
   };
-
-  const statusConfig = getStatusConfig();
 
   return (
-    <div className="w-full max-w-7xl grid grid-cols-1 lg:grid-cols-3 gap-x-12 gap-y-8">
-      {/* Left Sidebar */}
-      <div className="lg:col-span-1">
+    <div className="w-full max-w-screen-xl mx-auto flex flex-col lg:flex-row gap-10">
+      {/* Sidebar */}
+      <aside className="session-sidebar">
         <AdvancedProgressIndicator current={currentIndex} total={total} />
         <EnhancedLiveStats perfil={perfil} />
-      </div>
+      </aside>
 
       {/* Main Content */}
-      <div className="lg:col-span-2 flex flex-col justify-center items-center">
-        <div className="w-full">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={pergunta?.texto}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.5, ease: "easeOut" }}
-              className="question-content-main"
-            >
-              <p className="question-text">
-                {pergunta?.texto}
-              </p>
-            </motion.div>
-          </AnimatePresence>
-        </div>
+      <main className="session-main-content">
+        <AnimatePresence mode="wait">
+          <motion.p
+            key={pergunta?.texto || 'loading'}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.5 }}
+            className="question-text"
+          >
+            {pergunta?.texto}
+          </motion.p>
+        </AnimatePresence>
         
-        <div className="control-section mt-8">
-            <div className="status-message mb-4">
-                {statusConfig.message}
+        <div className="control-section">
+          <p className="status-message">{getStatusMessage()}</p>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={status === 'recording' ? onStopRecording : onStartRecording}
+            disabled={status === 'listening' || status === 'processing'}
+            className={`record-button ${status === 'recording' ? 'recording' : ''} ${status === 'listening' || status === 'processing' ? 'disabled' : ''}`}
+          >
+            <div className="button-content">
+              {status === 'recording' && <Square size={40} className="text-white" />}
+              {status === 'waiting_for_user' && <Mic size={40} className="text-white" />}
+              {(status === 'listening' || status === 'processing') && <Loader size={40} className="animate-spin text-white" />}
             </div>
-            <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={status === 'recording' ? onStopRecording : onStartRecording}
-                disabled={status === 'listening' || status === 'processing'}
-                className={`record-button ${status === 'recording' ? 'recording' : ''} ${status === 'listening' || status === 'processing' ? 'disabled' : ''}`}
-            >
-                <div className="button-content">
-                {status === 'recording' && <Square className="w-10 h-10 text-white" />}
-                {status === 'waiting_for_user' && <Mic className="w-10 h-10 text-white" />}
-                {(status === 'listening' || status === 'processing') && <Loader className="w-10 h-10 text-white animate-spin" />}
-                </div>
-                {status === 'recording' && <div className="pulse-ring"></div>}
-            </motion.button>
+            {status === 'recording' && <div className="pulse-ring"></div>}
+          </motion.button>
         </div>
-      </div>
+      </main>
     </div>
   );
 };
+
 
 // Componente para a tela de relatório premium
 const PremiumReportScreen = ({ report, onRestart }: { report: string; onRestart: () => void }) => (
@@ -342,52 +241,40 @@ const PremiumReportScreen = ({ report, onRestart }: { report: string; onRestart:
         className="completion-badge"
       >
         <Check className="w-16 h-16 text-white" />
-        <div className="badge-glow"></div>
       </motion.div>
-      
       <div className="header-content">
-        <h1 className="completion-title">Análise Concluída com Sucesso</h1>
+        <h1 className="completion-title">Análise Concluída</h1>
         <p className="completion-subtitle">
-          Sua jornada narrativa foi processada e analisada. O relatório completo 
-          está disponível abaixo com insights profundos sobre sua personalidade.
+          Sua jornada narrativa foi processada. O relatório completo está disponível abaixo.
         </p>
       </div>
     </div>
 
     <div className="report-container">
       <div className="report-toolbar">
-        <div className="toolbar-left">
-          <FileText className="w-6 h-6 text-green-400" />
-          <h2>Relatório DNA Completo</h2>
+        <div className="flex items-center space-x-3">
+          <FileText className="w-6 h-6 text-primary" />
+          <h2 className="text-xl font-semibold text-white">Relatório DNA Completo</h2>
         </div>
-        <div className="toolbar-right">
-          <button className="toolbar-button">
-            <Download className="w-4 h-4" />
-            <span>Exportar PDF</span>
-          </button>
-          <button className="toolbar-button">
-            <Share2 className="w-4 h-4" />
-            <span>Compartilhar</span>
-          </button>
+        <div className="flex items-center space-x-3">
+          <button className="toolbar-button"><Download className="w-4 h-4 mr-2" />PDF</button>
+          <button className="toolbar-button"><Share2 className="w-4 h-4 mr-2" />Compartilhar</button>
         </div>
       </div>
       
       <div className="report-content">
-        <pre className="report-text">
-          {report}
-        </pre>
+        <pre className="report-text">{report}</pre>
       </div>
     </div>
 
-    <div className="report-actions">
+    <div className="text-center mt-8">
       <motion.button
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={onRestart}
-        className="restart-button"
+        className="cta-button"
       >
-        <span>Realizar Nova Análise</span>
-        <ArrowRight className="w-5 h-5" />
+        Realizar Nova Análise
       </motion.button>
     </div>
   </motion.div>
@@ -401,13 +288,13 @@ const PremiumErrorScreen = ({ error, onRetry }: { error: string; onRetry: () => 
     className="w-full max-w-lg text-center"
   >
     <div className="error-container">
-      <div className="error-icon">
-        <AlertTriangle className="w-16 h-16 text-red-400" />
+      <div className="mb-6">
+        <AlertTriangle className="w-16 h-16 text-red-400 mx-auto" />
       </div>
-      <div className="error-content">
-        <h3 className="error-title">Ocorreu um Problema</h3>
-        <p className="error-message">{error}</p>
-        <button onClick={onRetry} className="error-button">
+      <div className="space-y-4">
+        <h3 className="text-2xl font-bold text-white">Ocorreu um Problema</h3>
+        <p className="text-white/80 leading-relaxed">{error}</p>
+        <button onClick={onRetry} className="cta-button">
           Tentar Novamente
         </button>
       </div>
@@ -421,7 +308,6 @@ export default function DnaPage() {
   const [perguntaAtual, setPerguntaAtual] = useState<Pergunta | null>(null);
   const [perfil, setPerfil] = useState<ExpertProfile>(criarPerfilInicial());
   const [error, setError] = useState<string | null>(null);
-
   const perguntaIndex = useRef(0);
 
   useEffect(() => {
@@ -492,7 +378,7 @@ export default function DnaPage() {
 
   const renderContent = () => {
     if (error) {
-      return <PremiumErrorScreen error={error} onRetry={() => setError(null)} />;
+      return <PremiumErrorScreen error={error} onRetry={iniciarSessao} />;
     }
 
     switch (status) {
@@ -516,15 +402,13 @@ export default function DnaPage() {
   };
 
   return (
-    <main className="app-container">
+    <div className="app-container">
       <DNAParticles />
-      
       <div className="content-wrapper">
         <AnimatePresence mode="wait">
           {renderContent()}
         </AnimatePresence>
       </div>
-      
       <footer className="app-footer">
         <motion.div
           initial={{ opacity: 0 }}
@@ -533,9 +417,8 @@ export default function DnaPage() {
           className="footer-content"
         >
           <p>DNA - Deep Narrative Analysis © 2024</p>
-          <p>Powered by Advanced AI & Psychological Science</p>
         </motion.div>
       </footer>
-    </main>
+    </div>
   );
 }
