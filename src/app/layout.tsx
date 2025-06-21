@@ -1,13 +1,15 @@
-// Caminho: src/app/layout.tsx
 import type { Metadata } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
+// Importando o CSS global para que o Tailwind seja aplicado
 import "./globals.css";
 
+// Configuração da fonte Inter para o corpo do texto
 const inter = Inter({ 
   subsets: ["latin"],
   variable: '--font-inter' 
 });
 
+// Configuração da fonte Space Grotesk para os títulos
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
   weight: ['300', '400', '500', '600', '700'],
@@ -26,7 +28,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-br">
-      <body className={`${inter.variable} ${spaceGrotesk.variable} font-sans`}>
+      {/* Aplica as variáveis de fonte e a fonte principal ao body.
+        A classe `bg-brand-background` e `text-brand-foreground` definem o tema escuro padrão.
+      */}
+      <body className={`${inter.variable} ${spaceGrotesk.variable} font-sans bg-brand-background text-brand-foreground`}>
         {children}
       </body>
     </html>
