@@ -43,7 +43,6 @@ async function transcribeAudio(audioBlob: Blob): Promise<string> {
   }
 }
 
-
 const containerVariants = {
   hidden: { opacity: 0, scale: 0.95 },
   visible: { opacity: 1, scale: 1, transition: { staggerChildren: 0.1 } },
@@ -82,7 +81,7 @@ const DNAInterface = () => {
       finalizarSessao();
     }
   };
-
+  
   const handleStartRecording = async () => {
     try {
       await startRecording();
@@ -112,19 +111,25 @@ const DNAInterface = () => {
 
   const processarResposta = async (audioBlob: Blob) => {
     const transcricao = await transcribeAudio(audioBlob);
-    
-    // Verifica se a transcrição está vazia, contém erro, ou se não há pergunta atual (estado inesperado)
-    if (!transcricao.trim() || transcricao.startsWith("Desculpe, não consegui processar") || !perguntaAtual) {
-      console.log("Transcrição vazia, com erro ou pergunta atual nula. A tentar a pergunta novamente.");
+    // Verifica se a transcrição está vazia ou contém a mensagem de erro
+    if (!transcricao.trim() || transcricao.startsWith("Desculpe, não consegui processar")) {
+      console.log("Transcrição vazia ou com erro, a tentar a pergunta novamente.");
       // Volta para a pergunta anterior para que o utilizador possa tentar de novo.
       perguntaIndex.current--; 
       fazerProximaPergunta();
       return;
     }
 
-    // CORREÇÃO: Passa `perguntaAtual` como o terceiro argumento.
-    const perfilAtualizado = analisarFragmento(transcricao, perfil, perguntaAtual);
+    // Verificação de segurança para garantir que a pergunta atual existe
+    if (!perguntaAtual) {
+      console.error("Erro: a tentar processar uma resposta sem uma pergunta atual. A avançar.");
+      fazerProximaPergunta();
+      return;
+    }
     
+    // ----- CORREÇÃO APLICADA AQUI -----
+    // Adicionado `perguntaAtual` como terceiro argumento
+    const perfilAtualizado = analisarFragmento(transcricao, perfil, perguntaAtual);
     setPerfil(perfilAtualizado);
     fazerProximaPergunta();
   };
@@ -153,7 +158,7 @@ const DNAInterface = () => {
             </motion.div>
           </motion.div>
         );
-
+      
       case 'listening':
       case 'waiting_for_user':
       case 'recording':
@@ -201,7 +206,7 @@ const DNAInterface = () => {
             </motion.div>
           </motion.div>
         );
-
+      
       default: return null;
     }
   };
