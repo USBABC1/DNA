@@ -167,7 +167,8 @@ const EnhancedLiveStats = ({ perfil }: { perfil: ExpertProfile }) => {
           <div className="stat-glow"></div>
         </motion.div>
       ))}
-    );
+    </motion.div>
+  );
 };
 
 // Componente para a tela inicial premium
@@ -271,14 +272,16 @@ const PremiumWelcomeScreen = ({ onStart }: { onStart: () => void }) => (
         <div className="cta-info">
           <div className="info-item">
             <Timer className="w-4 h-4" />
-            <span>60 minutos</span>
+            <span>~45 minutos</span>
           </div>
           <div className="info-item">
             <Eye className="w-4 h-4" />
             <span>108 perguntas</span>
           </div>
           <div className="info-item">
-            <Award className="w-4 h-4" />      
+            <Award className="w-4 h-4" />
+            <span>Certificado profissional</span>
+          </div>
         </div>
       </motion.div>
     </div>
@@ -687,7 +690,8 @@ export default function DnaPage() {
           transition={{ delay: 1.5 }}
           className="footer-content"
         >
-          <p>DNA - Deep Narrative Analysis © 2025</p>
+          <p>DNA - Deep Narrative Analysis © 2024</p>
+          <p>Powered by Advanced AI & Psychological Science</p>
         </motion.div>
       </footer>
     </main>
