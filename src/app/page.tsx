@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mic, Square, Play, BarChart2, AlertCircle, LoaderCircle } from "lucide-react";
 import { PERGUNTAS_DNA, criarPerfilInicial, APRESENTACAO_AUDIO_URL } from "../lib/config";
@@ -25,7 +25,7 @@ async function transcribeAudio(audioBlob: Blob): Promise<string> {
 }
 
 export default function Home() {
-  const [status, setStatus] = useState<SessionStatus>("presenting"); // Estado inicial
+  const [status, setStatus] = useState<SessionStatus>("idle"); // Estado inicial volta a ser 'idle'
   const [perfil, setPerfil] = useState<ExpertProfile>(criarPerfilInicial());
   const [perguntaAtual, setPerguntaAtual] = useState<Pergunta | null>(null);
   const [relatorioFinal, setRelatorioFinal] = useState<string>("");
@@ -33,27 +33,27 @@ export default function Home() {
 
   const perguntaIndex = useRef(0);
 
-  // Efeito para tocar o áudio de apresentação na montagem do componente
-  useEffect(() => {
-    initAudio(); // Inicializa o contexto de áudio
-    
-    if (status === 'presenting') {
-      const tocarApresentacao = async () => {
-        try {
-          await playAudioFromUrl(APRESENTACAO_AUDIO_URL, () => {
-            setStatus('idle'); // Ao terminar o áudio, mostra o botão de iniciar
-          });
-        } catch (err) {
-          console.error("Erro ao tocar áudio de apresentação:", err);
-          setError("Não foi possível carregar a apresentação. Clique em Iniciar para começar.");
-          setStatus('idle'); // Se falhar, vai para o estado ocioso mesmo assim
-        }
-      };
-      tocarApresentacao();
+  // Esta função agora inicia a sessão E a apresentação
+  const handleStartPresentationAndSession = async () => {
+    try {
+      // 1. Inicializa o AudioContext DENTRO da ação do usuário
+      initAudio();
+      
+      // 2. Muda o status para apresentar e toca o áudio de introdução
+      setStatus('presenting');
+      await playAudioFromUrl(APRESENTACAO_AUDIO_URL, () => {
+        // 3. Quando a apresentação terminar, inicia a sessão de perguntas
+        iniciarSessaoDePerguntas();
+      });
+    } catch (err) {
+      console.error("Erro ao iniciar apresentação:", err);
+      setError("Não foi possível tocar o áudio de apresentação. Tentando iniciar as perguntas diretamente.");
+      // Se a apresentação falhar, vai direto para as perguntas
+      iniciarSessaoDePerguntas();
     }
-  }, []); // Executa apenas uma vez
-
-  const iniciarSessao = () => {
+  };
+  
+  const iniciarSessaoDePerguntas = () => {
     perguntaIndex.current = 0;
     setPerfil(criarPerfilInicial());
     setRelatorioFinal("");
@@ -110,10 +110,8 @@ export default function Home() {
 
   const processarResposta = async (audioBlob: Blob) => {
     if (!perguntaAtual) return;
-
     try {
       const transcricao = await transcribeAudio(audioBlob);
-
       if (transcricao && transcricao.trim().length > 0) {
         const perfilAtualizado = analisarFragmento(transcricao, { ...perfil }, perguntaAtual);
         setPerfil(perfilAtualizado);
@@ -136,26 +134,23 @@ export default function Home() {
 
   const renderContent = () => {
     switch (status) {
+      case "idle":
+        return (
+          <div className="text-center">
+            <h1 className="text-5xl font-bold font-heading mb-4">Análise Narrativa Profunda</h1>
+            <p className="text-xl mb-8">Responda a uma série de perguntas para revelar seu perfil interior.</p>
+            {/* O botão agora chama a nova função handleStartPresentationAndSession */}
+            <button onClick={handleStartPresentationAndSession} className="btn btn-primary bg-primary text-primary-foreground hover:bg-primary/90 text-lg py-3 px-6 rounded-lg flex items-center mx-auto">
+              <Play className="mr-2" /> Iniciar Sessão
+            </button>
+          </div>
+        );
       case "presenting":
         return (
           <div className="text-center">
             <h1 className="text-5xl font-bold font-heading mb-4">Análise Narrativa Profunda</h1>
             <LoaderCircle className="mx-auto my-8 h-16 w-16 animate-spin text-primary" />
-            <p className="text-xl text-muted-foreground">Carregando apresentação...</p>
-          </div>
-        );
-      case "idle":
-        return (
-          <div className="text-center">
-            <h1 className="text-5xl font-bold font-heading mb-4">Análise Narrativa Profunda</h1>
-            {error ? (
-                 <p className="text-red-400 mb-8">{error}</p>
-            ) : (
-                <p className="text-xl mb-8">Responda a uma série de perguntas para revelar seu perfil interior.</p>
-            )}
-            <button onClick={iniciarSessao} className="btn btn-primary bg-primary text-primary-foreground hover:bg-primary/90 text-lg py-3 px-6 rounded-lg flex items-center mx-auto">
-              <Play className="mr-2" /> Iniciar Sessão
-            </button>
+            <p className="text-xl text-muted-foreground">Tocando apresentação...</p>
           </div>
         );
       case "listening":
@@ -164,11 +159,10 @@ export default function Home() {
       case "processing":
         return (
           <div className="text-center">
-            <p className="text-lg mb-4">Pergunta {perguntaIndex.current} de {PERGUNTAS_DNA.length}</p>
+            <p className="text-lg mb-4">Pergunta {perguntaIndex.current} de {PERGUNTas_dna.length}</p>
             <h2 className="text-3xl font-heading mb-6 min-h-[8rem] flex items-center justify-center">
               {perguntaAtual?.texto}
             </h2>
-
             {error && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
@@ -179,7 +173,6 @@ export default function Home() {
                 {error}
               </motion.div>
             )}
-
             {status === 'waiting_for_user' && (
               <button onClick={handleStartRecording} className="btn-record animate-pulse">
                 <Mic size={40} />
@@ -214,7 +207,7 @@ export default function Home() {
                 {relatorioFinal}
               </pre>
             </div>
-             <button onClick={iniciarSessao} className="btn btn-primary bg-primary text-primary-foreground hover:bg-primary/90 text-lg py-3 px-6 rounded-lg flex items-center mx-auto mt-8">
+             <button onClick={() => setStatus('idle')} className="btn btn-primary bg-primary text-primary-foreground hover:bg-primary/90 text-lg py-3 px-6 rounded-lg flex items-center mx-auto mt-8">
               <BarChart2 className="mr-2" /> Fazer Nova Análise
             </button>
           </div>
