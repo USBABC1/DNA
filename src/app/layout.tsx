@@ -180,24 +180,7 @@ export default function RootLayout({
         `}
         suppressHydrationWarning
       >
-        {/* Skip to main content para acessibilidade */}
-        <a 
-          href="#main-content" 
-          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 z-50 bg-white text-black px-4 py-2 rounded-md"
-        >
-        Pular para o conteúdo principal
-        </a>
-
-        {/* Indicador de carregamento global */}
-        <div id="global-loading" className="hidden">
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
-            <div className="glass-effect rounded-2xl p-8 flex flex-col items-center space-y-4">
-              <div className="spinner w-8 h-8"></div>
-              <p className="text-white text-sm">Carregando...</p>
-            </div>
-          </div>
-        </div>
-
+        
         {/* Container principal */}
         <main 
           id="main-content"
