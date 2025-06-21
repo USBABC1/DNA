@@ -100,7 +100,7 @@ const GlassCard = ({ children, className = "" }: { children: React.ReactNode; cl
 
 // Componente principal da aplicação
 export default function DNAAnalysisApp() {
-  const [status, setStatus] = useState<SessionStatus>("idle");
+  const [status, setStatus] = useState<SessionStatus | 'presenting'>("idle");
   const [perguntaAtual, setPerguntaAtual] = useState<Pergunta | null>(null);
   const [perfil, setPerfil] = useState<ExpertProfile | null>(null);
   const [relatorioFinal, setRelatorioFinal] = useState<string>("");
