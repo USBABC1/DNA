@@ -1,3 +1,5 @@
+"use client"; // Adicionado para marcar como Client Component
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Mic,
@@ -54,7 +56,7 @@ const PERGUNTAS_DNA: Pergunta[] = [
     id: 1,
     texto: "Descreva um momento da sua vida em que você se sentiu mais autêntico e verdadeiro consigo mesmo.",
     dominio: "Autenticidade",
-    audioUrl: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav"
+    audioUrl: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav" // Exemplo de URL
   },
   {
     id: 2,
@@ -124,6 +126,10 @@ const audioService = {
   stream: null as MediaStream | null,
 
   async initAudio() {
+    if (typeof window === 'undefined' || !navigator.mediaDevices) {
+        console.warn('MediaDevices API not available. Audio features will be disabled.');
+        throw new Error('Não foi possível acessar o microfone. API não disponível.');
+    }
     try {
       this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       return true;
@@ -135,25 +141,40 @@ const audioService = {
 
   async playAudioFromUrl(url: string, onEnd: () => void) {
     return new Promise<void>((resolve, reject) => {
-      const audio = new Audio();
+      if (typeof Audio === "undefined") {
+        console.warn("Audio API not available, simulating playback.");
+        setTimeout(() => {
+          onEnd();
+          resolve();
+        }, 2000);
+        return;
+      }
+      const audio = new Audio(url); // Passar a URL diretamente
       audio.onended = () => {
         onEnd();
         resolve();
       };
-      audio.onerror = () => {
+      audio.onerror = (e) => {
+        console.error('Erro ao reproduzir áudio URL:', e);
+        // Mesmo com erro, chamar onEnd para o fluxo continuar
+        onEnd();
         reject(new Error('Erro ao reproduzir áudio'));
       };
-      // Simular reprodução de áudio sem som real
-      setTimeout(() => {
+      audio.play().catch(error => {
+        console.error('Erro ao tentar tocar áudio:', error);
+        // Simular o fim se o play falhar (ex: interação do usuário necessária)
         onEnd();
-        resolve();
-      }, 2000);
+        resolve(); // Resolve para não bloquear o fluxo
+      });
     });
   },
 
   async startRecording() {
     if (!this.stream) {
       throw new Error('Stream de áudio não inicializado');
+    }
+    if (typeof MediaRecorder === "undefined") {
+        throw new Error('MediaRecorder API não está disponível.');
     }
 
     this.audioChunks = [];
@@ -174,10 +195,25 @@ const audioService = {
         reject(new Error('MediaRecorder não inicializado'));
         return;
       }
+      if (this.mediaRecorder.state === "inactive") {
+        // Se já estiver inativo, pode ser que onstop já tenha sido chamado
+        // ou houve um erro. Retorna um blob vazio ou rejeita.
+        if (this.audioChunks.length > 0) {
+            const audioBlob = new Blob(this.audioChunks, { type: 'audio/wav' });
+            resolve(audioBlob);
+        } else {
+            reject(new Error('MediaRecorder estava inativo e sem chunks de áudio.'));
+        }
+        return;
+      }
 
       this.mediaRecorder.onstop = () => {
         const audioBlob = new Blob(this.audioChunks, { type: 'audio/wav' });
         resolve(audioBlob);
+      };
+      
+      this.mediaRecorder.onerror = (event) => {
+        reject(new Error(`Erro no MediaRecorder: ${(event as any).error?.name}`));
       };
 
       this.mediaRecorder.stop();
@@ -189,68 +225,36 @@ const audioService = {
 const analysisEngine = {
   analisarFragmento(transcricao: string, perfil: ExpertProfile, pergunta: Pergunta): ExpertProfile {
     const novoFragmento = `[${pergunta.dominio}] ${transcricao}`;
-    const novoPerfil = { ...perfil };
+    const novoPerfil = JSON.parse(JSON.stringify(perfil)); // Deep copy para evitar mutação direta
     
-    // Atualizar fragmentos
-    novoPerfil.fragmentos = [...perfil.fragmentos, novoFragmento];
+    novoPerfil.fragmentos.push(novoFragmento);
     
-    // Simular análise básica baseada em palavras-chave
     const palavras = transcricao.toLowerCase().split(' ');
     
-    // Análise Big Five baseada em palavras-chave
-    if (palavras.some(p => ['criativo', 'inovador', 'original', 'imaginativo'].includes(p))) {
-      novoPerfil.bigFive.abertura += 10;
-    }
-    if (palavras.some(p => ['responsável', 'organizado', 'planejado', 'disciplinado'].includes(p))) {
-      novoPerfil.bigFive.conscienciosidade += 10;
-    }
-    if (palavras.some(p => ['social', 'grupos', 'pessoas', 'conversar'].includes(p))) {
-      novoPerfil.bigFive.extroversao += 10;
-    }
-    if (palavras.some(p => ['ajudar', 'cuidar', 'gentil', 'compreensivo'].includes(p))) {
-      novoPerfil.bigFive.amabilidade += 10;
-    }
-    if (palavras.some(p => ['ansioso', 'preocupado', 'estressado', 'nervoso'].includes(p))) {
-      novoPerfil.bigFive.neuroticismo += 10;
-    }
+    if (palavras.some(p => ['criativo', 'inovador', 'original', 'imaginativo'].includes(p))) novoPerfil.bigFive.abertura = Math.min(100, (novoPerfil.bigFive.abertura || 0) + 10);
+    if (palavras.some(p => ['responsável', 'organizado', 'planejado', 'disciplinado'].includes(p))) novoPerfil.bigFive.conscienciosidade = Math.min(100, (novoPerfil.bigFive.conscienciosidade || 0) + 10);
+    if (palavras.some(p => ['social', 'grupos', 'pessoas', 'conversar'].includes(p))) novoPerfil.bigFive.extroversao = Math.min(100, (novoPerfil.bigFive.extroversao || 0) + 10);
+    if (palavras.some(p => ['ajudar', 'cuidar', 'gentil', 'compreensivo'].includes(p))) novoPerfil.bigFive.amabilidade = Math.min(100, (novoPerfil.bigFive.amabilidade || 0) + 10);
+    if (palavras.some(p => ['ansioso', 'preocupado', 'estressado', 'nervoso'].includes(p))) novoPerfil.bigFive.neuroticismo = Math.min(100, (novoPerfil.bigFive.neuroticismo || 0) + 10);
 
-    // Análise de valores Schwartz
-    if (palavras.some(p => ['justiça', 'igualdade', 'mundo', 'sociedade'].includes(p))) {
-      novoPerfil.valoresSchwartz.universalismo += 8;
-    }
-    if (palavras.some(p => ['família', 'amigos', 'ajudar', 'cuidar'].includes(p))) {
-      novoPerfil.valoresSchwartz.benevolencia += 8;
-    }
-    if (palavras.some(p => ['sucesso', 'conquista', 'objetivo', 'alcançar'].includes(p))) {
-      novoPerfil.valoresSchwartz.realizacao += 8;
-    }
-    if (palavras.some(p => ['liberdade', 'independência', 'autonomia', 'escolha'].includes(p))) {
-      novoPerfil.valoresSchwartz.autodeterminacao += 8;
-    }
+    if (palavras.some(p => ['justiça', 'igualdade', 'mundo', 'sociedade'].includes(p))) novoPerfil.valoresSchwartz.universalismo = Math.min(100, (novoPerfil.valoresSchwartz.universalismo || 0) + 8);
+    if (palavras.some(p => ['família', 'amigos', 'ajudar', 'cuidar'].includes(p))) novoPerfil.valoresSchwartz.benevolencia = Math.min(100, (novoPerfil.valoresSchwartz.benevolencia || 0) + 8);
+    if (palavras.some(p => ['sucesso', 'conquista', 'objetivo', 'alcançar'].includes(p))) novoPerfil.valoresSchwartz.realizacao = Math.min(100, (novoPerfil.valoresSchwartz.realizacao || 0) + 8);
+    if (palavras.some(p => ['liberdade', 'independência', 'autonomia', 'escolha'].includes(p))) novoPerfil.valoresSchwartz.autodeterminacao = Math.min(100, (novoPerfil.valoresSchwartz.autodeterminacao || 0) + 8);
 
-    // Atualizar cobertura de domínios
-    novoPerfil.coberturaDominios[pergunta.dominio] += 1;
+    novoPerfil.coberturaDominios[pergunta.dominio] = (novoPerfil.coberturaDominios[pergunta.dominio] || 0) + 1;
     
-    // Detectar metáforas e padrões
-    if (transcricao.includes('como') && (transcricao.includes('igual') || transcricao.includes('parece'))) {
-      novoPerfil.metricas.metaforas += 1;
-    }
-    
-    if (palavras.some(p => ['mas', 'porém', 'entretanto', 'contudo'].includes(p))) {
-      novoPerfil.metricas.contradicoes += 1;
-    }
-    
-    novoPerfil.metricas.profundidade += Math.floor(transcricao.length / 100);
+    if (transcricao.includes('como') && (transcricao.includes('igual') || transcricao.includes('parece'))) novoPerfil.metricas.metaforas = (novoPerfil.metricas.metaforas || 0) + 1;
+    if (palavras.some(p => ['mas', 'porém', 'entretanto', 'contudo'].includes(p))) novoPerfil.metricas.contradicoes = (novoPerfil.metricas.contradicoes || 0) + 1;
+    novoPerfil.metricas.profundidade = (novoPerfil.metricas.profundidade || 0) + Math.floor(transcricao.length / 100);
     
     return novoPerfil;
   },
 
   gerarSinteseFinal(perfil: ExpertProfile): string {
     const totalFragmentos = perfil.fragmentos.length;
-    const traitDominante = Object.entries(perfil.bigFive)
-      .sort(([,a], [,b]) => b - a)[0];
-    const valorDominante = Object.entries(perfil.valoresSchwartz)
-      .sort(([,a], [,b]) => b - a)[0];
+    const traitDominante = Object.entries(perfil.bigFive).sort(([,a], [,b]) => b - a)[0] || ['N/A', 0];
+    const valorDominante = Object.entries(perfil.valoresSchwartz).sort(([,a], [,b]) => b - a)[0] || ['N/A', 0];
 
     return `
 === RELATÓRIO DNA - DEEP NARRATIVE ANALYSIS ===
@@ -260,35 +264,35 @@ RESUMO EXECUTIVO:
 Análise completa baseada em ${totalFragmentos} narrativas pessoais processadas com IA avançada.
 
 PERFIL DE PERSONALIDADE (Big Five):
-- Traço Dominante: ${traitDominante?.[0]} (Score: ${traitDominante?.[1]})
-- Abertura à Experiência: ${perfil.bigFive.abertura}/100
-- Conscienciosidade: ${perfil.bigFive.conscienciosidade}/100
-- Extroversão: ${perfil.bigFive.extroversao}/100
-- Amabilidade: ${perfil.bigFive.amabilidade}/100
-- Neuroticismo: ${perfil.bigFive.neuroticismo}/100
+- Traço Dominante: ${traitDominante[0]} (Score: ${traitDominante[1]})
+- Abertura à Experiência: ${perfil.bigFive.abertura || 0}/100
+- Conscienciosidade: ${perfil.bigFive.conscienciosidade || 0}/100
+- Extroversão: ${perfil.bigFive.extroversao || 0}/100
+- Amabilidade: ${perfil.bigFive.amabilidade || 0}/100
+- Neuroticismo: ${perfil.bigFive.neuroticismo || 0}/100
 
 SISTEMA DE VALORES (Schwartz):
-- Valor Principal: ${valorDominante?.[0]} (Score: ${valorDominante?.[1]})
-- Universalismo: ${perfil.valoresSchwartz.universalismo}/100
-- Benevolência: ${perfil.valoresSchwartz.benevolencia}/100
-- Realização: ${perfil.valoresSchwartz.realizacao}/100
-- Autodeterminação: ${perfil.valoresSchwartz.autodeterminacao}/100
+- Valor Principal: ${valorDominante[0]} (Score: ${valorDominante[1]})
+- Universalismo: ${perfil.valoresSchwartz.universalismo || 0}/100
+- Benevolência: ${perfil.valoresSchwartz.benevolencia || 0}/100
+- Realização: ${perfil.valoresSchwartz.realizacao || 0}/100
+- Autodeterminação: ${perfil.valoresSchwartz.autodeterminacao || 0}/100
 
 MÉTRICAS NARRATIVAS:
-- Metáforas Detectadas: ${perfil.metricas.metaforas}
-- Padrões Complexos: ${perfil.metricas.contradicoes}
-- Profundidade Narrativa: ${perfil.metricas.profundidade}
+- Metáforas Detectadas: ${perfil.metricas.metaforas || 0}
+- Padrões Complexos: ${perfil.metricas.contradicoes || 0}
+- Profundidade Narrativa: ${perfil.metricas.profundidade || 0}
 
 INSIGHTS PRINCIPAIS:
-Sua narrativa revela um perfil único com predominância em ${traitDominante?.[0]}, 
+Sua narrativa revela um perfil único com predominância em ${traitDominante[0]}, 
 indicando tendências específicas de comportamento e processamento cognitivo.
 
-O valor predominante de ${valorDominante?.[0]} sugere motivações profundas que 
+O valor predominante de ${valorDominante[0]} sugere motivações profundas que 
 orientam suas decisões e objetivos de vida.
 
 RECOMENDAÇÕES:
-1. Desenvolver ainda mais as características de ${traitDominante?.[0]}
-2. Explorar oportunidades alinhadas com ${valorDominante?.[0]}
+1. Desenvolver ainda mais as características de ${traitDominante[0]}
+2. Explorar oportunidades alinhadas com ${valorDominante[0]}
 3. Considerar coaching para maximizar potencial identificado
 
 === FIM DO RELATÓRIO ===
@@ -298,13 +302,12 @@ RECOMENDAÇÕES:
 
 // Componentes
 
-// DNA Particles
-const DNAParticles = () => (
+const DNAParticles = React.memo(() => ( // React.memo para otimizar se não mudar props
   <div style={{ 
     position: 'fixed', 
     inset: 0, 
     pointerEvents: 'none', 
-    zIndex: 0,
+    zIndex: -1, // Ajuste para ficar atrás do conteúdo
     overflow: 'hidden'
   }}>
     {[...Array(30)].map((_, i) => (
@@ -322,19 +325,15 @@ const DNAParticles = () => (
         }}
       />
     ))}
-    <style>{`
+    <style jsx global>{` 
       ${[...Array(30)].map((_, i) => `
         @keyframes float${i} {
           0% {
             transform: translateY(100vh) translateX(0) rotate(0deg);
             opacity: 0;
           }
-          10% {
-            opacity: 1;
-          }
-          90% {
-            opacity: 1;
-          }
+          10% { opacity: 1; }
+          90% { opacity: 1; }
           100% {
             transform: translateY(-100vh) translateX(${Math.random() * 200 - 100}px) rotate(360deg);
             opacity: 0;
@@ -343,540 +342,404 @@ const DNAParticles = () => (
       `).join('')}
     `}</style>
   </div>
-);
+));
+DNAParticles.displayName = "DNAParticles";
 
-// Audio Waves
-const AudioWaves = ({ isActive }: { isActive: boolean }) => (
-  <div className="flex items-center justify-center space-x-1">
-    {[...Array(5)].map((_, i) => (
-      <div
-        key={i}
-        className={`w-1 bg-green-400 rounded-full transition-all duration-200`}
-        style={{
-          height: isActive ? `${Math.sin(Date.now() * 0.01 + i) * 10 + 15}px` : '4px',
-          animationDelay: `${i * 0.1}s`
-        }}
-      />
-    ))}
-  </div>
-);
 
-// Progress Indicator
-const AdvancedProgressIndicator = ({ current, total }: { current: number; total: number }) => {
-  const progress = (current / total) * 100;
+const AudioWaves = React.memo(({ isActive }: { isActive: boolean }) => {
+    const [waveHeight, setWaveHeight] = useState(Array(5).fill(4));
+
+    useEffect(() => {
+        let animationFrameId: number;
+        if (isActive) {
+            const updateWaves = () => {
+                setWaveHeight(prevHeights => 
+                    prevHeights.map((_, i) => Math.sin(Date.now() * 0.01 + i) * 10 + 15)
+                );
+                animationFrameId = requestAnimationFrame(updateWaves);
+            };
+            updateWaves();
+        } else {
+            setWaveHeight(Array(5).fill(4));
+        }
+        return () => cancelAnimationFrame(animationFrameId);
+    }, [isActive]);
+
+    return (
+        <div className="flex items-center justify-center space-x-1 h-8"> {/* Altura fixa para evitar layout shift */}
+            {waveHeight.map((height, i) => (
+            <div
+                key={i}
+                className="w-1 bg-green-400 rounded-full transition-all duration-100" // Duração menor para responsividade
+                style={{
+                    height: `${Math.max(4, height)}px`, // Garante altura mínima
+                }}
+            />
+            ))}
+        </div>
+    );
+});
+AudioWaves.displayName = "AudioWaves";
+
+
+const AdvancedProgressIndicator = React.memo(({ current, total }: { current: number; total: number }) => {
+  const progress = total > 0 ? (current / total) * 100 : 0;
   
   return (
     <div className="w-full max-w-4xl mx-auto mb-12">
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center space-x-4">
           <div className="relative w-16 h-16">
-            <svg className="w-16 h-16 transform -rotate-90">
-              <circle
-                cx="32"
-                cy="32"
-                r="28"
-                stroke="rgba(255,255,255,0.1)"
-                strokeWidth="4"
-                fill="none"
-              />
-              <circle
-                cx="32"
-                cy="32"
-                r="28"
-                stroke="#22c55e"
-                strokeWidth="4"
-                fill="none"
+            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 64 64">
+              <circle cx="32" cy="32" r="28" stroke="rgba(255,255,255,0.1)" strokeWidth="4" fill="none"/>
+              <circle cx="32" cy="32" r="28" stroke="#22c55e" strokeWidth="4" fill="none"
                 strokeDasharray={`${2 * Math.PI * 28}`}
                 strokeDashoffset={`${2 * Math.PI * 28 * (1 - progress / 100)}`}
-                style={{ transition: 'stroke-dashoffset 1s ease-out' }}
-              />
+                style={{ transition: 'stroke-dashoffset 0.5s ease-out' }}/>
             </svg>
             <div className="absolute inset-0 flex items-center justify-center">
               <span className="text-2xl font-bold text-white">{Math.round(progress)}%</span>
             </div>
           </div>
           <div>
-            <h3 className="text-xl font-semibold text-white">Pergunta {current} de {total}</h3>
+            <h3 className="text-xl font-semibold text-white">Pergunta {Math.min(current, total)} de {total}</h3>
             <p className="text-white/60">Análise em progresso...</p>
           </div>
         </div>
         <div className="text-right">
-          <div className="text-3xl font-bold text-green-400">{current}</div>
+          <div className="text-3xl font-bold text-green-400">{Math.min(current, total)}</div>
           <div className="text-sm text-white/60">Concluídas</div>
         </div>
       </div>
-      
       <div className="flex space-x-2">
         {Array.from({ length: total }, (_, i) => (
-          <div
-            key={i}
+          <div key={i}
             className={`flex-1 h-2 rounded-full transition-all duration-500 ${
-              i < current 
-                ? 'bg-gradient-to-r from-green-500 to-blue-500 shadow-lg shadow-green-500/50' 
-                : 'bg-white/10'
-            }`}
-          />
+              i < current ? 'bg-gradient-to-r from-green-500 to-blue-500 shadow-lg shadow-green-500/50' : 'bg-white/10'
+            }`}/>
         ))}
       </div>
     </div>
   );
-};
+});
+AdvancedProgressIndicator.displayName = "AdvancedProgressIndicator";
 
-// Live Stats
-const EnhancedLiveStats = ({ perfil }: { perfil: ExpertProfile }) => {
+const EnhancedLiveStats = React.memo(({ perfil }: { perfil: ExpertProfile }) => {
   const totalResponses = Object.values(perfil.coberturaDominios).reduce((a, b) => a + b, 0);
-  const dominantValue = Object.entries(perfil.valoresSchwartz)
-    .sort(([,a], [,b]) => b - a)[0]?.[0] || 'Analisando...';
-  const dominantTrait = Object.entries(perfil.bigFive)
-    .sort(([,a], [,b]) => b - a)[0]?.[0] || 'Analisando...';
+  const dominantTrait = Object.entries(perfil.bigFive).sort(([,a], [,b]) => b - a)[0]?.[0]?.slice(0,10) || 'Analisando';
   
   const stats = [
-    { icon: BarChart3, value: totalResponses, label: 'Respostas Analisadas', color: 'text-green-400', bg: 'bg-green-500/10' },
-    { icon: Target, value: perfil.metricas.metaforas, label: 'Metáforas Detectadas', color: 'text-blue-400', bg: 'bg-blue-500/10' },
-    { icon: Zap, value: perfil.metricas.contradicoes, label: 'Padrões Complexos', color: 'text-yellow-400', bg: 'bg-yellow-500/10' },
-    { icon: Users, value: dominantTrait.slice(0, 8), label: 'Traço Dominante', color: 'text-purple-400', bg: 'bg-purple-500/10' },
+    { icon: BarChart3, value: totalResponses, label: 'Respostas', color: 'text-green-400', bg: 'bg-green-500/10' },
+    { icon: Target, value: perfil.metricas.metaforas, label: 'Metáforas', color: 'text-blue-400', bg: 'bg-blue-500/10' },
+    { icon: Zap, value: perfil.metricas.contradicoes, label: 'Padrões', color: 'text-yellow-400', bg: 'bg-yellow-500/10' },
+    { icon: Users, value: dominantTrait, label: 'Traço Dom.', color: 'text-purple-400', bg: 'bg-purple-500/10' },
   ];
   
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-12"> {/* Gap menor em telas pequenas */}
       {stats.map((stat, index) => (
-        <div
-          key={index}
-          className="relative p-6 rounded-2xl transition-all duration-300 cursor-pointer hover:scale-105"
-          style={{
-            background: 'rgba(255, 255, 255, 0.05)',
-            backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)'
-          }}
-        >
-          <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${stat.bg}`}>
-            <stat.icon className={`w-6 h-6 ${stat.color}`} />
+        <div key={index}
+          className="relative p-4 md:p-6 rounded-2xl transition-all duration-300 cursor-default hover:scale-105"
+          style={{ background: 'rgba(255, 255, 255, 0.05)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255, 255, 255, 0.1)', boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)' }}>
+          <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center mb-3 md:mb-4 ${stat.bg}`}>
+            <stat.icon className={`w-5 h-5 md:w-6 md:h-6 ${stat.color}`} />
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-white mb-1">{stat.value}</div>
-            <div className="text-sm text-white/60">{stat.label}</div>
+            <div className="text-xl md:text-2xl font-bold text-white mb-1">{stat.value}</div>
+            <div className="text-xs md:text-sm text-white/60">{stat.label}</div>
           </div>
         </div>
       ))}
     </div>
   );
-};
+});
+EnhancedLiveStats.displayName = "EnhancedLiveStats";
 
-// Welcome Screen
-const PremiumWelcomeScreen = ({ onStart }: { onStart: () => void }) => (
-  <div className="w-full max-w-6xl text-center">
-    <div className="space-y-12">
+
+const PremiumWelcomeScreen = React.memo(({ onStart }: { onStart: () => void }) => (
+  <div className="w-full max-w-6xl text-center px-4"> {/* Adicionado padding horizontal */}
+    <div className="space-y-10 md:space-y-12">
       <div className="relative inline-block">
-        <div 
-          className="relative w-32 h-32 mx-auto rounded-3xl flex items-center justify-center"
-          style={{
-            background: 'linear-gradient(135deg, #22c55e 0%, #3b82f6 100%)',
-            boxShadow: '0 0 30px rgba(34, 197, 94, 0.5)'
-          }}
-        >
-          <Brain className="w-16 h-16 text-white" />
+        <div className="relative w-24 h-24 md:w-32 md:h-32 mx-auto rounded-3xl flex items-center justify-center"
+          style={{ background: 'linear-gradient(135deg, #22c55e 0%, #3b82f6 100%)', boxShadow: '0 0 30px rgba(34, 197, 94, 0.5)' }}>
+          <Brain className="w-12 h-12 md:w-16 md:h-16 text-white" />
         </div>
-        <Sparkles className="absolute -top-2 -right-2 w-6 h-6 text-yellow-400 animate-pulse" />
-        <Sparkles className="absolute top-1/2 -left-3 w-6 h-6 text-yellow-400 animate-pulse" style={{ animationDelay: '0.5s' }} />
-        <Sparkles className="absolute -bottom-2 right-5 w-6 h-6 text-yellow-400 animate-pulse" style={{ animationDelay: '1s' }} />
+        <Sparkles className="absolute -top-2 -right-2 w-5 h-5 md:w-6 md:h-6 text-yellow-400 animate-pulse" />
+        <Sparkles className="absolute top-1/2 -left-3 w-5 h-5 md:w-6 md:h-6 text-yellow-400 animate-pulse" style={{ animationDelay: '0.5s' }} />
+        <Sparkles className="absolute -bottom-2 right-5 w-5 h-5 md:w-6 md:h-6 text-yellow-400 animate-pulse" style={{ animationDelay: '1s' }} />
       </div>
       
-      <div className="space-y-6">
-        <div className="space-y-2">
-          <h1 
-            className="text-7xl md:text-8xl font-black"
-            style={{
-              background: 'linear-gradient(135deg, #22c55e 0%, #3b82f6 100%)',
-              WebkitBackgroundClip: 'text', // Original, mantido caso o usuário queira assim mas camelCase é melhor
-              webkitBackgroundClip: 'text',  // CORRIGIDO para camelCase
-              WebkitTextFillColor: 'transparent', // Original, mantido
-              webkitTextFillColor: 'transparent', // CORRIGIDO para camelCase
-              backgroundClip: 'text'
-            }}
-          >
+      <div className="space-y-4 md:space-y-6">
+        <div className="space-y-1 md:space-y-2">
+          <h1 className="text-6xl md:text-8xl font-black bg-clip-text text-transparent"
+            style={{ backgroundImage: 'linear-gradient(135deg, #22c55e 0%, #3b82f6 100%)' }}>
             DNA
           </h1>
-          <h2 className="text-3xl md:text-4xl font-light text-white">Deep Narrative Analysis</h2>
-          <p className="text-lg text-white/60 font-medium tracking-wider uppercase">Powered by Advanced AI</p>
+          <h2 className="text-2xl md:text-4xl font-light text-white">Deep Narrative Analysis</h2>
+          <p className="text-base md:text-lg text-white/60 font-medium tracking-wider uppercase">Powered by Advanced AI</p>
         </div>
-        
-        <p className="text-xl text-white/80 max-w-3xl mx-auto leading-relaxed">
+        <p className="text-lg md:text-xl text-white/80 max-w-3xl mx-auto leading-relaxed">
           Plataforma profissional de análise psicológica através de narrativa pessoal. 
-          Utilizamos inteligência artificial avançada para revelar padrões profundos 
-          da sua personalidade e estrutura cognitiva.
+          Utilizamos IA avançada para revelar padrões profundos da sua personalidade.
         </p>
       </div>
       
-      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
+      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 max-w-6xl mx-auto">
         {[
-          { icon: Award, title: 'Análise Científica', desc: 'Baseada em modelos psicológicos validados como Big Five e Valores de Schwartz', color: 'bg-green-500/10', iconColor: 'text-green-400' },
-          { icon: Brain, title: 'IA Avançada', desc: 'Processamento de linguagem natural com análise semântica profunda', color: 'bg-blue-500/10', iconColor: 'text-blue-400' },
-          { icon: TrendingUp, title: 'Insights Profundos', desc: 'Revelações sobre padrões comportamentais e estruturas de personalidade', color: 'bg-purple-500/10', iconColor: 'text-purple-400' },
-          { icon: Lightbulb, title: 'Relatório Detalhado', desc: 'Análise completa com recomendações personalizadas e insights acionáveis', color: 'bg-yellow-500/10', iconColor: 'text-yellow-400' }
-        ].map((feature, index) => (
-          <div
-            key={index}
-            className="p-6 rounded-2xl text-center transition-all duration-300 hover:scale-105"
-            style={{
-              background: 'rgba(255, 255, 255, 0.05)',
-              backdropFilter: 'blur(20px)',
-              border: '1px solid rgba(255, 255, 255, 0.1)'
-            }}
-          >
-            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 ${feature.color}`}>
-              <feature.icon className={`w-8 h-8 ${feature.iconColor}`} />
+          { icon: Award, title: 'Análise Científica', desc: 'Baseada em modelos psicológicos validados.', color: 'bg-green-500/10', iconColor: 'text-green-400' },
+          { icon: Brain, title: 'IA Avançada', desc: 'Processamento de linguagem natural e semântica.', color: 'bg-blue-500/10', iconColor: 'text-blue-400' },
+          { icon: TrendingUp, title: 'Insights Profundos', desc: 'Revela padrões comportamentais e de personalidade.', color: 'bg-purple-500/10', iconColor: 'text-purple-400' },
+          { icon: Lightbulb, title: 'Relatório Detalhado', desc: 'Recomendações personalizadas e acionáveis.', color: 'bg-yellow-500/10', iconColor: 'text-yellow-400' }
+        ].map((feature) => (
+          <div key={feature.title}
+            className="p-4 md:p-6 rounded-2xl text-center transition-all duration-300 hover:scale-105"
+            style={{ background: 'rgba(255, 255, 255, 0.05)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+            <div className={`w-12 h-12 md:w-16 md:h-16 rounded-2xl flex items-center justify-center mx-auto mb-3 md:mb-4 ${feature.color}`}>
+              <feature.icon className={`w-6 h-6 md:w-8 md:h-8 ${feature.iconColor}`} />
             </div>
-            <h3 className="text-lg font-semibold text-white mb-2">{feature.title}</h3>
-            <p className="text-sm text-white/70 leading-relaxed">{feature.desc}</p>
+            <h3 className="text-md md:text-lg font-semibold text-white mb-1 md:mb-2">{feature.title}</h3>
+            <p className="text-xs md:text-sm text-white/70 leading-relaxed">{feature.desc}</p>
           </div>
         ))}
       </div>
       
-      <div className="space-y-6">
-        <button
-          onClick={onStart}
-          className="relative inline-flex items-center px-12 py-6 rounded-2xl font-semibold text-lg text-white transition-all duration-300 hover:scale-105"
-          style={{
-            background: 'linear-gradient(135deg, #22c55e 0%, #3b82f6 100%)',
-            boxShadow: '0 0 30px rgba(34, 197, 94, 0.5)'
-          }}
-        >
-          <span className="mr-4">Iniciar Análise Profissional</span>
-          <ArrowRight className="w-6 h-6 transition-transform duration-300 group-hover:translate-x-1" />
+      <div className="space-y-4 md:space-y-6">
+        <button onClick={onStart}
+          className="group relative inline-flex items-center px-8 py-4 md:px-12 md:py-6 rounded-2xl font-semibold text-lg text-white transition-all duration-300 hover:scale-105"
+          style={{ background: 'linear-gradient(135deg, #22c55e 0%, #3b82f6 100%)', boxShadow: '0 0 30px rgba(34, 197, 94, 0.5)' }}>
+          <span className="mr-3 md:mr-4">Iniciar Análise</span>
+          <ArrowRight className="w-5 h-5 md:w-6 md:h-6 transition-transform duration-300 group-hover:translate-x-1" />
         </button>
-        
-        <div className="flex items-center justify-center space-x-8 text-sm text-white/60">
-          <div className="flex items-center space-x-2">
-            <Timer className="w-4 h-4" />
-            <span>~15 minutos</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Eye className="w-4 h-4" />
-            <span>{PERGUNTAS_DNA.length} perguntas</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Award className="w-4 h-4" />
-            <span>Certificado profissional</span>
-          </div>
+        <div className="flex items-center justify-center space-x-4 md:space-x-8 text-xs md:text-sm text-white/60">
+          <div className="flex items-center space-x-1 md:space-x-2"><Timer className="w-3 h-3 md:w-4 md:h-4" /><span>~10-15 min</span></div>
+          <div className="flex items-center space-x-1 md:space-x-2"><Eye className="w-3 h-3 md:w-4 md:h-4" /><span>{PERGUNTAS_DNA.length} perguntas</span></div>
+          <div className="flex items-center space-x-1 md:space-x-2"><Award className="w-3 h-3 md:w-4 md:h-4" /><span>Certificado</span></div>
         </div>
       </div>
     </div>
   </div>
-);
+));
+PremiumWelcomeScreen.displayName = "PremiumWelcomeScreen";
 
-// Session Screen
+
 const PremiumSessionScreen = ({
-  pergunta,
-  status,
-  onStartRecording,
-  onStopRecording,
-  perfil,
-  currentIndex,
-  total
+  pergunta, status, onStartRecording, onStopRecording, perfil, currentIndex, total
 }: {
-  pergunta: Pergunta | null;
-  status: SessionStatus;
-  onStartRecording: () => void;
-  onStopRecording: () => void;
-  perfil: ExpertProfile;
-  currentIndex: number;
-  total: number;
+  pergunta: Pergunta | null; status: SessionStatus; onStartRecording: () => void;
+  onStopRecording: () => void; perfil: ExpertProfile; currentIndex: number; total: number;
 }) => {
   const [timer, setTimer] = useState(0);
-  const [audioMuted, setAudioMuted] = useState(false);
+  const [audioMuted, setAudioMuted] = useState(false); // Esta funcionalidade não está implementada no audioService
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (status === 'recording') {
-      intervalRef.current = setInterval(() => {
-        setTimer(prev => prev + 1);
-      }, 1000);
+      intervalRef.current = setInterval(() => setTimer(prev => prev + 1), 1000);
     } else {
       if (intervalRef.current) clearInterval(intervalRef.current);
       setTimer(0);
     }
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [status]);
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
-    const secs = (seconds % 60).toString().padStart(2, '0');
-    return `${mins}:${secs}`;
-  };
+  const formatTime = (seconds: number) => `${Math.floor(seconds / 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`;
 
-  const getStatusConfig = () => {
-    switch (status) {
-      case 'listening':
-        return {
-          message: 'Reproduzindo pergunta...',
-          icon: Volume2,
-          color: 'text-blue-400',
-          showWaves: true
-        };
-      case 'waiting_for_user':
-        return {
-          message: 'Pronto para gravar sua resposta',
-          icon: Mic,
-          color: 'text-green-400',
-          showWaves: false
-        };
-      case 'recording':
-        return {
-          message: 'Gravando sua narrativa...',
-          icon: Square,
-          color: 'text-red-400',
-          showWaves: true
-        };
-      case 'processing':
-        return {
-          message: 'Analisando padrões narrativos...',
-          icon: Brain,
-          color: 'text-purple-400',
-          showWaves: false
-        };
-      default:
-        return {
-          message: '',
-          icon: Mic,
-          color: 'text-white',
-          showWaves: false
-        };
-    }
+  const statusMap = {
+    listening: { message: 'Reproduzindo pergunta...', icon: Volume2, color: 'text-blue-400', showWaves: true },
+    waiting_for_user: { message: 'Pronto para gravar', icon: Mic, color: 'text-green-400', showWaves: false },
+    recording: { message: 'Gravando sua narrativa...', icon: Square, color: 'text-red-400', showWaves: true },
+    processing: { message: 'Analisando padrões...', icon: Brain, color: 'text-purple-400', showWaves: false, isProcessing: true },
+    idle: { message: '', icon: Mic, color: 'text-white', showWaves: false },
+    finished: { message: 'Concluído', icon: Check, color: 'text-green-400', showWaves: false },
   };
+  const currentStatusConfig = statusMap[status] || statusMap.idle;
+  const StatusIcon = currentStatusConfig.icon;
 
-  const statusConfig = getStatusConfig();
+  if (!pergunta) { // Fallback se a pergunta for nula
+    return (
+        <div className="w-full max-w-7xl flex flex-col items-center justify-center p-4 min-h-[calc(100vh-200px)]">
+            <Loader className="w-12 h-12 text-blue-500 animate-spin mb-4" />
+            <p className="text-white/80 text-lg">Carregando próxima pergunta...</p>
+        </div>
+    );
+  }
 
   return (
-    <div className="w-full max-w-7xl">
+    <div className="w-full max-w-4xl mx-auto px-4"> {/* Max width e padding */}
       <AdvancedProgressIndicator current={currentIndex} total={total} />
-      
       <EnhancedLiveStats perfil={perfil} />
       
-      <div className="space-y-12">
-        <div className="w-full">
-          <div
-            key={pergunta?.texto} // Using text as key might be problematic if texts are not unique or change
-            className="p-8 rounded-3xl"
-            style={{
-              background: 'rgba(255, 255, 255, 0.05)',
-              backdropFilter: 'blur(20px)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-            }}
-          >
-            <div className="flex items-center mb-8">
-              <div 
-                className="w-16 h-16 rounded-2xl flex items-center justify-center mr-6 text-2xl font-bold text-white"
-                style={{ background: 'linear-gradient(135deg, #22c55e 0%, #3b82f6 100%)' }}
-              >
-                {currentIndex}
-              </div>
-              <div className="flex-1">
-                <div 
-                  className="inline-block px-4 py-2 rounded-full text-sm font-medium text-white/80 mb-2"
-                  style={{ 
-                    background: 'rgba(255, 255, 255, 0.1)', 
-                    border: '1px solid rgba(255, 255, 255, 0.1)' 
-                  }}
-                >
-                  {pergunta?.dominio}
-                </div>
-                <div className="text-lg font-medium text-white">Pergunta {currentIndex} de {total}</div>
-              </div>
+      <div className="space-y-8 md:space-y-12">
+        <div className="w-full p-6 md:p-8 rounded-3xl"
+          style={{ background: 'rgba(255, 255, 255, 0.05)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255, 255, 255, 0.1)', boxShadow: '0 8px 20px rgba(0, 0, 0, 0.1)' }}>
+          <div className="flex items-center mb-6 md:mb-8">
+            <div className="w-12 h-12 md:w-16 md:h-16 rounded-2xl flex items-center justify-center mr-4 md:mr-6 text-xl md:text-2xl font-bold text-white"
+              style={{ background: 'linear-gradient(135deg, #22c55e 0%, #3b82f6 100%)' }}>
+              {currentIndex}
             </div>
-            
-            <div className="text-center">
-              <p className="text-2xl md:text-3xl font-medium text-white leading-relaxed min-h-[120px] flex items-center justify-center">
-                {pergunta?.texto}
-              </p> {/* CORRIGIDO: </p> movido para fora de {} */}
+            <div className="flex-1">
+              <div className="inline-block px-3 py-1 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-medium text-white/80 mb-1 md:mb-2"
+                style={{ background: 'rgba(255, 255, 255, 0.1)', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                {pergunta.dominio}
+              </div>
+              <div className="text-md md:text-lg font-medium text-white">Pergunta {currentIndex} de {total}</div>
             </div>
+          </div>
+          <div className="text-center min-h-[100px] md:min-h-[120px] flex items-center justify-center">
+            <p className="text-xl md:text-2xl font-medium text-white leading-relaxed">
+              {pergunta.texto}
+            </p>
           </div>
         </div>
         
-        <div className="control-section"> {/* Assuming these classes are defined in your global CSS */}
-          <div className="status-display">
-            <div className="status-content">
-              <statusConfig.icon className={`status-icon ${statusConfig.color}`} />
-              <div className="status-text">
-                <div className="status-message">{statusConfig.message}</div>
-                {status === 'recording' && (
-                  <div className="recording-timer">
-                    <div className="timer-display">{formatTime(timer)}</div>
-                    <Volume2 className="w-4 h-4 text-red-400" />
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            {statusConfig.showWaves && <AudioWaves isActive={true} />}
-            
-            {status === 'processing' && (
-              <div className="processing-indicator">
-                <div className="processing-dot"></div>
-                <div className="processing-dot"></div>
-                <div className="processing-dot"></div>
-              </div>
-            )}
+        <div className="flex flex-col items-center space-y-6 p-4 rounded-2xl" 
+             style={{ background: 'rgba(0,0,0,0.2)', backdropFilter: 'blur(5px)'}}>
+          <div className="flex items-center space-x-3 text-white/90">
+            <StatusIcon className={`w-6 h-6 ${currentStatusConfig.color} ${currentStatusConfig.isProcessing ? 'animate-pulse' : ''}`} />
+            <span className="text-lg">{currentStatusConfig.message}</span>
+            {status === 'recording' && <span className="text-lg font-mono text-red-400">{formatTime(timer)}</span>}
           </div>
+
+          {currentStatusConfig.showWaves && <AudioWaves isActive={true} />}
+          {currentStatusConfig.isProcessing && (
+            <div className="flex space-x-1.5">
+              {[0,1,2].map(i => <div key={i} className="w-3 h-3 bg-purple-400 rounded-full animate-pulse" style={{animationDelay: `${i*0.2}s`}}></div>)}
+            </div>
+          )}
           
           <button
             onClick={status === 'recording' ? onStopRecording : onStartRecording}
             disabled={status === 'listening' || status === 'processing'}
-            className={`record-button ${status === 'recording' ? 'recording' : ''} ${
-              status === 'listening' || status === 'processing' ? 'disabled' : ''
-            }`}
+            className={`w-20 h-20 md:w-24 md:h-24 rounded-full flex items-center justify-center transition-all duration-300
+                        ${status === 'recording' ? 'bg-red-500 hover:bg-red-600 animate-pulse-border-red' : 'bg-green-500 hover:bg-green-600'}
+                        ${(status === 'listening' || status === 'processing') ? 'opacity-50 cursor-not-allowed' : 'shadow-lg hover:shadow-xl'}`}
           >
-            <div className="button-content">
-              {status === 'recording' ? (
-                <div className="recording-indicator">
-                  <div className="pulse-ring"></div>
-                  <Square className="w-8 h-8 text-white" />
-                </div>
-              ) : (
-                <Mic className="w-8 h-8 text-white" />
-              )}
-            </div>
+            {status === 'recording' ? <Square className="w-8 h-8 md:w-10 md:h-10 text-white" /> : <Mic className="w-8 h-8 md:w-10 md:h-10 text-white" />}
           </button>
-          
-          <div className="control-options">
-            <button 
-              onClick={() => setAudioMuted(!audioMuted)}
-              className="option-button"
-            >
-              {audioMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-              <span>{audioMuted ? 'Ativar Som' : 'Silenciar'}</span>
-            </button>
-          </div>
+
+          <button onClick={() => setAudioMuted(!audioMuted)} className="flex items-center space-x-2 text-white/70 hover:text-white transition-colors">
+            {audioMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+            <span className="text-sm">{audioMuted ? 'Ativar Som' : 'Silenciar'}</span>
+          </button>
         </div>
       </div>
     </div>
   );
 };
+// Adicionar displayName para facilitar debugging, se necessário
+// PremiumSessionScreen.displayName = "PremiumSessionScreen";
 
-// Report Screen
-const PremiumReportScreen = ({ 
-  perfil, 
-  sintese, 
-  onRestart 
-}: { 
-  perfil: ExpertProfile; 
-  sintese: string; 
-  onRestart: () => void;
-}) => {
+
+const PremiumReportScreen = React.memo(({ perfil, sintese, onRestart }: { perfil: ExpertProfile; sintese: string; onRestart: () => void; }) => {
   const [isDownloading, setIsDownloading] = useState(false);
-  
-  const handleDownload = () => {
+
+  const handleDownload = useCallback(() => {
     setIsDownloading(true);
     setTimeout(() => {
-      const blob = new Blob([sintese], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `DNA_Report_${new Date().toISOString().split('T')[0]}.txt`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      setIsDownloading(false);
-    }, 1000);
-  };
+      try {
+        const blob = new Blob([sintese], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `DNA_Report_${new Date().toISOString().split('T')[0]}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        console.error("Erro ao baixar relatório:", e);
+        alert("Falha ao iniciar o download do relatório.");
+      } finally {
+        setIsDownloading(false);
+      }
+    }, 500); // Reduzido timeout
+  }, [sintese]);
 
-  const handleShare = async () => {
+  const handleShare = useCallback(async () => {
     if (navigator.share) {
       try {
         await navigator.share({
           title: 'Meu Relatório DNA',
-          text: 'Confira minha análise psicológica completa!',
-          url: window.location.href // This will share the current page URL
+          text: `Confira minha análise psicológica DNA!\n\n${sintese.substring(0, 100)}...`, // Preview
+          url: typeof window !== "undefined" ? window.location.href : undefined
         });
-      } catch (error) {
-        console.log('Erro ao compartilhar:', error);
-      }
+      } catch (error) { console.log('Erro ao compartilhar:', error); }
+    } else {
+      alert("Compartilhamento não suportado neste navegador.");
     }
-  };
+  }, [sintese]);
 
   return (
-    <div className="w-full max-w-6xl"> {/* Assuming styling from global CSS for report-header etc. */}
-      <div className="report-header">
-        <div className="completion-badge">
-          <div className="badge-glow"></div>
-          <Check className="w-16 h-16 text-white" />
+    <div className="w-full max-w-4xl mx-auto px-4 py-8"> {/* Max width e padding */}
+      <div className="text-center mb-10 md:mb-12">
+        <div className="relative inline-flex items-center justify-center w-24 h-24 md:w-32 md:h-32 rounded-full mb-6"
+             style={{ background: 'linear-gradient(135deg, #22c55e 0%, #3b82f6 100%)', boxShadow: '0 0 30px rgba(34,197,94,0.4)'}}>
+          <Check className="w-12 h-12 md:w-16 md:h-16 text-white" />
+          <div className="absolute inset-0 rounded-full border-4 border-white/30 animate-pulse-border"></div>
         </div>
-        
-        <div className="header-content">
-          <h1 className="completion-title">Análise Concluída!</h1>
-          <p className="completion-subtitle">
-            Sua análise psicológica profunda foi processada com sucesso. 
-            Explore os insights únicos sobre sua personalidade e estrutura cognitiva.
-          </p>
-        </div>
+        <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">Análise Concluída!</h1>
+        <p className="text-md md:text-lg text-white/70 max-w-2xl mx-auto">
+          Seu relatório DNA está pronto. Explore os insights sobre sua personalidade e estrutura cognitiva.
+        </p>
       </div>
       
-      <div className="report-container">
-        <div className="report-toolbar">
-          <div className="toolbar-left">
+      <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl shadow-xl overflow-hidden">
+        <div className="flex flex-col sm:flex-row justify-between items-center p-4 md:p-6 border-b border-white/10">
+          <div className="flex items-center space-x-3 mb-3 sm:mb-0">
             <FileText className="w-6 h-6 text-green-400" />
-            <h2>Relatório DNA - Deep Narrative Analysis</h2>
+            <h2 className="text-lg md:text-xl font-semibold text-white">Relatório DNA</h2>
           </div>
-          <div className="toolbar-right">
-            <button 
-              onClick={handleDownload}
-              disabled={isDownloading}
-              className="toolbar-button"
-            >
+          <div className="flex space-x-3">
+            <button onClick={handleDownload} disabled={isDownloading}
+              className="flex items-center space-x-2 px-3 py-2 md:px-4 md:py-2.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-white text-sm font-medium transition-colors disabled:opacity-50">
               {isDownloading ? <Loader className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
               <span>{isDownloading ? 'Baixando...' : 'Download'}</span>
             </button>
-            <button onClick={handleShare} className="toolbar-button">
-              <Share2 className="w-4 h-4" />
-              <span>Compartilhar</span>
-            </button>
+            {navigator.share && (
+              <button onClick={handleShare}
+                className="flex items-center space-x-2 px-3 py-2 md:px-4 md:py-2.5 bg-purple-600 hover:bg-purple-700 rounded-lg text-white text-sm font-medium transition-colors">
+                <Share2 className="w-4 h-4" />
+                <span>Compartilhar</span>
+              </button>
+            )}
           </div>
         </div>
-        
-        <div className="report-content">
-          <div className="report-text" style={{ whiteSpace: 'pre-wrap' }}> {/* Ensure newlines in report are rendered */}
+        <div className="p-6 md:p-8">
+          <pre className="text-sm md:text-base text-white/90 whitespace-pre-wrap leading-relaxed font-sans">
             {sintese}
-          </div>
+          </pre>
         </div>
       </div>
       
-      <div className="report-actions">
-        <button onClick={onRestart} className="restart-button">
-          <Play className="w-6 h-6 mr-3" />
+      <div className="mt-10 md:mt-12 text-center">
+        <button onClick={onRestart}
+          className="group inline-flex items-center px-8 py-4 md:px-10 md:py-5 bg-gradient-to-r from-green-500 to-blue-600 hover:opacity-90 rounded-xl text-white text-lg font-semibold transition-opacity shadow-lg">
+          <Play className="w-5 h-5 md:w-6 md:h-6 mr-2 md:mr-3 transition-transform group-hover:rotate-[360deg] duration-500" />
           Nova Análise
         </button>
       </div>
     </div>
   );
-};
+});
+PremiumReportScreen.displayName = "PremiumReportScreen";
 
-// Error Screen
-const ErrorScreen = ({ 
-  message, 
-  onRetry 
-}: { 
-  message: string; 
-  onRetry: () => void;
-}) => (
-  <div className="error-container"> {/* Assuming styling from global CSS */}
-    <div className="error-icon">
-      <AlertTriangle className="w-16 h-16 text-red-400 mx-auto" />
+
+const ErrorScreen = React.memo(({ message, onRetry }: { message: string; onRetry: () => void; }) => (
+  <div className="flex flex-col items-center justify-center text-center p-6 md:p-10 min-h-[calc(100vh-200px)]"> {/* Min height para centralizar */}
+    <div className="p-6 rounded-full bg-red-500/20 mb-6 md:mb-8">
+      <AlertTriangle className="w-12 h-12 md:w-16 md:h-16 text-red-400" />
     </div>
-    <div className="error-content">
-      <h2 className="error-title">Ops! Algo deu errado</h2>
-      <p className="error-message">{message}</p>
-      <button onClick={onRetry} className="error-button">
-        Tentar Novamente
-      </button>
-    </div>
+    <h2 className="text-2xl md:text-3xl font-semibold text-white mb-3 md:mb-4">Ops! Algo deu errado</h2>
+    <p className="text-md md:text-lg text-white/70 mb-8 max-w-md">{message}</p>
+    <button onClick={onRetry}
+      className="px-8 py-3 md:px-10 md:py-4 bg-yellow-500 hover:bg-yellow-600 rounded-lg text-black text-lg font-semibold transition-colors shadow-md">
+      Tentar Novamente
+    </button>
   </div>
-);
+));
+ErrorScreen.displayName = "ErrorScreen";
 
-// Main Component
+
 export default function DNAAnalysisApp() {
   const [sessionStatus, setSessionStatus] = useState<SessionStatus>('idle');
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -885,27 +748,14 @@ export default function DNAAnalysisApp() {
   const [error, setError] = useState<string | null>(null);
   const [isAudioInitialized, setIsAudioInitialized] = useState(false);
 
-  const currentQuestion = PERGUNTAS_DNA[currentQuestionIndex];
+  const currentQuestion = PERGUNTAS_DNA[currentQuestionIndex] || null;
 
-  const initializeApp = useCallback(async () => {
-    try {
-      setError(null);
-      await audioService.initAudio();
-      setIsAudioInitialized(true);
-      // Wait for playCurrentQuestion to complete before setting status for user interaction
-      // Start by playing the first question
-      if (PERGUNTAS_DNA.length > 0) {
-        await playCurrentQuestionInternal(PERGUNTAS_DNA[0]);
-      } else {
-        setSessionStatus('finished'); // Or some other appropriate status if no questions
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro desconhecido ao inicializar');
+  const playCurrentQuestionInternal = useCallback(async (questionToPlay: Pergunta | null) => {
+    if (!questionToPlay) {
+        setError("Nenhuma pergunta para tocar.");
+        setSessionStatus('finished'); // Ou outro estado apropriado
+        return;
     }
-  }, []); // Removed playCurrentQuestionInternal from deps, it's defined inside or stable
-
-  const playCurrentQuestionInternal = useCallback(async (questionToPlay: Pergunta) => {
-    if (!questionToPlay) return;
     
     setSessionStatus('listening');
     try {
@@ -913,62 +763,73 @@ export default function DNAAnalysisApp() {
         setSessionStatus('waiting_for_user');
       });
     } catch (err) {
-      console.error('Erro ao reproduzir áudio:', err);
+      console.error('Erro ao reproduzir áudio da pergunta:', err);
       setError(err instanceof Error ? err.message : 'Erro ao reproduzir áudio da pergunta.');
-      setSessionStatus('waiting_for_user'); // Still allow user to proceed or retry
+      setSessionStatus('waiting_for_user'); 
     }
   }, []);
+
+  const initializeApp = useCallback(async () => {
+    setError(null);
+    setSessionStatus('listening'); // Indica que está iniciando
+    try {
+      await audioService.initAudio();
+      setIsAudioInitialized(true);
+      if (PERGUNTAS_DNA.length > 0) {
+        await playCurrentQuestionInternal(PERGUNTAS_DNA[0]);
+      } else {
+        setError("Nenhuma pergunta configurada para a análise.");
+        setSessionStatus('finished'); 
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro desconhecido ao inicializar o áudio.');
+      setSessionStatus('idle'); // Volta para idle se a inicialização falhar
+    }
+  }, [playCurrentQuestionInternal]);
 
 
   const startRecording = useCallback(async () => {
+    if (!isAudioInitialized) {
+        setError("Áudio não inicializado. Por favor, permita o acesso ao microfone.");
+        return;
+    }
+    setError(null);
     try {
-      setError(null);
       await audioService.startRecording();
       setSessionStatus('recording');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao iniciar gravação');
+      setError(err instanceof Error ? err.message : 'Erro ao iniciar gravação.');
+      setSessionStatus('waiting_for_user');
     }
-  }, []);
+  }, [isAudioInitialized]);
 
   const stopRecording = useCallback(async () => {
+    setSessionStatus('processing');
     try {
-      setSessionStatus('processing');
       const audioBlob = await audioService.stopRecording();
       
-      // Simular transcrição e análise
-      const mockTranscription = `Esta é uma resposta simulada para a pergunta sobre ${currentQuestion?.dominio}. 
-      Eu me sinto muito responsável e organizado em minhas decisões, sempre buscando ajudar as pessoas ao meu redor. 
-      Acredito na justiça e na igualdade, e isso guia minhas ações diárias. Quando enfrento conflitos internos, 
-      procuro encontrar um equilíbrio entre meus valores pessoais e as expectativas sociais.`;
+      const mockTranscription = `Resposta simulada para ${currentQuestion?.dominio}: Responsável, organizado, ajudando pessoas. Acredito na justiça e igualdade. Conflitos internos são resolvidos com equilíbrio.`;
       
-      // Processar análise
       if (!currentQuestion) {
-        throw new Error("Current question is undefined during analysis.");
+        throw new Error("Pergunta atual é indefinida durante a análise da gravação.");
       }
-      const updatedProfile = analysisEngine.analisarFragmento(
-        mockTranscription, 
-        expertProfile, 
-        currentQuestion
-      );
-      
+      const updatedProfile = analysisEngine.analisarFragmento(mockTranscription, expertProfile, currentQuestion);
       setExpertProfile(updatedProfile);
       
-      // Avançar para próxima pergunta ou finalizar
-      if (currentQuestionIndex < PERGUNTAS_DNA.length - 1) {
-        const nextIndex = currentQuestionIndex + 1;
+      const nextIndex = currentQuestionIndex + 1;
+      if (nextIndex < PERGUNTAS_DNA.length) {
         setCurrentQuestionIndex(nextIndex);
-        setTimeout(async () => { // Make timeout callback async to await playCurrentQuestionInternal
-          await playCurrentQuestionInternal(PERGUNTAS_DNA[nextIndex]);
-        }, 1500);
+        // Pequeno delay para o usuário perceber a transição
+        setTimeout(() => playCurrentQuestionInternal(PERGUNTAS_DNA[nextIndex]), 1000);
       } else {
-        // Gerar relatório final
         const finalSynthesis = analysisEngine.gerarSinteseFinal(updatedProfile);
         setFinalReport(finalSynthesis);
         setSessionStatus('finished');
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao processar gravação');
-      setSessionStatus('waiting_for_user'); // Revert to a safe state
+      console.error("Erro ao parar/processar gravação:", err);
+      setError(err instanceof Error ? err.message : 'Erro ao processar sua gravação.');
+      setSessionStatus('waiting_for_user'); 
     }
   }, [currentQuestion, currentQuestionIndex, expertProfile, playCurrentQuestionInternal]);
 
@@ -978,59 +839,62 @@ export default function DNAAnalysisApp() {
     setExpertProfile(criarPerfilInicial());
     setFinalReport('');
     setError(null);
-    setIsAudioInitialized(false);
+    setIsAudioInitialized(false); // Resetar estado de inicialização do áudio
+    // Parar qualquer stream de áudio ativo
+    if (audioService.stream) {
+        audioService.stream.getTracks().forEach(track => track.stop());
+        audioService.stream = null;
+    }
+    if (audioService.mediaRecorder && audioService.mediaRecorder.state !== "inactive") {
+        audioService.mediaRecorder.stop();
+    }
   }, []);
 
   const handleRetry = useCallback(() => {
     setError(null);
     if (!isAudioInitialized) {
       initializeApp();
-    } else if (currentQuestion) { // If audio is initialized, retry playing current question or allow recording
+    } else if (currentQuestion && (sessionStatus === 'waiting_for_user' || sessionStatus === 'listening')) {
       playCurrentQuestionInternal(currentQuestion);
     } else {
-       // Fallback or specific error handling if currentQuestion is not set
-       restart(); // Or set an error message
+       restart(); 
     }
-  }, [isAudioInitialized, initializeApp, currentQuestion, playCurrentQuestionInternal, restart]);
+  }, [isAudioInitialized, initializeApp, currentQuestion, sessionStatus, playCurrentQuestionInternal, restart]);
 
-  // Effect to play question when index changes and not initial load (handled by initializeApp)
+
+  // Efeito para limpar stream ao desmontar o componente ou reiniciar
   useEffect(() => {
-    if (sessionStatus === 'listening' && currentQuestion && isAudioInitialized && currentQuestionIndex > 0) {
-      // This logic might be redundant if stopRecording handles the transition correctly
-      // Consider if playCurrentQuestionInternal should be called here or only after initializeApp and stopRecording
+    return () => {
+        if (audioService.stream) {
+            audioService.stream.getTracks().forEach(track => track.stop());
+            audioService.stream = null;
+        }
+    };
+  }, []);
+
+
+  const renderContent = () => {
+    if (error) {
+      return <ErrorScreen message={error} onRetry={handleRetry} />;
     }
-  }, [currentQuestionIndex, sessionStatus, currentQuestion, isAudioInitialized, playCurrentQuestionInternal]);
-
-
-  if (error) {
-    return (
-      <div className="app-container"> {/* Assuming styling from global CSS */}
-        <DNAParticles />
-        <div className="content-wrapper">
-          <ErrorScreen message={error} onRetry={handleRetry} />
-        </div>
-        <div className="app-footer">
-          <div className="footer-content">
-            <div>© 2024 DNA Analysis Platform. Tecnologia de ponta para análise psicológica.</div>
-            <div>Desenvolvido com IA avançada • Resultados baseados em ciência</div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="app-container"> {/* Assuming styling from global CSS */}
-      <DNAParticles />
-      
-      <div className="content-wrapper">
-        {sessionStatus === 'idle' && (
-          <PremiumWelcomeScreen onStart={initializeApp} />
-        )}
-        
-        {sessionStatus !== 'idle' && sessionStatus !== 'finished' && currentQuestion && (
+    switch (sessionStatus) {
+      case 'idle':
+        return <PremiumWelcomeScreen onStart={initializeApp} />;
+      case 'listening':
+      case 'waiting_for_user':
+      case 'recording':
+      case 'processing':
+        if (!currentQuestion && sessionStatus !== 'processing') { // Se não houver pergunta, mas não estiver processando
+             return (
+                <div className="flex flex-col items-center justify-center text-center p-10 min-h-[calc(100vh-200px)]">
+                    <Loader className="w-16 h-16 text-blue-500 animate-spin mb-6" />
+                    <p className="text-xl text-white/80">Carregando dados da sessão...</p>
+                </div>
+            );
+        }
+        return (
           <PremiumSessionScreen
-            pergunta={currentQuestion}
+            pergunta={currentQuestion} // currentQuestion pode ser null aqui, tratado no componente
             status={sessionStatus}
             onStartRecording={startRecording}
             onStopRecording={stopRecording}
@@ -1038,23 +902,46 @@ export default function DNAAnalysisApp() {
             currentIndex={currentQuestionIndex + 1}
             total={PERGUNTAS_DNA.length}
           />
-        )}
-        
-        {sessionStatus === 'finished' && (
-          <PremiumReportScreen
-            perfil={expertProfile}
-            sintese={finalReport}
-            onRestart={restart}
-          />
-        )}
-      </div>
-      
-      <div className="app-footer">
-        <div className="footer-content">
-          <div>© 2024 DNA Analysis Platform. Tecnologia de ponta para análise psicológica.</div>
-          <div>Desenvolvido com IA avançada • Resultados baseados em ciência</div>
+        );
+      case 'finished':
+        return <PremiumReportScreen perfil={expertProfile} sintese={finalReport} onRestart={restart} />;
+      default:
+        return <p className="text-white">Estado desconhecido.</p>;
+    }
+  };
+
+  return (
+    <div className="app-container min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center relative overflow-hidden p-4">
+      <DNAParticles />
+      <main className="content-wrapper w-full z-10 flex flex-col items-center justify-center flex-grow">
+        {renderContent()}
+      </main>
+      <footer className="app-footer w-full py-6 text-center text-xs text-white/50 z-10 mt-auto">
+        <div className="footer-content max-w-4xl mx-auto">
+          <p>© {new Date().getFullYear()} DNA Analysis Platform. Análise psicológica com IA.</p>
+          <p>Resultados baseados em modelos científicos.</p>
         </div>
-      </div>
+      </footer>
+       {/* Adicionar estilos globais para animações se não estiverem no globals.css */}
+      <style jsx global>{`
+        .animate-pulse-border {
+          animation: pulse-border 2s infinite;
+        }
+        .animate-pulse-border-red {
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); /* red-500 */
+            animation: pulse-border-red 1.5s infinite;
+        }
+        @keyframes pulse-border {
+          0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.3); }
+          70% { box-shadow: 0 0 0 10px rgba(255, 255, 255, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+        }
+        @keyframes pulse-border-red {
+          0% { box-shadow: 0 0 0 0px rgba(239, 68, 68, 0.7); } /* Tailwind red-500 */
+          70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
+          100% { box-shadow: 0 0 0 0px rgba(239, 68, 68, 0); }
+        }
+      `}</style>
     </div>
   );
 }
