@@ -18,11 +18,11 @@ import {
   Zap
 } from 'lucide-react';
 
-// Importando tipos e configurações reais do projeto usando o alias de caminho '@/'
-import { Pergunta, ExpertProfile, SessionStatus } from '@/lib/types';
-import { PERGUNTAS_DNA, criarPerfilInicial } from '@/lib/config';
-import { initAudio, playAudioFromUrl, startRecording, stopRecording, stopAudio } from '@/services/webAudioService';
-import { analisarFragmento, gerarSinteseFinal } from '@/lib/analysisEngine';
+// Corrigindo caminhos de importação para usar rotas relativas
+import { Pergunta, ExpertProfile, SessionStatus } from '../lib/types';
+import { PERGUNTAS_DNA, criarPerfilInicial } from '../lib/config';
+import { initAudio, playAudioFromUrl, startRecording, stopRecording, stopAudio } from '../services/webAudioService';
+import { analisarFragmento, gerarSinteseFinal } from '../lib/analysisEngine';
 
 // Componente de partículas animadas que se adapta ao tamanho da tela
 const AnimatedParticles = () => {
