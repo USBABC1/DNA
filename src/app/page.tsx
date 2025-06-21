@@ -18,12 +18,93 @@ import {
   Zap
 } from 'lucide-react';
 
-// Importando apenas os serviços que não apresentaram erro
-import { initAudio, playAudioFromUrl, startRecording, stopRecording, stopAudio } from '@/services/webAudioService';
+// --- SERVIÇO DE ÁUDIO INTEGRADO DIRETAMENTE NO ARQUIVO ---
+// (Originalmente de src/services/webAudioService.ts)
+
+let audioContext: AudioContext | null = null;
+let source: AudioBufferSourceNode | null = null;
+let mediaRecorder: MediaRecorder | null = null;
+let audioChunks: Blob[] = [];
+
+const initAudio = () => {
+  if (!audioContext) {
+    audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+  }
+};
+
+const stopAudio = () => {
+  if (source) {
+    source.onended = null;
+    source.stop();
+    source = null;
+  }
+};
+
+const playAudioFromUrl = (url: string, onEnded: () => void): Promise<void> => {
+  return new Promise(async (resolve, reject) => {
+    if (!audioContext) {
+      initAudio();
+      if (!audioContext) return reject(new Error('AudioContext não pôde ser inicializado.'));
+    }
+
+    if (audioContext.state === 'suspended') await audioContext.resume();
+
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Erro ao buscar áudio: ${response.statusText}`);
+      
+      const arrayBuffer = await response.arrayBuffer();
+      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+      if (source) source.stop();
+
+      source = audioContext.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(audioContext.destination);
+      source.start(audioContext.currentTime + 0.1);
+      source.onended = () => {
+        onEnded();
+        resolve();
+      };
+    } catch (error) {
+      console.error('Falha ao tocar áudio:', error);
+      reject(error);
+    }
+  });
+};
+
+const startRecording = (): Promise<void> => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        return reject(new Error('API de gravação não é suportada.'));
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(stream);
+      audioChunks = [];
+      mediaRecorder.ondataavailable = (event) => audioChunks.push(event.data);
+      mediaRecorder.start();
+      resolve();
+    } catch (err) {
+      reject(err);
+    }
+  });
+};
+
+const stopRecording = (): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    if (!mediaRecorder) return reject(new Error('O MediaRecorder não foi iniciado.'));
+    mediaRecorder.onstop = () => {
+      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+      mediaRecorder?.stream.getTracks().forEach(track => track.stop());
+      resolve(audioBlob);
+    };
+    mediaRecorder.stop();
+  });
+};
 
 
 // --- TIPOS INTEGRADOS DIRETAMENTE NO ARQUIVO ---
-// (Originalmente de src/lib/types.ts)
 type BigFive = 'Openness' | 'Conscientiousness' | 'Extraversion' | 'Agreeableness' | 'Neuroticism';
 type ValorSchwartz = 'Self-Direction' | 'Stimulation' | 'Hedonism' | 'Achievement' | 'Power' | 'Security' | 'Conformity' | 'Tradition' | 'Benevolence' | 'Universalism';
 type Motivador = 'Purpose' | 'Autonomy' | 'Mastery' | 'Connection';
@@ -56,17 +137,15 @@ type SessionStatus =
   | 'waiting_for_user'
   | 'recording'
   | 'processing'
-  | 'generating_report' // NOVO ESTADO PARA A GERAÇÃO COM IA
+  | 'generating_report'
   | 'finished';
 
 // --- CONFIGURAÇÃO INTEGRADA DIRETAMENTE NO ARQUIVO ---
-// (Originalmente de src/lib/config.ts)
 const PERGUNTAS_DNA: Pergunta[] = [
   { texto: "Olá. Bem-vindo ao DNA, Deep Narrative Analysis. Uma jornada interativa de autoanálise através da sua narrativa. Vamos começar.", audioUrl: "/audio/000.mp3", dominio: "Identidade" },
   { texto: "Quem é você além dos crachás que carrega?", audioUrl: "/audio/001.mp3", dominio: "Identidade" },
   { texto: "Se sua vida fosse um livro, qual seria o título atual deste capítulo?", audioUrl: "/audio/002.mp3", dominio: "Identidade" },
   { texto: "Que versão anterior de você ainda habita dentro da atual?", audioUrl: "/audio/003.mp3", dominio: "Identidade" },
-  // ... (outras perguntas permaneceriam aqui)
 ];
 
 function criarPerfilInicial(): ExpertProfile {
@@ -86,12 +165,9 @@ function criarPerfilInicial(): ExpertProfile {
 }
 
 // --- LÓGICA DE ANÁLISE INTEGRADA DIRETAMENTE NO ARQUIVO ---
-// (Originalmente de src/lib/analysisEngine.ts)
 function analisarFragmento(texto: string, perfil: ExpertProfile, pergunta: Pergunta): ExpertProfile {
   const perfilAtualizado = { ...perfil };
   perfilAtualizado.respostas.push({ pergunta: pergunta.texto, resposta: texto });
-  // A lógica de análise de palavras-chave pode ser mantida ou removida,
-  // mas o ponto principal é acumular as respostas para a análise final da IA.
   return perfilAtualizado;
 }
 
@@ -128,8 +204,7 @@ async function gerarSinteseFinalComIA(perfil: ExpertProfile): Promise<string> {
 
     if (!response.ok) {
         const errorBody = await response.text();
-        console.error("Gemini API Error:", errorBody);
-        throw new Error('Falha ao gerar o relatório com a IA. O servidor retornou um erro.');
+        throw new Error('Falha ao gerar o relatório com a IA.');
     }
 
     const result = await response.json();
@@ -137,8 +212,7 @@ async function gerarSinteseFinalComIA(perfil: ExpertProfile): Promise<string> {
     if (result.candidates && result.candidates[0]?.content?.parts?.[0]?.text) {
       return result.candidates[0].content.parts[0].text;
     } else {
-      console.error("Resposta inesperada da API Gemini:", result);
-      throw new Error('A IA não retornou um relatório válido. Tente novamente.');
+      throw new Error('A IA não retornou um relatório válido.');
     }
   } catch (error) {
     console.error("Erro ao chamar a API Gemini:", error);
@@ -146,10 +220,8 @@ async function gerarSinteseFinalComIA(perfil: ExpertProfile): Promise<string> {
   }
 }
 
-
-// Componentes visuais (AnimatedParticles, ProgressBar, GlassCard) permanecem os mesmos
+// Componentes visuais
 const AnimatedParticles = () => {
-    // ...código do componente
     const [particleContainer, setParticleContainer] = useState<{ width: number, height: number } | null>(null);
     useEffect(() => {
         const setDimensions = () => {
@@ -270,7 +342,7 @@ export default function DNAAnalysisApp() {
 
   const fazerProximaPergunta = async () => {
     if (perguntaIndex.current >= sessoesDePerguntasRef.current.length) {
-      await finalizarSessao(); // MUDANÇA: Agora é assíncrono
+      await finalizarSessao();
       return;
     }
     const currentQuestion = sessoesDePerguntasRef.current[perguntaIndex.current];
@@ -326,21 +398,20 @@ export default function DNAAnalysisApp() {
     }
   };
   
-  // MUDANÇA: Função agora é assíncrona para esperar a API Gemini
   const finalizarSessao = async () => {
     if (!perfil) {
       setError("Não foi possível gerar o relatório pois o perfil não foi criado.");
       setStatus("idle");
       return;
     }
-    setStatus("generating_report"); // Novo estado de carregamento
+    setStatus("generating_report");
     try {
-        const relatorio = await gerarSinteseFinalComIA(perfil); // Chama a nova função com IA
+        const relatorio = await gerarSinteseFinalComIA(perfil);
         setRelatorioFinal(relatorio);
         setStatus("finished");
     } catch (err: any) {
         setError(err.message || "Falha ao gerar o relatório final com IA.");
-        setStatus("finished"); // Vai para a tela final mesmo com erro para mostrar a mensagem
+        setStatus("finished");
         setRelatorioFinal(`Ocorreu um erro ao gerar o relatório:\n\n${err.message}`);
     }
   };
@@ -398,7 +469,6 @@ export default function DNAAnalysisApp() {
   const renderContent = () => {
     switch (status) {
       case "idle":
-        // ...código do case idle
         return (
             <div className="text-center max-w-4xl mx-auto">
                 <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
@@ -438,7 +508,6 @@ export default function DNAAnalysisApp() {
             </div>
         );
 
-      // NOVO CASE: Para exibir o carregamento do relatório final
       case "generating_report":
         return (
             <div className="text-center">
@@ -457,7 +526,6 @@ export default function DNAAnalysisApp() {
           );
 
       case "presenting":
-        // ...código do case presenting
         return (
             <div className="text-center">
                 <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.6 }}>
@@ -485,7 +553,6 @@ export default function DNAAnalysisApp() {
       case "waiting_for_user":
       case "recording":
       case "processing":
-        // ...código dos cases de perguntas
         return (
             <div className="text-center max-w-4xl mx-auto">
                 <ProgressBar current={perguntaIndex.current + 1} total={sessoesDePerguntasRef.current.length} />
@@ -522,7 +589,7 @@ export default function DNAAnalysisApp() {
                         listening: '🎧 Reproduzindo pergunta...',
                         waiting_for_user: '🎤 Clique no microfone e fale naturalmente',
                         recording: '⏺️ Gravando... Clique no quadrado quando terminar',
-                        processing: '🧠 Analisando sua resposta com IA...'
+                        processing: '🧠 Analisando sua resposta...'
                     }[status]}
                     </motion.p>
                 </GlassCard>
@@ -531,7 +598,6 @@ export default function DNAAnalysisApp() {
         );
 
       case "finished":
-        // ...código do case finished
         return (
             <div className="w-full max-w-5xl mx-auto">
                 <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
