@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -29,210 +28,19 @@ interface Pergunta {
 
 type StatusType = "idle" | "presenting" | "listening" | "waiting_for_user" | "recording" | "processing" | "finished";
 
-
-// --- SERVIÇO DE ÁUDIO INTEGRADO DIRETAMENTE NO ARQUIVO ---
-// (Originalmente de src/services/webAudioService.ts)
-
-let audioContext: AudioContext | null = null;
-let source: AudioBufferSourceNode | null = null;
-let mediaRecorder: MediaRecorder | null = null;
-let audioChunks: Blob[] = [];
-
-const initAudio = () => {
-  if (!audioContext) {
-    audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-  }
-};
-
-const stopAudio = () => {
-  if (source) {
-    source.onended = null;
-    source.stop();
-    source = null;
-  }
-};
-
-const playAudioFromUrl = (url: string, onEnded: () => void): Promise<void> => {
-  return new Promise(async (resolve, reject) => {
-    if (!audioContext) {
-      initAudio();
-      if (!audioContext) return reject(new Error('AudioContext não pôde ser inicializado.'));
-    }
-
-    if (audioContext.state === 'suspended') await audioContext.resume();
-
-    try {
-      const response = await fetch(url);
-      if (!response.ok) throw new Error(`Erro ao buscar áudio: ${response.statusText}`);
-      
-      const arrayBuffer = await response.arrayBuffer();
-      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-
-      if (source) source.stop();
-
-      source = audioContext.createBufferSource();
-      source.buffer = audioBuffer;
-      source.connect(audioContext.destination);
-      source.start(audioContext.currentTime + 0.1);
-      source.onended = () => {
-        onEnded();
-        resolve();
-      };
-    } catch (error) {
-      console.error('Falha ao tocar áudio:', error);
-      reject(error);
-    }
-  });
-};
-
-const startRecording = (): Promise<void> => {
-  return new Promise(async (resolve, reject) => {
-    try {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        return reject(new Error('API de gravação não é suportada.'));
-      }
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorder = new MediaRecorder(stream);
-      audioChunks = [];
-      mediaRecorder.ondataavailable = (event) => audioChunks.push(event.data);
-      mediaRecorder.start();
-      resolve();
-    } catch (err) {
-      reject(err);
-    }
-  });
-};
-
-const stopRecording = (): Promise<Blob> => {
-  return new Promise((resolve, reject) => {
-    if (!mediaRecorder) return reject(new Error('O MediaRecorder não foi iniciado.'));
-    mediaRecorder.onstop = () => {
-      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-      mediaRecorder?.stream.getTracks().forEach(track => track.stop());
-      resolve(audioBlob);
-    };
-    mediaRecorder.stop();
-  });
-};
-
-
-// --- TIPOS INTEGRADOS DIRETAMENTE NO ARQUIVO ---
-type BigFive = 'Openness' | 'Conscientiousness' | 'Extraversion' | 'Agreeableness' | 'Neuroticism';
-type ValorSchwartz = 'Self-Direction' | 'Stimulation' | 'Hedonism' | 'Achievement' | 'Power' | 'Security' | 'Conformity' | 'Tradition' | 'Benevolence' | 'Universalism';
-type Motivador = 'Purpose' | 'Autonomy' | 'Mastery' | 'Connection';
-
-type BigFiveMetrics = Record<BigFive, number>;
-type SchwartzValues = Record<ValorSchwartz, number>;
-type PrimaryMotivators = Record<Motivador, number>;
-
-interface Pergunta {
-  texto: string;
-  audioUrl: string;
-  dominio: string; 
-}
-
-interface ExpertProfile {
-  bigFive: BigFiveMetrics;
-  valoresSchwartz: SchwartzValues;
-  motivadores: PrimaryMotivators;
-  coberturaDominios: Record<string, number>;
-  metricas: { contradicoes: number; metaforas: number; };
-  metaforasCentrais: string[];
-  conflitosDeValorDetectados: string[];
-  respostas: { pergunta: string; resposta: string }[];
-}
-
-type SessionStatus =
-  | 'idle'
-  | 'presenting'
-  | 'listening'
-  | 'waiting_for_user'
-  | 'recording'
-  | 'processing'
-  | 'generating_report'
-  | 'finished';
-
-// --- CONFIGURAÇÃO INTEGRADA DIRETAMENTE NO ARQUIVO ---
+// Simulação dos dados que viriam da lib/config
 const PERGUNTAS_DNA: Pergunta[] = [
-  { texto: "Olá. Bem-vindo ao DNA, Deep Narrative Analysis. Uma jornada interativa de autoanálise através da sua narrativa. Vamos começar.", audioUrl: "/audio/000.mp3", dominio: "Identidade" },
-  { texto: "Quem é você além dos crachás que carrega?", audioUrl: "/audio/001.mp3", dominio: "Identidade" },
-  { texto: "Se sua vida fosse um livro, qual seria o título atual deste capítulo?", audioUrl: "/audio/002.mp3", dominio: "Identidade" },
-  { texto: "Que versão anterior de você ainda habita dentro da atual?", audioUrl: "/audio/003.mp3", dominio: "Identidade" },
+  { id: 1, texto: "Conte-me sobre um momento que marcou sua vida profundamente.", audioUrl: "001.mp3" },
+  { id: 2, texto: "Como você se vê daqui a 10 anos?", audioUrl: "002.mp3" },
+  { id: 3, texto: "Qual é o seu maior medo e como você lida com ele?", audioUrl: "003.mp3" },
+  { id: 4, texto: "Descreva uma situação onde você teve que tomar uma decisão difícil.", audioUrl: "004.mp3" },
+  { id: 5, texto: "O que mais te motiva a seguir em frente todos os dias?", audioUrl: "005.mp3" }
 ];
 
-function criarPerfilInicial(): ExpertProfile {
-  return {
-    bigFive: { Openness: 0, Conscientiousness: 0, Extraversion: 0, Agreeableness: 0, Neuroticism: 0 },
-    valoresSchwartz: {
-      'Self-Direction': 0, Stimulation: 0, Hedonism: 0, Achievement: 0, Power: 0,
-      Security: 0, Conformity: 0, Tradition: 0, Benevolence: 0, Universalism: 0,
-    },
-    motivadores: { Purpose: 0, Autonomy: 0, Mastery: 0, Connection: 0 },
-    coberturaDominios: { Identidade: 0, Valores: 0, CrencasSobreSi: 0, Relacionamentos: 0, Trajetoria: 0, Emocoes: 0, Conflitos: 0, Futuro: 0, SentidoEProposito: 0 },
-    metricas: { contradicoes: 0, metaforas: 0 },
-    metaforasCentrais: [],
-    conflitosDeValorDetectados: [],
-    respostas: [],
-  };
-}
+const APRESENTACAO_AUDIO_URL = "000.mp3";
 
-// --- LÓGICA DE ANÁLISE INTEGRADA DIRETAMENTE NO ARQUIVO ---
-function analisarFragmento(texto: string, perfil: ExpertProfile, pergunta: Pergunta): ExpertProfile {
-  const perfilAtualizado = { ...perfil };
-  perfilAtualizado.respostas.push({ pergunta: pergunta.texto, resposta: texto });
-  return perfilAtualizado;
-}
-
-// NOVA FUNÇÃO COM GEMINI API
-async function gerarSinteseFinalComIA(perfil: ExpertProfile): Promise<string> {
-  const prompt = `
-    Você é um psicólogo e analista narrativo de classe mundial. Com base no conjunto de respostas do usuário a uma série de perguntas profundas, escreva um "Relatório de Análise Narrativa Profunda".
-
-    O relatório deve ser perspicaz, empático e oferecer reflexões profundas sobre a personalidade, valores e motivadores do usuário. Destaque seus pontos fortes, áreas potenciais de crescimento e quaisquer conflitos subjacentes detectados na narrativa. O tom deve ser profissional, encorajador e profundamente pessoal.
-
-    Não se limite a listar as perguntas e respostas. Em vez disso, teça os insights das respostas em uma narrativa coerente e fluida sobre o usuário. Comece com uma "Carta Espelho" (uma carta curta e impactante para o usuário) e, em seguida, apresente o relatório detalhado.
-
-    Use Markdown para formatação. Use títulos (###), listas de marcadores (*) e negrito (**) para estruturar o relatório de forma clara.
-
-    Respostas do Usuário para Análise:
-    ${perfil.respostas.map(r => `P: ${r.pergunta}\nR: ${r.resposta}`).join('\n\n')}
-
-    Comece o relatório EXATAMENTE com o título: "🧬 ANÁLISE NARRATIVA PROFUNDA - RELATÓRIO PERSONALIZADO" e gere um texto totalmente único e analítico.
-  `;
-
-  try {
-    const apiKey = ""; // Será tratado pelo ambiente de execução
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-    
-    const payload = {
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-    };
-
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-
-    if (!response.ok) {
-        const errorBody = await response.text();
-        throw new Error('Falha ao gerar o relatório com a IA.');
-    }
-
-    const result = await response.json();
-
-    if (result.candidates && result.candidates[0]?.content?.parts?.[0]?.text) {
-      return result.candidates[0].content.parts[0].text;
-    } else {
-      throw new Error('A IA não retornou um relatório válido.');
-    }
-  } catch (error) {
-    console.error("Erro ao chamar a API Gemini:", error);
-    throw new Error("Ocorreu um erro ao conectar com o serviço de IA.");
-  }
-}
-
-// Componentes visuaisconst AnimatedParticles = () => {
+// Componente de partículas animadas
+const AnimatedParticles = () => {
   const particles = Array.from({ length: 50 }, (_, i) => i);
   
   return (
