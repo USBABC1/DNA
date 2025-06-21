@@ -17,16 +17,13 @@ import { initAudio, playAudioFromUrl, startRecording, stopRecording } from '../s
  * @returns A transcrição em texto.
  */
 async function transcribeAudio(audioBlob: Blob): Promise<string> {
-  console.log("Enviando áudio para a API de transcrição:", audioBlob.size, audioBlob.type);
+  console.log("A enviar áudio para a API de transcrição:", audioBlob.size, audioBlob.type);
 
   try {
     // Faz a chamada para a nossa própria API interna (/api/transcribe)
     const response = await fetch('/api/transcribe', {
       method: 'POST',
       body: audioBlob, // Envia o blob diretamente no corpo
-      headers: {
-        // O Content-Type é definido automaticamente pelo navegador ao enviar um Blob
-      },
     });
 
     if (!response.ok) {
@@ -41,8 +38,8 @@ async function transcribeAudio(audioBlob: Blob): Promise<string> {
 
   } catch (error) {
     console.error('Não foi possível transcrever o áudio:', error);
-    // Retorna uma mensagem de erro amigável que pode ser mostrada ao usuário
-    return "Desculpe, não consegui processar sua resposta. Vamos tentar a próxima pergunta.";
+    // Retorna uma mensagem de erro amigável que pode ser mostrada ao utilizador
+    return "Desculpe, não consegui processar a sua resposta. Vamos tentar a próxima pergunta.";
   }
 }
 
@@ -102,7 +99,7 @@ const DNAInterface = () => {
       const audioBlob = await stopRecording();
       // Garante que o blob tem um tamanho mínimo antes de enviar
       if (audioBlob.size < 1000) {
-        console.warn("Gravação muito curta, pulando processamento.");
+        console.warn("Gravação muito curta, a saltar o processamento.");
         fazerProximaPergunta();
         return;
       }
@@ -117,8 +114,8 @@ const DNAInterface = () => {
     const transcricao = await transcribeAudio(audioBlob);
     // Verifica se a transcrição está vazia ou contém a mensagem de erro
     if (!transcricao.trim() || transcricao.startsWith("Desculpe, não consegui processar")) {
-      console.log("Transcrição vazia ou com erro, tentando a pergunta novamente.");
-      // Volta para a pergunta anterior para que o usuário possa tentar de novo.
+      console.log("Transcrição vazia ou com erro, a tentar a pergunta novamente.");
+      // Volta para a pergunta anterior para que o utilizador possa tentar de novo.
       perguntaIndex.current--; 
       fazerProximaPergunta();
       return;
@@ -165,7 +162,7 @@ const DNAInterface = () => {
             {perguntaAtual && <motion.p variants={itemVariants} className="text-2xl md:text-3xl font-heading mb-8 min-h-[100px]">{perguntaAtual.texto}</motion.p>}
             
             <motion.div variants={itemVariants} className="h-20 flex items-center justify-center">
-              {status === 'listening' && <p className="text-muted-foreground animate-pulse">Ouvindo a pergunta...</p>}
+              {status === 'listening' && <p className="text-muted-foreground animate-pulse">A ouvir a pergunta...</p>}
               {status === 'waiting_for_user' && 
                 <button onClick={handleStartRecording} className="flex items-center gap-2 px-8 py-3 bg-secondary text-foreground font-bold rounded-full text-lg hover:bg-secondary/80 transition-all duration-300 transform hover:scale-105">
                   <Mic /> Gravar Resposta
@@ -176,7 +173,7 @@ const DNAInterface = () => {
                 </button>}
               {status === 'processing' && 
                 <div className="flex items-center gap-2 text-muted-foreground">
-                  <Loader className="animate-spin" /> Processando...
+                  <Loader className="animate-spin" /> A processar...
                 </div>}
             </motion.div>
           </motion.div>
@@ -187,7 +184,7 @@ const DNAInterface = () => {
           <motion.div key="finished" variants={containerVariants} initial="hidden" animate="visible" exit="exit" className="w-full">
              <motion.div variants={itemVariants} className="text-center mb-8">
                <FileText className="mx-auto h-20 w-20 text-primary" strokeWidth={1}/>
-               <h1 className="text-4xl font-bold font-heading mt-4">Seu Relatório de Análise Narrativa</h1>
+               <h1 className="text-4xl font-bold font-heading mt-4">O Seu Relatório de Análise Narrativa</h1>
              </motion.div>
             <motion.div variants={itemVariants} className="glass-card p-6 text-left whitespace-pre-wrap font-mono text-sm leading-relaxed overflow-auto max-h-[50vh]">
                 {relatorioFinal}
