@@ -2,7 +2,10 @@
 
 import { Pergunta, ExpertProfile } from './types';
 
-// A lista de perguntas foi completamente atualizada com base na sua última entrada.
+// Nova constante para o áudio de apresentação
+export const APRESENTACAO_AUDIO_URL = "/audio/000.mp3";
+
+// A lista de perguntas contém as 108 perguntas originais.
 export const PERGUNTAS_DNA: Pergunta[] = [
   // Domínio 1: Identidade
   { texto: "Quem é você além dos crachás que carrega?", audioUrl: "/audio/001.mp3", dominio: "Identidade" },
