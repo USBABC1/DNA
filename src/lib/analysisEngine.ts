@@ -1,113 +1,184 @@
 // src/lib/analysisEngine.ts
-// Contém a lógica principal de análise do perfil psicológico, migrada de Python.
 
-import { ExpertProfile } from './types';
-import { CARTA_ESPELHO_TEMPLATE, RELATORIO_FINAL_TEMPLATE } from './config';
+import { ExpertProfile, Pergunta, ValorSchwartz, BigFive, Motivador } from './types'
 
-// Uma função para escolher um elemento aleatório de um array
-const choice = <T>(arr: T[]): T => {
-  return arr[Math.floor(Math.random() * arr.length)];
+// Dicionários de palavras-chave para uma análise mais detalhada
+const keyWords = {
+  bigFive: {
+    Openness: ['imaginação', 'arte', 'emoções', 'aventura', 'ideias', 'curiosidade', 'experiência', 'criatividade', 'novo', 'diferente', 'viagem'],
+    Conscientiousness: ['organização', 'disciplina', 'dever', 'responsabilidade', 'planejamento', 'foco', 'meta', 'objetivo', 'trabalho', 'eficiência'],
+    Extraversion: ['social', 'amigos', 'festa', 'energia', 'pessoas', 'interação', 'comunicação', 'externo', 'entusiasmo'],
+    Agreeableness: ['compaixão', 'cooperação', 'confiança', 'empatia', 'ajudar', 'harmonia', 'gentileza', 'amável'],
+    Neuroticism: ['ansiedade', 'medo', 'preocupação', 'estresse', 'insegurança', 'nervosismo', 'tristeza', 'raiva', 'instabilidade'],
+  },
+  schwartz: {
+    'Self-Direction': ['liberdade', 'independência', 'criatividade', 'explorar', 'curiosidade', 'autonomia', 'escolha'],
+    Stimulation: ['desafio', 'excitação', 'novidade', 'aventura', 'intenso', 'risco'],
+    Hedonism: ['prazer', 'diversão', 'alegria', 'satisfação', 'gratificação'],
+    Achievement: ['sucesso', 'ambição', 'realização', 'competência', 'influência', 'reconhecimento'],
+    Power: ['autoridade', 'riqueza', 'poder', 'controle', 'domínio', 'prestígio'],
+    Security: ['segurança', 'ordem', 'estabilidade', 'proteção', 'família', 'limpeza'],
+    Conformity: ['regras', 'disciplina', 'obediência', 'respeito', 'tradição', 'normas'],
+    Tradition: ['tradição', 'costumes', 'respeito', 'religião', 'moderação', 'humildade'],
+    Benevolence: ['ajuda', 'honestidade', 'perdão', 'lealdade', 'amizade', 'amor', 'cuidado'],
+    Universalism: ['justiça', 'igualdade', 'paz', 'natureza', 'sabedoria', 'proteção', 'mundo'],
+  },
+  motivators: {
+    Purpose: ['propósito', 'significado', 'missão', 'causa', 'impacto', 'legado', 'contribuição'],
+    Autonomy: ['autonomia', 'liberdade', 'independência', 'controle', 'flexibilidade', 'escolha'],
+    Mastery: ['maestria', 'habilidade', 'competência', 'desenvolvimento', 'aprender', 'crescimento', 'domínio'],
+    Connection: ['conexão', 'relacionamento', 'comunidade', 'pertencer', 'intimidade', 'laços'],
+  },
 };
 
-// Uma função para gerar um inteiro aleatório num intervalo
-const randint = (min: number, max: number): number => {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-};
 
-export const analisarFragmento = (
-  textoTranscrito: string,
-  perfil: ExpertProfile
-): ExpertProfile => {
-  console.log('[ANALYSIS_ENGINE] Analisando novo fragmento...');
-  const novoPerfil = JSON.parse(JSON.stringify(perfil)); // Deep copy para evitar mutações diretas
-  novoPerfil.fragmentos_processados += 1;
+/**
+ * Analisa um fragmento de texto e atualiza o perfil do especialista.
+ * A lógica foi aprimorada para remover aleatoriedade e superficialidade.
+ *
+ * @param texto O texto transcrito da resposta do usuário.
+ * @param perfil O perfil atual do especialista.
+ * @param pergunta A pergunta que foi respondida.
+ * @returns O perfil do especialista atualizado.
+ */
+export function analisarFragmento(texto: string, perfil: ExpertProfile, pergunta: Pergunta): ExpertProfile {
+  const textoLowerCase = texto.toLowerCase();
 
-  // Simula a atualização da cobertura de domínios
-  const dominioAleatorio = choice(Object.keys(novoPerfil.cobertura_dominios));
-  novoPerfil.cobertura_dominios[dominioAleatorio] += randint(10, 25);
-
-  // Análise de conteúdo (palavras-chave)
-  const texto = textoTranscrito.toLowerCase();
-  if (['imaginar', 'arte', 'curiosidade', 'farol'].some(k => texto.includes(k))) {
-    novoPerfil.metricas.big_five.Openness += 0.3;
-  }
-  if (['organizar', 'disciplina', 'regra'].some(k => texto.includes(k))) {
-    novoPerfil.metricas.big_five.Conscientiousness += 0.2;
-  }
-  if (['sozinho', 'meu jeito', 'isolar'].some(k => texto.includes(k))) {
-    novoPerfil.metricas.big_five.Extraversion -= 0.3;
-  }
-  if (['ajudar', 'cuidar', 'amigos', 'empatia'].some(k => texto.includes(k))) {
-    novoPerfil.metricas.big_five.Agreeableness += 0.4;
-  }
-  if (['preocupação', 'medo', 'insegurança', 'esgota'].some(k => texto.includes(k))) {
-    novoPerfil.metricas.big_five.Neuroticism += 0.5;
+  // 1. Atualizar Cobertura de Domínio de forma determinística
+  if (pergunta.dominio) {
+    perfil.coberturaDominios[pergunta.dominio] = (perfil.coberturaDominios[pergunta.dominio] || 0) + 1;
   }
 
-  // Atualiza valores e motivadores
-  if (['meu jeito', 'liberdade', 'independência'].some(k => texto.includes(k))) {
-    novoPerfil.metricas.valores_schwartz['Self-Direction'] += 0.5;
-    novoPerfil.metricas.motivadores.Autonomy += 0.6;
-  }
-  if (['ajudar', 'cuidar', 'amizades'].some(k => texto.includes(k))) {
-    novoPerfil.metricas.valores_schwartz.Benevolence += 0.4;
-  }
-  if (['propósito', 'sentido', 'impacto'].some(k => texto.includes(k))) {
-    novoPerfil.metricas.motivadores.Purpose += 0.5;
-  }
+  // Função auxiliar para contar ocorrências de palavras-chave
+  const countKeywords = (words: string[]) => {
+    return words.reduce((acc, word) => {
+      // Usar expressão regular para contar a palavra exata
+      const regex = new RegExp(`\\b${word}\\b`, 'g');
+      const matches = textoLowerCase.match(regex);
+      return acc + (matches ? matches.length : 0);
+    }, 0);
+  };
 
-  // Processa contradições e metáforas
-  if (texto.includes('mas') || texto.includes('embora')) {
-    novoPerfil.analise_narrativa.contradicoes_detectadas.push(textoTranscrito);
-    novoPerfil.metricas.analise_vocal.hesitacoes += 1; // Simula hesitação
-  }
-  if (['como um', 'tipo um', 'farol', 'esponja'].some(k => texto.includes(k))) {
-    novoPerfil.analise_narrativa.metaforas_centrais.push(textoTranscrito);
+  // 2. Analisar traços de personalidade, valores e motivadores com base nos dicionários
+  for (const trait in keyWords.bigFive) {
+    const score = countKeywords(keyWords.bigFive[trait as BigFive]);
+    perfil.bigFive[trait as BigFive] += score;
   }
 
-  console.log('[ANALYSIS_ENGINE] Perfil atualizado.');
-  return novoPerfil;
-};
+  for (const value in keyWords.schwartz) {
+    const score = countKeywords(keyWords.schwartz[value as ValorSchwartz]);
+    perfil.valoresSchwartz[value as ValorSchwartz] += score;
+  }
 
-export const gerarSinteseFinal = (perfil: ExpertProfile): string => {
-  console.log('[ANALYSIS_ENGINE] Gerando síntese final...');
+  for (const motivator in keyWords.motivators) {
+    const score = countKeywords(keyWords.motivators[motivator as Motivador]);
+    perfil.motivadores[motivator as Motivador] += score;
+  }
 
-  // Fix: Access motivadores through the correct path
-  const { motivadores, valores_schwartz, big_five } = perfil.metricas;
-  const { analise_narrativa } = perfil;
+  // 3. Detecção de Contradições e Metáforas (lógica mantida)
+  if (textoLowerCase.includes(' mas ') || textoLowerCase.includes(' porém ') || textoLowerCase.includes(' embora ') || textoLowerCase.includes(' contudo ')) {
+    perfil.metricas.contradicoes += 1;
+    perfil.conflitosDeValorDetectados.push(`Conflito potencial na resposta à pergunta: "${pergunta.texto}"`);
+  }
 
-  // Lógica para encontrar os valores principais
-  const motivador_principal = Object.keys(motivadores).reduce((a, b) => (motivadores[a as keyof typeof motivadores] > motivadores[b as keyof typeof motivadores] ? a : b));
-  const valor_principal = Object.keys(valores_schwartz).reduce((a, b) => (valores_schwartz[a as keyof typeof valores_schwartz] > valores_schwartz[b as keyof typeof valores_schwartz] ? a : b));
-  const traco_big_five_key = valor_principal === 'Benevolence' ? 'Agreeableness' : 'Neuroticism';
+  const metaforasBasicas = ['farol', 'ponte', 'montanha', 'rio', 'esponja', 'rocha', 'labirinto', 'jardim'];
+  metaforasBasicas.forEach(metafora => {
+    if (textoLowerCase.includes(metafora)) {
+      perfil.metricas.metaforas += 1;
+      if (!perfil.metaforasCentrais.includes(metafora)) {
+        perfil.metaforasCentrais.push(metafora);
+      }
+    }
+  });
 
-  // Preenche a carta espelho
-  const carta_preenchida = CARTA_ESPELHO_TEMPLATE
-    .replace('{motivador_principal}', motivador_principal)
-    .replace('{valor_secundario}', 'pertencimento') // Simulado
-    .replace('{valor_principal}', valor_principal)
-    .replace('{traco_big_five}', `${traco_big_five_key} (${big_five[traco_big_five_key as keyof typeof big_five].toFixed(1)})`);
+  return perfil;
+}
 
-  // Preenche o relatório final
-  const valoresHierarquia = Object.keys(valores_schwartz).sort((a,b) => valores_schwartz[b as keyof typeof valores_schwartz] - valores_schwartz[a as keyof typeof valores_schwartz]);
-  
-  let relatorio_preenchido = RELATORIO_FINAL_TEMPLATE
-    .replace('{carta_espelho}', carta_preenchida)
-    .replace('{metaforas}', analise_narrativa.metaforas_centrais.slice(0, 2).join(', ') || 'N/A')
-    .replace('{valores_hierarquia}', valoresHierarquia.join(', '))
-    .replace('{conflitos_valores}', analise_narrativa.contradicoes_detectadas.length > 0 ? 'Liberdade vs. Pertencimento' : 'N/A')
-    .replace('{openness}', big_five.Openness.toFixed(1))
-    .replace('{conscientiousness}', big_five.Conscientiousness.toFixed(1))
-    .replace('{extraversion}', big_five.Extraversion.toFixed(1))
-    .replace('{agreeableness}', big_five.Agreeableness.toFixed(1))
-    .replace('{neuroticism}', big_five.Neuroticism.toFixed(1))
-    .replace('{self_direction}', valores_schwartz['Self-Direction'].toFixed(1))
-    .replace('{benevolence}', valores_schwartz.Benevolence.toFixed(1))
-    .replace('{universalism}', valores_schwartz.Universalism.toFixed(1))
-    .replace('{autonomy}', motivadores.Autonomy.toFixed(1))
-    .replace('{purpose}', motivadores.Purpose.toFixed(1))
-    .replace('{belonging}', motivadores.Belonging.toFixed(1))
-    .replace('{hesitacoes}', perfil.metricas.analise_vocal.hesitacoes.toString());
 
-  return relatorio_preenchido;
-};
+/**
+ * Gera a síntese final e o relatório com base no perfil completo.
+ * A lógica aqui permanece a mesma, mas agora opera sobre dados mais confiáveis.
+ *
+ * @param perfil O perfil final do especialista após todas as análises.
+ * @returns Uma string contendo o relatório final formatado.
+ */
+export function gerarSinteseFinal(perfil: ExpertProfile): string {
+  const encontrarMaiorValor = (obj: Record<string, number>) => {
+    return Object.entries(obj).reduce((a, b) => (b[1] > a[1] ? b : a), ['', -1])[0] || 'Nenhum dominante';
+  };
+
+  const principalMotivador = encontrarMaiorValor(perfil.motivadores);
+  const principalValor = encontrarMaiorValor(perfil.valoresSchwartz);
+
+  const formatarHierarquia = (obj: Record<string, number>) => {
+    return Object.entries(obj)
+      .sort(([, a], [, b]) => b - a)
+      .map(([key, value]) => `${key}: ${value}`)
+      .join('\n');
+  };
+
+  let cartaEspelho = `Prezado(a) Analisado(a),
+
+Com base em sua jornada narrativa, emerge um perfil centrado no valor de **${principalValor}** e impulsionado pelo motivador da **${principalMotivador}**. Suas palavras pintam um quadro de alguém que busca ativamente... [desenvolvimento da síntese]`;
+
+
+  let relatorioFinal = `
+=========================================
+RELATÓRIO DE ANÁLISE NARRATIVA PROFUNDA
+=========================================
+
+**PERFIL:** DNA Expert Profile
+
+### CARTA ESPELHO
+
+${cartaEspelho}
+
+---
+
+### MÉTRICAS NARRATIVAS
+
+- **Metáforas Centrais Identificadas:** ${perfil.metaforasCentrais.join(', ') || 'Nenhuma'}
+- **Contradições Lógicas (indicadores de conflito):** ${perfil.metricas.contradicoes}
+
+---
+
+### HIERARQUIA DE VALORES (MODELO DE SCHWARTZ)
+
+A seguir, a ressonância de cada valor em sua narrativa:
+${formatarHierarquia(perfil.valoresSchwartz)}
+
+---
+
+### HIERARQUIA DE MOTIVADORES
+
+Seus principais impulsionadores de ação:
+${formatarHierarquia(perfil.motivadores)}
+
+---
+
+### PERFIL DE PERSONALIDADE (BIG FIVE)
+
+Seus traços de personalidade predominantes:
+${formatarHierarquia(perfil.bigFive)}
+
+---
+
+### CONFLITOS DE VALOR DETECTADOS
+
+Momentos em que a narrativa sugeriu tensão interna:
+- ${perfil.conflitosDeValorDetectados.slice(0, 5).join('\n- ') || 'Nenhum conflito evidente detectado.'}
+
+---
+
+### COBERTURA DE DOMÍNIOS DA VIDA
+
+Áreas exploradas durante a sessão:
+${formatarHierarquia(perfil.coberturaDominios)}
+
+=========================================
+FIM DO RELATÓRIO
+=========================================
+  `;
+
+  return relatorioFinal;
+}
