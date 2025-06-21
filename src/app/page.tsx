@@ -4,11 +4,11 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, Square, Play, BarChart2, AlertCircle } from "lucide-react";
-import { PERGUNTAS_DNA, criarPerfilInicial } from "../lib/config";
+import { Mic, Square, Play, BarChart2, AlertCircle, LoaderCircle } from "lucide-react";
+import { PERGUNTAS_DNA, criarPerfilInicial, APRESENTACAO_AUDIO_URL } from "../lib/config";
 import { ExpertProfile, Pergunta, SessionStatus } from "../lib/types";
 import { analisarFragmento, gerarSinteseFinal } from "../lib/analysisEngine";
-import { playAudioFromUrl, startRecording, stopRecording } from "../services/webAudioService";
+import { playAudioFromUrl, startRecording, stopRecording, initAudio } from "../services/webAudioService";
 import { Stars } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 
@@ -25,13 +25,33 @@ async function transcribeAudio(audioBlob: Blob): Promise<string> {
 }
 
 export default function Home() {
-  const [status, setStatus] = useState<SessionStatus>("idle");
+  const [status, setStatus] = useState<SessionStatus>("presenting"); // Estado inicial
   const [perfil, setPerfil] = useState<ExpertProfile>(criarPerfilInicial());
   const [perguntaAtual, setPerguntaAtual] = useState<Pergunta | null>(null);
   const [relatorioFinal, setRelatorioFinal] = useState<string>("");
-  const [error, setError] = useState<string | null>(null); // Novo estado para erro
+  const [error, setError] = useState<string | null>(null);
 
   const perguntaIndex = useRef(0);
+
+  // Efeito para tocar o áudio de apresentação na montagem do componente
+  useEffect(() => {
+    initAudio(); // Inicializa o contexto de áudio
+    
+    if (status === 'presenting') {
+      const tocarApresentacao = async () => {
+        try {
+          await playAudioFromUrl(APRESENTACAO_AUDIO_URL, () => {
+            setStatus('idle'); // Ao terminar o áudio, mostra o botão de iniciar
+          });
+        } catch (err) {
+          console.error("Erro ao tocar áudio de apresentação:", err);
+          setError("Não foi possível carregar a apresentação. Clique em Iniciar para começar.");
+          setStatus('idle'); // Se falhar, vai para o estado ocioso mesmo assim
+        }
+      };
+      tocarApresentacao();
+    }
+  }, []); // Executa apenas uma vez
 
   const iniciarSessao = () => {
     perguntaIndex.current = 0;
@@ -59,14 +79,14 @@ export default function Home() {
         setStatus("waiting_for_user");
       });
     } catch (err) {
-      console.error("Erro ao tocar áudio:", err);
+      console.error("Erro ao tocar áudio da pergunta:", err);
       setError("Não foi possível tocar o áudio da pergunta. Verifique sua conexão.");
-      setStatus("idle");
+      setStatus("waiting_for_user");
     }
   };
 
   const handleStartRecording = async () => {
-    setError(null); // Limpa erros anteriores
+    setError(null);
     try {
       await startRecording();
       setStatus("recording");
@@ -99,13 +119,11 @@ export default function Home() {
         setPerfil(perfilAtualizado);
         fazerProximaPergunta();
       } else {
-        // Se a transcrição vier vazia, trata como erro
         throw new Error("A resposta não pôde ser entendida.");
       }
     } catch (err) {
       console.error("Erro no processamento da resposta:", err);
       setError("Desculpe, não conseguimos entender sua resposta. Por favor, tente falar mais claramente.");
-      // Permite que o usuário tente gravar novamente para a mesma pergunta
       setStatus("waiting_for_user");
     }
   };
@@ -118,11 +136,23 @@ export default function Home() {
 
   const renderContent = () => {
     switch (status) {
+      case "presenting":
+        return (
+          <div className="text-center">
+            <h1 className="text-5xl font-bold font-heading mb-4">Análise Narrativa Profunda</h1>
+            <LoaderCircle className="mx-auto my-8 h-16 w-16 animate-spin text-primary" />
+            <p className="text-xl text-muted-foreground">Carregando apresentação...</p>
+          </div>
+        );
       case "idle":
         return (
           <div className="text-center">
             <h1 className="text-5xl font-bold font-heading mb-4">Análise Narrativa Profunda</h1>
-            <p className="text-xl mb-8">Responda a uma série de perguntas para revelar seu perfil interior.</p>
+            {error ? (
+                 <p className="text-red-400 mb-8">{error}</p>
+            ) : (
+                <p className="text-xl mb-8">Responda a uma série de perguntas para revelar seu perfil interior.</p>
+            )}
             <button onClick={iniciarSessao} className="btn btn-primary bg-primary text-primary-foreground hover:bg-primary/90 text-lg py-3 px-6 rounded-lg flex items-center mx-auto">
               <Play className="mr-2" /> Iniciar Sessão
             </button>
@@ -139,7 +169,6 @@ export default function Home() {
               {perguntaAtual?.texto}
             </h2>
 
-            {/* Exibição da mensagem de erro */}
             {error && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
@@ -162,9 +191,7 @@ export default function Home() {
               </button>
             )}
             {(status === 'listening' || status === 'processing') && (
-              <div className="w-24 h-24 rounded-full bg-secondary flex items-center justify-center mx-auto animate-spin">
-                <div className="w-4 h-4 rounded-full bg-secondary-foreground"></div>
-              </div>
+              <LoaderCircle className="mx-auto h-24 w-24 animate-spin text-secondary" />
             )}
             <p className="mt-4 text-sm text-muted-foreground">
               {
