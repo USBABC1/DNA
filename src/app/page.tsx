@@ -19,17 +19,15 @@ import {
   Zap
 } from 'lucide-react';
 
-// Tipos TypeScript
-interface Pergunta {
+// Define a local type for the simulated question data
+interface PerguntaSimulada {
   id: number;
   texto: string;
   audioUrl: string;
 }
 
-type StatusType = "idle" | "presenting" | "listening" | "waiting_for_user" | "recording" | "processing" | "finished";
-
 // Simulação dos dados que viriam da lib/config
-const PERGUNTAS_DNA: Pergunta[] = [
+const PERGUNTAS_DNA: PerguntaSimulada[] = [
   { id: 1, texto: "Conte-me sobre um momento que marcou sua vida profundamente.", audioUrl: "001.mp3" },
   { id: 2, texto: "Como você se vê daqui a 10 anos?", audioUrl: "002.mp3" },
   { id: 3, texto: "Qual é o seu maior medo e como você lida com ele?", audioUrl: "003.mp3" },
@@ -41,22 +39,40 @@ const APRESENTACAO_AUDIO_URL = "000.mp3";
 
 // Componente de partículas animadas
 const AnimatedParticles = () => {
+  const [particleContainer, setParticleContainer] = useState<{width: number, height: number} | null>(null);
+
+  useEffect(() => {
+    // Set initial dimensions
+    if (window) {
+      setParticleContainer({ width: window.innerWidth, height: window.innerHeight });
+    }
+
+    const handleResize = () => {
+      if (window) {
+        setParticleContainer({ width: window.innerWidth, height: window.innerHeight });
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  
   const particles = Array.from({ length: 50 }, (_, i) => i);
   
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {particles.map((particle) => (
+      {particleContainer && particles.map((particle) => (
         <motion.div
           key={particle}
           className="absolute w-1 h-1 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full"
           initial={{
-            x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1000),
-            y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 1000),
+            x: Math.random() * particleContainer.width,
+            y: Math.random() * particleContainer.height,
             opacity: 0
           }}
           animate={{
-            x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1000),
-            y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 1000),
+            x: Math.random() * particleContainer.width,
+            y: Math.random() * particleContainer.height,
             opacity: [0, 1, 0]
           }}
           transition={{
@@ -103,16 +119,16 @@ const GlassCard = ({ children, className = "" }: { children: React.ReactNode; cl
 );
 
 export default function DNAAnalysisApp() {
-  const [status, setStatus] = useState<StatusType>("idle");
-  const [perguntaAtual, setPerguntaAtual] = useState<Pergunta | null>(null);
-  const [relatorioFinal, setRelatorioFinal] = useState<string>("");
+  const [status, setStatus] = useState("idle");
+  const [perguntaAtual, setPerguntaAtual] = useState<PerguntaSimulada | null>(null);
+  const [relatorioFinal, setRelatorioFinal] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [isSharing, setIsSharing] = useState<boolean>(false);
+  const [isSharing, setIsSharing] = useState(false);
   
-  const perguntaIndex = useRef<number>(0);
+  const perguntaIndex = useRef(0);
 
   // Simulação de funções que viriam dos serviços
-  const playAudioFromUrl = async (url: string, callback: () => void): Promise<void> => {
+  const playAudioFromUrl = async (url: string, callback: () => void) => {
     // Simula reprodução de áudio
     setTimeout(callback, 2000);
   };
@@ -139,7 +155,7 @@ export default function DNAAnalysisApp() {
     return respostas[perguntaIndex.current - 1] || "Resposta simulada";
   };
 
-  const analisarFragmento = (transcricao: string, perfil: any, pergunta: Pergunta) => {
+  const analisarFragmento = (transcricao: string, perfil: any, pergunta: any) => {
     // Simula análise do fragmento
     return { ...perfil, respostas: [...(perfil.respostas || []), transcricao] };
   };
@@ -172,7 +188,7 @@ Suas narrativas sugerem um padrão de tomada de decisão baseado em valores sól
 Esta análise foi gerada com base em suas respostas únicas e reflete seu momento atual de desenvolvimento pessoal e profissional.`;
   };
 
-  const handleStartPresentationAndSession = async (): Promise<void> => {
+  const handleStartPresentationAndSession = async () => {
     try {
       setStatus('presenting');
       await playAudioFromUrl(APRESENTACAO_AUDIO_URL, () => {
@@ -185,14 +201,14 @@ Esta análise foi gerada com base em suas respostas únicas e reflete seu moment
     }
   };
   
-  const iniciarSessaoDePerguntas = (): void => {
+  const iniciarSessaoDePerguntas = () => {
     perguntaIndex.current = 0;
     setRelatorioFinal("");
     setError(null);
     fazerProximaPergunta();
   };
 
-  const fazerProximaPergunta = async (repetir: boolean = false): Promise<void> => {
+  const fazerProximaPergunta = async (repetir = false) => {
     if (!repetir) {
       if (perguntaIndex.current >= PERGUNTAS_DNA.length) {
         finalizarSessao();
@@ -216,7 +232,7 @@ Esta análise foi gerada com base em suas respostas únicas e reflete seu moment
     }
   };
 
-  const handleStartRecording = async (): Promise<void> => {
+  const handleStartRecording = async () => {
     setError(null);
     try {
       await startRecording();
@@ -227,7 +243,7 @@ Esta análise foi gerada com base em suas respostas únicas e reflete seu moment
     }
   };
 
-  const handleStopRecording = async (): Promise<void> => {
+  const handleStopRecording = async () => {
     setStatus("processing");
     try {
       const audioBlob = await stopRecording();
@@ -239,7 +255,7 @@ Esta análise foi gerada com base em suas respostas únicas e reflete seu moment
     }
   };
 
-  const processarResposta = async (audioBlob: Blob): Promise<void> => {
+  const processarResposta = async (audioBlob: Blob) => {
     if (!perguntaAtual) return;
     try {
       const transcricao = await transcribeAudio(audioBlob);
@@ -256,14 +272,29 @@ Esta análise foi gerada com base em suas respostas únicas e reflete seu moment
     }
   };
 
-  const finalizarSessao = (): void => {
+  const finalizarSessao = () => {
     const relatorio = gerarSinteseFinal({});
     setRelatorioFinal(relatorio);
     setStatus("finished");
   };
 
-  const handleShare = async (): Promise<void> => {
+  const handleShare = async () => {
     setIsSharing(true);
+    // Use a temporary textarea element to copy text to clipboard
+    const copyToClipboard = (text: string) => {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+            document.execCommand('copy');
+        } catch (err) {
+            console.error('Failed to copy: ', err);
+        }
+        document.body.removeChild(textArea);
+    };
+
     try {
       if (navigator.share) {
         await navigator.share({
@@ -272,11 +303,14 @@ Esta análise foi gerada com base em suas respostas únicas e reflete seu moment
           url: window.location.href
         });
       } else {
-        await navigator.clipboard.writeText(relatorioFinal);
+        copyToClipboard(relatorioFinal);
+        // Using a custom alert/modal is better, but alert is used here for simplicity as per original code
         alert('Relatório copiado para a área de transferência!');
       }
     } catch (err) {
       console.error('Erro ao compartilhar:', err);
+      copyToClipboard(relatorioFinal);
+      alert('Relatório copiado para a área de transferência!');
     } finally {
       setIsSharing(false);
     }
@@ -523,7 +557,10 @@ Esta análise foi gerada com base em suas respostas únicas e reflete seu moment
                 </motion.button>
 
                 <motion.button
-                  onClick={() => setStatus('idle')}
+                  onClick={() => {
+                    perguntaIndex.current = 0;
+                    setStatus('idle');
+                  }}
                   className="flex items-center justify-center px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-2xl shadow-xl"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
@@ -542,7 +579,7 @@ Esta análise foi gerada com base em suas respostas únicas e reflete seu moment
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-pink-900 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-blue-900 text-white relative overflow-hidden">
       {/* Background animado */}
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(120,119,198,0.3),rgba(255,255,255,0))]" />
