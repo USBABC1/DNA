@@ -167,8 +167,7 @@ const EnhancedLiveStats = ({ perfil }: { perfil: ExpertProfile }) => {
           <div className="stat-glow"></div>
         </motion.div>
       ))}
-    </motion.div>
-  );
+    );
 };
 
 // Componente para a tela inicial premium
