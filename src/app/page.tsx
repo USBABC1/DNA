@@ -43,6 +43,7 @@ async function transcribeAudio(audioBlob: Blob): Promise<string> {
   }
 }
 
+
 const containerVariants = {
   hidden: { opacity: 0, scale: 0.95 },
   visible: { opacity: 1, scale: 1, transition: { staggerChildren: 0.1 } },
@@ -119,17 +120,7 @@ const DNAInterface = () => {
       fazerProximaPergunta();
       return;
     }
-
-    // Verificação de segurança para garantir que a pergunta atual existe
-    if (!perguntaAtual) {
-      console.error("Erro: a tentar processar uma resposta sem uma pergunta atual. A avançar.");
-      fazerProximaPergunta();
-      return;
-    }
-    
-    // ----- CORREÇÃO APLICADA AQUI -----
-    // Adicionado `perguntaAtual` como terceiro argumento
-    const perfilAtualizado = analisarFragmento(transcricao, perfil, perguntaAtual);
+    const perfilAtualizado = analisarFragmento(transcricao, perfil);
     setPerfil(perfilAtualizado);
     fazerProximaPergunta();
   };
