@@ -34,25 +34,17 @@ const keyWords = {
 
 /**
  * Analisa um fragmento de texto e atualiza o perfil do especialista.
- * A lógica foi aprimorada para remover aleatoriedade e superficialidade.
- *
- * @param texto O texto transcrito da resposta do usuário.
- * @param perfil O perfil atual do especialista.
- * @param pergunta A pergunta que foi respondida.
- * @returns O perfil do especialista atualizado.
  */
 export function analisarFragmento(texto: string, perfil: ExpertProfile, pergunta: Pergunta): ExpertProfile {
   const textoLowerCase = texto.toLowerCase();
 
-  // 1. Atualizar Cobertura de Domínio de forma determinística
+  // 1. Atualizar Cobertura de Domínio
   if (pergunta.dominio) {
     perfil.coberturaDominios[pergunta.dominio] = (perfil.coberturaDominios[pergunta.dominio] || 0) + 1;
   }
 
-  // Função auxiliar para contar ocorrências de palavras-chave
   const countKeywords = (words: string[]) => {
     return words.reduce((acc, word) => {
-      // Usar expressão regular para contar a palavra exata
       const regex = new RegExp(`\\b${word}\\b`, 'g');
       const matches = textoLowerCase.match(regex);
       return acc + (matches ? matches.length : 0);
@@ -60,22 +52,27 @@ export function analisarFragmento(texto: string, perfil: ExpertProfile, pergunta
   };
 
   // 2. Analisar traços de personalidade, valores e motivadores com base nos dicionários
-  for (const trait in keyWords.bigFive) {
-    const score = countKeywords(keyWords.bigFive[trait as BigFive]);
-    perfil.bigFive[trait as BigFive] += score;
-  }
+  // --- INÍCIO DA CORREÇÃO ---
+  // Substituímos os loops for...in por Object.keys().forEach() para garantir a segurança de tipos.
 
-  for (const value in keyWords.schwartz) {
-    const score = countKeywords(keyWords.schwartz[value as ValorSchwartz]);
-    perfil.valoresSchwartz[value as ValorSchwartz] += score;
-  }
+  (Object.keys(keyWords.bigFive) as BigFive[]).forEach((trait) => {
+    const score = countKeywords(keyWords.bigFive[trait]);
+    perfil.bigFive[trait] += score;
+  });
 
-  for (const motivator in keyWords.motivators) {
-    const score = countKeywords(keyWords.motivators[motivator as Motivador]);
-    perfil.motivadores[motivator as Motivador] += score;
-  }
+  (Object.keys(keyWords.schwartz) as ValorSchwartz[]).forEach((value) => {
+    const score = countKeywords(keyWords.schwartz[value]);
+    perfil.valoresSchwartz[value] += score;
+  });
 
-  // 3. Detecção de Contradições e Metáforas (lógica mantida)
+  (Object.keys(keyWords.motivators) as Motivador[]).forEach((motivator) => {
+    const score = countKeywords(keyWords.motivators[motivator]);
+    perfil.motivadores[motivator] += score;
+  });
+
+  // --- FIM DA CORREÇÃO ---
+
+  // 3. Detecção de Contradições e Metáforas
   if (textoLowerCase.includes(' mas ') || textoLowerCase.includes(' porém ') || textoLowerCase.includes(' embora ') || textoLowerCase.includes(' contudo ')) {
     perfil.metricas.contradicoes += 1;
     perfil.conflitosDeValorDetectados.push(`Conflito potencial na resposta à pergunta: "${pergunta.texto}"`);
@@ -97,10 +94,6 @@ export function analisarFragmento(texto: string, perfil: ExpertProfile, pergunta
 
 /**
  * Gera a síntese final e o relatório com base no perfil completo.
- * A lógica aqui permanece a mesma, mas agora opera sobre dados mais confiáveis.
- *
- * @param perfil O perfil final do especialista após todas as análises.
- * @returns Uma string contendo o relatório final formatado.
  */
 export function gerarSinteseFinal(perfil: ExpertProfile): string {
   const encontrarMaiorValor = (obj: Record<string, number>) => {
