@@ -19,8 +19,17 @@ import {
   Zap
 } from 'lucide-react';
 
+// Tipos TypeScript
+interface Pergunta {
+  id: number;
+  texto: string;
+  audioUrl: string;
+}
+
+type StatusType = "idle" | "presenting" | "listening" | "waiting_for_user" | "recording" | "processing" | "finished";
+
 // Simulação dos dados que viriam da lib/config
-const PERGUNTAS_DNA = [
+const PERGUNTAS_DNA: Pergunta[] = [
   { id: 1, texto: "Conte-me sobre um momento que marcou sua vida profundamente.", audioUrl: "001.mp3" },
   { id: 2, texto: "Como você se vê daqui a 10 anos?", audioUrl: "002.mp3" },
   { id: 3, texto: "Qual é o seu maior medo e como você lida com ele?", audioUrl: "003.mp3" },
@@ -41,13 +50,13 @@ const AnimatedParticles = () => {
           key={particle}
           className="absolute w-1 h-1 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full"
           initial={{
-            x: Math.random() * window.innerWidth,
-            y: Math.random() * window.innerHeight,
+            x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1000),
+            y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 1000),
             opacity: 0
           }}
           animate={{
-            x: Math.random() * window.innerWidth,
-            y: Math.random() * window.innerHeight,
+            x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1000),
+            y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 1000),
             opacity: [0, 1, 0]
           }}
           transition={{
@@ -94,16 +103,16 @@ const GlassCard = ({ children, className = "" }: { children: React.ReactNode; cl
 );
 
 export default function DNAAnalysisApp() {
-  const [status, setStatus] = useState("idle");
-  const [perguntaAtual, setPerguntaAtual] = useState(null);
-  const [relatorioFinal, setRelatorioFinal] = useState("");
-  const [error, setError] = useState(null);
-  const [isSharing, setIsSharing] = useState(false);
+  const [status, setStatus] = useState<StatusType>("idle");
+  const [perguntaAtual, setPerguntaAtual] = useState<Pergunta | null>(null);
+  const [relatorioFinal, setRelatorioFinal] = useState<string>("");
+  const [error, setError] = useState<string | null>(null);
+  const [isSharing, setIsSharing] = useState<boolean>(false);
   
-  const perguntaIndex = useRef(0);
+  const perguntaIndex = useRef<number>(0);
 
   // Simulação de funções que viriam dos serviços
-  const playAudioFromUrl = async (url: string, callback: () => void) => {
+  const playAudioFromUrl = async (url: string, callback: () => void): Promise<void> => {
     // Simula reprodução de áudio
     setTimeout(callback, 2000);
   };
@@ -130,7 +139,7 @@ export default function DNAAnalysisApp() {
     return respostas[perguntaIndex.current - 1] || "Resposta simulada";
   };
 
-  const analisarFragmento = (transcricao: string, perfil: any, pergunta: any) => {
+  const analisarFragmento = (transcricao: string, perfil: any, pergunta: Pergunta) => {
     // Simula análise do fragmento
     return { ...perfil, respostas: [...(perfil.respostas || []), transcricao] };
   };
@@ -163,7 +172,7 @@ Suas narrativas sugerem um padrão de tomada de decisão baseado em valores sól
 Esta análise foi gerada com base em suas respostas únicas e reflete seu momento atual de desenvolvimento pessoal e profissional.`;
   };
 
-  const handleStartPresentationAndSession = async () => {
+  const handleStartPresentationAndSession = async (): Promise<void> => {
     try {
       setStatus('presenting');
       await playAudioFromUrl(APRESENTACAO_AUDIO_URL, () => {
@@ -176,14 +185,14 @@ Esta análise foi gerada com base em suas respostas únicas e reflete seu moment
     }
   };
   
-  const iniciarSessaoDePerguntas = () => {
+  const iniciarSessaoDePerguntas = (): void => {
     perguntaIndex.current = 0;
     setRelatorioFinal("");
     setError(null);
     fazerProximaPergunta();
   };
 
-  const fazerProximaPergunta = async (repetir = false) => {
+  const fazerProximaPergunta = async (repetir: boolean = false): Promise<void> => {
     if (!repetir) {
       if (perguntaIndex.current >= PERGUNTAS_DNA.length) {
         finalizarSessao();
@@ -207,7 +216,7 @@ Esta análise foi gerada com base em suas respostas únicas e reflete seu moment
     }
   };
 
-  const handleStartRecording = async () => {
+  const handleStartRecording = async (): Promise<void> => {
     setError(null);
     try {
       await startRecording();
@@ -218,7 +227,7 @@ Esta análise foi gerada com base em suas respostas únicas e reflete seu moment
     }
   };
 
-  const handleStopRecording = async () => {
+  const handleStopRecording = async (): Promise<void> => {
     setStatus("processing");
     try {
       const audioBlob = await stopRecording();
@@ -230,7 +239,7 @@ Esta análise foi gerada com base em suas respostas únicas e reflete seu moment
     }
   };
 
-  const processarResposta = async (audioBlob) => {
+  const processarResposta = async (audioBlob: Blob): Promise<void> => {
     if (!perguntaAtual) return;
     try {
       const transcricao = await transcribeAudio(audioBlob);
@@ -247,13 +256,13 @@ Esta análise foi gerada com base em suas respostas únicas e reflete seu moment
     }
   };
 
-  const finalizarSessao = () => {
+  const finalizarSessao = (): void => {
     const relatorio = gerarSinteseFinal({});
     setRelatorioFinal(relatorio);
     setStatus("finished");
   };
 
-  const handleShare = async () => {
+  const handleShare = async (): Promise<void> => {
     setIsSharing(true);
     try {
       if (navigator.share) {
