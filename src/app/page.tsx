@@ -29,6 +29,14 @@ interface ExpertProfile {
 
 type SessionStatus = 'idle' | 'listening' | 'waiting_for_user' | 'recording' | 'processing' | 'finished';
 
+// Interface para o mapeamento de status
+interface StatusConfig {
+  message: string;
+  icon: React.ComponentType<any>;
+  showWaves?: boolean;
+  isProcessing?: boolean;
+}
+
 // Configurações e dados
 const PERGUNTAS_DNA: Pergunta[] = [
   { id: 1, texto: "Descreva um momento da sua vida em que você se sentiu mais autêntico e verdadeiro consigo mesmo.", dominio: "Autenticidade", audioUrl: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav" },
@@ -360,7 +368,8 @@ const SessionScreen = ({ pergunta, status, onStartRecording, onStopRecording, pe
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [status]);
 
-  const statusMap = {
+  // Mapeamento de status com tipagem correta
+  const statusMap: Record<SessionStatus, StatusConfig> = {
     listening: { message: 'Reproduzindo pergunta...', icon: Volume2, showWaves: true },
     waiting_for_user: { message: 'Pronto para gravar', icon: Mic, showWaves: false },
     recording: { message: 'Gravando sua narrativa...', icon: Square, showWaves: true },
@@ -369,7 +378,7 @@ const SessionScreen = ({ pergunta, status, onStartRecording, onStopRecording, pe
     finished: { message: 'Concluído', icon: Check },
   };
   
-  const config = statusMap[status] || statusMap.idle;
+  const config = statusMap[status];
   const StatusIcon = config.icon;
 
   if (!pergunta) {
