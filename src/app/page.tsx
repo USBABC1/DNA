@@ -1,552 +1,223 @@
-"use client";
+'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Canvas } from '@react-three/fiber';
+import { Stars } from '@react-three/drei';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Mic, 
-  Square, 
-  Play, 
-  AlertCircle, 
-  LoaderCircle,
-  Brain,
-  Sparkles,
-  Share2,
-  RefreshCw,
-  Volume2,
-  CheckCircle2,
-  ArrowRight,
-  Zap
-} from 'lucide-react';
+import { Mic, Play, Square, Loader, BrainCircuit, BotMessageSquare, FileText } from 'lucide-react';
 
-// Importando tipos e configurações reais do projeto com caminhos relativos
-import { Pergunta, ExpertProfile } from '../lib/types';
 import { PERGUNTAS_DNA, criarPerfilInicial } from '../lib/config';
-import { initAudio, playAudioFromUrl, startRecording, stopRecording } from '../services/webAudioService';
 import { analisarFragmento, gerarSinteseFinal } from '../lib/analysisEngine';
+import { ExpertProfile, SessionStatus, Pergunta } from '../lib/types';
+import { initAudio, playAudioFromUrl, startRecording, stopRecording } from '../services/webAudioService';
 
-// Componente de partículas animadas
-const AnimatedParticles = () => {
-  const [particleContainer, setParticleContainer] = useState<{width: number, height: number} | null>(null);
+/**
+ * Envia o áudio para a nossa rota de API interna para ser transcrito pela Deepgram.
+ * @param audioBlob O áudio gravado no formato Blob.
+ * @returns A transcrição em texto.
+ */
+async function transcribeAudio(audioBlob: Blob): Promise<string> {
+  console.log("A enviar áudio para a API de transcrição:", audioBlob.size, audioBlob.type);
 
-  useEffect(() => {
-    const setDimensions = () => {
-      if (typeof window !== 'undefined') {
-        setParticleContainer({ width: window.innerWidth, height: window.innerHeight });
-      }
-    };
-    setDimensions();
-    window.addEventListener('resize', setDimensions);
-    return () => window.removeEventListener('resize', setDimensions);
-  }, []);
-  
-  const particles = Array.from({ length: 50 }, (_, i) => i);
-  
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {particleContainer && particles.map((particle) => (
-        <motion.div
-          key={particle}
-          className="absolute w-1 h-1 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full"
-          initial={{
-            x: Math.random() * particleContainer.width,
-            y: Math.random() * particleContainer.height,
-            opacity: 0
-          }}
-          animate={{
-            x: Math.random() * particleContainer.width,
-            y: Math.random() * particleContainer.height,
-            opacity: [0, 1, 0]
-          }}
-          transition={{
-            duration: Math.random() * 10 + 10,
-            repeat: Infinity,
-            ease: "linear"
-          }}
-          style={{ filter: 'blur(0.5px)' }}
-        />
-      ))}
-    </div>
-  );
+  try {
+    // Faz a chamada para a nossa própria API interna (/api/transcribe)
+    const response = await fetch('/api/transcribe', {
+      method: 'POST',
+      body: audioBlob, // Envia o blob diretamente no corpo
+    });
+
+    if (!response.ok) {
+      // Se a resposta não for OK, lança um erro com a mensagem do servidor
+      const errorData = await response.json();
+      throw new Error(errorData.error || `Erro do servidor: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log("Transcrição recebida:", data.transcript);
+    return data.transcript; // Retorna a transcrição recebida do servidor
+
+  } catch (error) {
+    console.error('Não foi possível transcrever o áudio:', error);
+    // Retorna uma mensagem de erro amigável que pode ser mostrada ao utilizador
+    return "Desculpe, não consegui processar a sua resposta. Vamos tentar a próxima pergunta.";
+  }
+}
+
+
+const containerVariants = {
+  hidden: { opacity: 0, scale: 0.95 },
+  visible: { opacity: 1, scale: 1, transition: { staggerChildren: 0.1 } },
+  exit: { opacity: 0, scale: 0.95 },
 };
 
-// Componente de barra de progresso
-const ProgressBar = ({ current, total }: { current: number; total: number }) => (
-  <div className="w-full max-w-md mx-auto mb-8">
-    <div className="flex justify-between text-sm text-purple-300 mb-2">
-      <span>Pergunta {current}</span>
-      <span>{total} Perguntas</span>
-    </div>
-    <div className="h-2 bg-white/10 rounded-full overflow-hidden backdrop-blur-sm">
-      <motion.div
-        className="h-full bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500"
-        initial={{ width: 0 }}
-        animate={{ width: `${((current) / total) * 100}%` }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
-      />
-    </div>
-  </div>
-);
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100 } },
+};
 
-// Componente de card com glassmorphism
-const GlassCard = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
-  <motion.div
-    className={`backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl shadow-2xl ${className}`}
-    whileHover={{ scale: 1.02, boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)" }}
-    transition={{ duration: 0.3 }}
-  >
-    {children}
-  </motion.div>
-);
-
-export default function DNAAnalysisApp() {
-  const [status, setStatus] = useState("idle");
+const DNAInterface = () => {
+  const [status, setStatus] = useState<SessionStatus>('idle');
   const [perguntaAtual, setPerguntaAtual] = useState<Pergunta | null>(null);
-  const [perfil, setPerfil] = useState<ExpertProfile | null>(null);
-  const [relatorioFinal, setRelatorioFinal] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [isSharing, setIsSharing] = useState(false);
-  
+  const [perfil, setPerfil] = useState<ExpertProfile>(criarPerfilInicial());
+  const [relatorioFinal, setRelatorioFinal] = useState<string>('');
   const perguntaIndex = useRef(0);
-  const audioApresentacaoRef = useRef(PERGUNTAS_DNA[0]);
-  const sessoesDePerguntasRef = useRef(PERGUNTAS_DNA.slice(1));
 
-  // Função REAL para transcrever áudio via API
-  const transcribeAudio = async (audioBlob: Blob): Promise<string> => {
-    try {
-      const response = await fetch('/api/transcribe', {
-        method: 'POST',
-        body: audioBlob,
-      });
+  useEffect(() => { initAudio(); }, []);
 
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || 'Falha na API de transcrição');
-      }
-
-      const result = await response.json();
-      return result.transcript;
-    } catch (err: any) {
-      console.error("Erro ao transcrever áudio:", err);
-      setError(err.message || 'Erro ao conectar com o serviço de transcrição.');
-      return "";
-    }
-  };
-
-  const handleStartPresentationAndSession = async () => {
-    initAudio(); // Inicializa o AudioContext com a interação do usuário
-    try {
-      setStatus('presenting');
-      await playAudioFromUrl(audioApresentacaoRef.current.audioUrl, () => {
-        iniciarSessaoDePerguntas();
-      });
-    } catch (err) {
-      console.error("Erro ao iniciar apresentação:", err);
-      setError("Não foi possível tocar o áudio de apresentação. Iniciando perguntas diretamente.");
-      iniciarSessaoDePerguntas();
-    }
-  };
-  
-  const iniciarSessaoDePerguntas = () => {
+  const iniciarSessao = () => {
     perguntaIndex.current = 0;
     setPerfil(criarPerfilInicial());
-    setRelatorioFinal("");
-    setError(null);
+    setRelatorioFinal('');
     fazerProximaPergunta();
   };
 
   const fazerProximaPergunta = async () => {
-    if (perguntaIndex.current >= sessoesDePerguntasRef.current.length) {
+    if (perguntaIndex.current < PERGUNTAS_DNA.length) {
+      const pergunta = PERGUNTAS_DNA[perguntaIndex.current];
+      setPerguntaAtual(pergunta);
+      setStatus('listening');
+      await playAudioFromUrl(pergunta.audioUrl, () => setStatus('waiting_for_user'));
+      perguntaIndex.current++;
+    } else {
       finalizarSessao();
-      return;
-    }
-
-    const currentQuestion = sessoesDePerguntasRef.current[perguntaIndex.current];
-    setPerguntaAtual(currentQuestion);
-    setStatus("listening");
-
-    try {
-      await playAudioFromUrl(currentQuestion.audioUrl, () => {
-        setStatus("waiting_for_user");
-      });
-    } catch (err) {
-      console.error("Erro ao tocar áudio da pergunta:", err);
-      setError("Não foi possível tocar o áudio da pergunta. Verifique sua conexão.");
-      setStatus("waiting_for_user");
     }
   };
-
+  
   const handleStartRecording = async () => {
-    setError(null);
     try {
       await startRecording();
-      setStatus("recording");
-    } catch (err) {
-      console.error("Erro ao iniciar gravação:", err);
-      setError("Não foi possível acessar o microfone. Verifique as permissões.");
+      setStatus('recording');
+    } catch (error) {
+      console.error("Erro ao iniciar gravação:", error);
+      setStatus('waiting_for_user');
     }
   };
 
   const handleStopRecording = async () => {
-    setStatus("processing");
     try {
+      setStatus('processing');
       const audioBlob = await stopRecording();
+      // Garante que o blob tem um tamanho mínimo antes de enviar
+      if (audioBlob.size < 1000) {
+        console.warn("Gravação muito curta, a saltar o processamento.");
+        fazerProximaPergunta();
+        return;
+      }
       await processarResposta(audioBlob);
-    } catch (err) {
-      console.error("Erro ao parar gravação:", err);
-      setError("Ocorreu um erro ao processar a gravação.");
-      setStatus("waiting_for_user");
+    } catch (error) {
+      console.error("Erro ao parar gravação:", error);
+      setStatus('waiting_for_user');
     }
   };
 
   const processarResposta = async (audioBlob: Blob) => {
-    if (!perguntaAtual || !perfil) return;
-    try {
-      const transcricao = await transcribeAudio(audioBlob);
-      if (transcricao && transcricao.trim().length > 0) {
-        const perfilAtualizado = analisarFragmento(transcricao, perfil, perguntaAtual);
-        setPerfil(perfilAtualizado);
-        perguntaIndex.current++;
-        fazerProximaPergunta();
-      } else {
-        throw new Error("A resposta não pôde ser entendida.");
-      }
-    } catch (err: any) {
-      console.error("Erro no processamento da resposta:", err);
-      setError(err.message || "Desculpe, não conseguimos entender sua resposta. Por favor, tente falar mais claramente.");
-      setStatus("waiting_for_user");
+    const transcricao = await transcribeAudio(audioBlob);
+    // Verifica se a transcrição está vazia ou contém a mensagem de erro
+    if (!transcricao.trim() || transcricao.startsWith("Desculpe, não consegui processar")) {
+      console.log("Transcrição vazia ou com erro, a tentar a pergunta novamente.");
+      // Volta para a pergunta anterior para que o utilizador possa tentar de novo.
+      perguntaIndex.current--; 
+      fazerProximaPergunta();
+      return;
     }
+    const perfilAtualizado = analisarFragmento(transcricao, perfil);
+    setPerfil(perfilAtualizado);
+    fazerProximaPergunta();
   };
 
   const finalizarSessao = () => {
-    if (!perfil) return;
-    const relatorio = gerarSinteseFinal(perfil);
-    setRelatorioFinal(relatorio);
-    setStatus("finished");
-  };
-
-  const handleShare = async () => {
-    setIsSharing(true);
-    const copyToClipboard = (text: string) => {
-        const textArea = document.createElement("textarea");
-        textArea.value = text;
-        textArea.style.position = "fixed"; 
-        textArea.style.opacity = "0";
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        try {
-            document.execCommand('copy');
-        } catch (err) {
-            console.error('Failed to copy: ', err);
-        }
-        document.body.removeChild(textArea);
-    };
-
-    try {
-      if (navigator.share) {
-        await navigator.share({
-          title: 'Minha Análise Narrativa Profunda',
-          text: 'Acabei de descobrir insights incríveis sobre meu perfil pessoal!',
-          url: window.location.href,
-        });
-      } else {
-        copyToClipboard(relatorioFinal);
-        alert('Relatório copiado para a área de transferência!');
-      }
-    } catch (err) {
-      console.error('Erro ao compartilhar:', err);
-      copyToClipboard(relatorioFinal);
-      alert('Relatório copiado para a área de transferência!');
-    } finally {
-      setIsSharing(false);
-    }
+    const sintese = gerarSinteseFinal(perfil);
+    setRelatorioFinal(sintese);
+    setStatus('finished');
   };
 
   const renderContent = () => {
     switch (status) {
-      case "idle":
+      case 'idle':
         return (
-          <div className="text-center max-w-4xl mx-auto">
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-            >
-              <div className="mb-8">
-                <motion.div
-                  className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 mb-6"
-                  whileHover={{ scale: 1.1, rotate: 360 }}
-                  transition={{ duration: 0.8 }}
-                >
-                  <Brain className="w-12 h-12 text-white" />
-                </motion.div>
-                <h1 className="text-6xl md:text-7xl font-black bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent mb-6">
-                  DNA Narrativo
-                </h1>
-                <p className="text-xl md:text-2xl text-purple-200 mb-8 max-w-2xl mx-auto leading-relaxed">
-                  Descubra as camadas mais profundas da sua personalidade através de uma análise narrativa revolucionária
-                </p>
-              </div>
-
-              <div className="grid md:grid-cols-3 gap-6 mb-12">
-                {[
-                  { icon: Sparkles, title: "Análise Avançada", desc: "IA especializada em psicologia narrativa" },
-                  { icon: Brain, title: "Insights Profundos", desc: "Revelações sobre seu perfil único" },
-                  { icon: Zap, title: "Resultados Instantâneos", desc: "Relatório detalhado em minutos" }
-                ].map((feature, index) => (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 + index * 0.1 }}
-                  >
-                    <GlassCard className="p-6 text-center h-full">
-                      <feature.icon className="w-12 h-12 mx-auto mb-4 text-purple-400" />
-                      <h3 className="text-lg font-bold text-white mb-2">{feature.title}</h3>
-                      <p className="text-purple-200 text-sm">{feature.desc}</p>
-                    </GlassCard>
-                  </motion.div>
-                ))}
-              </div>
-
-              <motion.button
-                onClick={handleStartPresentationAndSession}
-                className="group relative inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-white bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 rounded-2xl shadow-2xl overflow-hidden"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                transition={{ duration: 0.2 }}
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <Play className="mr-2 relative z-10" size={24} />
-                <span className="relative z-10">Iniciar Análise DNA</span>
-                <ArrowRight className="ml-2 relative z-10 group-hover:translate-x-1 transition-transform duration-300" size={20} />
-              </motion.button>
+          <motion.div key="idle" variants={containerVariants} initial="hidden" animate="visible" exit="exit" className="text-center">
+            <motion.div variants={itemVariants} className="mb-4">
+              <BrainCircuit className="mx-auto h-24 w-24 text-primary" strokeWidth={1}/>
             </motion.div>
-          </div>
-        );
-
-      case "presenting":
-        return (
-          <div className="text-center">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6 }}
-            >
-              <div className="mb-8">
-                <motion.div
-                  className="inline-flex items-center justify-center w-32 h-32 rounded-full bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 mb-6"
-                  animate={{ rotate: 360, scale: [1, 1.1, 1] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                >
-                  <Volume2 className="w-16 h-16 text-white" />
-                </motion.div>
-                <h1 className="text-5xl font-black bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent mb-4">
-                  Preparando Análise
-                </h1>
-                <p className="text-xl text-purple-200">Aguarde enquanto preparamos sua experiência personalizada...</p>
-              </div>
-              
-              <div className="flex justify-center mb-6">
-                <motion.div
-                  className="flex space-x-2"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.5 }}
-                >
-                  {[0, 1, 2].map((index) => (
-                    <motion.div
-                      key={index}
-                      className="w-3 h-3 bg-purple-400 rounded-full"
-                      animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
-                      transition={{ duration: 1, repeat: Infinity, delay: index * 0.2 }}
-                    />
-                  ))}
-                </motion.div>
-              </div>
+            <motion.h1 variants={itemVariants} className="text-4xl md:text-5xl font-bold font-heading mb-4">DNA - Deep Narrative Analysis</motion.h1>
+            <motion.p variants={itemVariants} className="text-lg text-muted-foreground mb-8">Uma jornada interativa de autoanálise através da sua narrativa.</motion.p>
+            <motion.div variants={itemVariants}>
+              <button onClick={iniciarSessao} className="flex items-center gap-2 mx-auto px-8 py-3 bg-primary text-primary-foreground font-bold rounded-full text-lg hover:bg-primary/90 transition-all duration-300 transform hover:scale-105 shadow-lg shadow-primary/30">
+                <Play />
+                Iniciar Análise
+              </button>
             </motion.div>
-          </div>
+          </motion.div>
         );
-
-      case "listening":
-      case "waiting_for_user":
-      case "recording":
-      case "processing":
+      
+      case 'listening':
+      case 'waiting_for_user':
+      case 'recording':
+      case 'processing':
         return (
-          <div className="text-center max-w-4xl mx-auto">
-            <ProgressBar current={perguntaIndex.current + 1} total={sessoesDePerguntasRef.current.length} />
+          <motion.div key="session" variants={containerVariants} initial="hidden" animate="visible" exit="exit" className="text-center">
+            <motion.div variants={itemVariants} className="mb-6">
+              <BotMessageSquare className="mx-auto h-16 w-16 text-primary/70" strokeWidth={1.5}/>
+            </motion.div>
+            {perguntaAtual && <motion.p variants={itemVariants} className="text-2xl md:text-3xl font-heading mb-8 min-h-[100px]">{perguntaAtual.texto}</motion.p>}
             
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-            >
-              <GlassCard className="p-8 mb-8">
-                <h2 className="text-3xl md:text-4xl font-bold text-white mb-8 leading-relaxed min-h-[120px] flex items-center justify-center">
-                  {perguntaAtual?.texto}
-                </h2>
-                
-                {error && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="bg-red-500/20 border border-red-500/30 text-red-200 p-4 rounded-2xl mb-6 flex items-center justify-center backdrop-blur-sm"
-                  >
-                    <AlertCircle className="mr-2" size={20} />
-                    {error}
-                  </motion.div>
-                )}
-
-                <div className="flex justify-center mb-6">
-                  {status === 'waiting_for_user' && (
-                    <motion.button
-                      onClick={handleStartRecording}
-                      className="group relative w-24 h-24 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 shadow-2xl flex items-center justify-center"
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      animate={{ boxShadow: ['0 0 0 0 rgba(34, 197, 94, 0.4)', '0 0 0 20px rgba(34, 197, 94, 0)'] }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                    >
-                      <Mic size={32} className="text-white" />
-                    </motion.button>
-                  )}
-                  
-                  {status === 'recording' && (
-                    <motion.button
-                      onClick={handleStopRecording}
-                      className="w-24 h-24 rounded-full bg-gradient-to-r from-red-500 to-pink-500 shadow-2xl flex items-center justify-center"
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      animate={{ scale: [1, 1.1, 1] }}
-                      transition={{ duration: 1, repeat: Infinity }}
-                    >
-                      <Square size={32} className="text-white" />
-                    </motion.button>
-                  )}
-                  
-                  {(status === 'listening' || status === 'processing') && (
-                    <motion.div
-                      className="w-24 h-24 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 shadow-2xl flex items-center justify-center"
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                    >
-                      <LoaderCircle size={32} className="text-white" />
-                    </motion.div>
-                  )}
-                </div>
-
-                <motion.p
-                  className="text-purple-200 text-lg"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.3 }}
-                >
-                  {
-                    {
-                      listening: '🎧 Reproduzindo pergunta...',
-                      waiting_for_user: '🎤 Clique no microfone e fale naturalmente',
-                      recording: '⏺️ Gravando... Clique no quadrado quando terminar',
-                      processing: '🧠 Analisando sua resposta com IA...'
-                    }[status as string]
-                  }
-                </motion.p>
-              </GlassCard>
+            <motion.div variants={itemVariants} className="h-20 flex items-center justify-center">
+              {status === 'listening' && <p className="text-muted-foreground animate-pulse">A ouvir a pergunta...</p>}
+              {status === 'waiting_for_user' && 
+                <button onClick={handleStartRecording} className="flex items-center gap-2 px-8 py-3 bg-secondary text-foreground font-bold rounded-full text-lg hover:bg-secondary/80 transition-all duration-300 transform hover:scale-105">
+                  <Mic /> Gravar Resposta
+                </button>}
+              {status === 'recording' && 
+                <button onClick={handleStopRecording} className="flex items-center gap-2 px-8 py-3 bg-red-600 text-white font-bold rounded-full text-lg transition-all duration-300 animate-pulse">
+                  <Square /> Parar Gravação
+                </button>}
+              {status === 'processing' && 
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Loader className="animate-spin" /> A processar...
+                </div>}
             </motion.div>
-          </div>
+          </motion.div>
         );
 
-      case "finished":
+      case 'finished':
         return (
-          <div className="w-full max-w-5xl mx-auto">
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-            >
-              <div className="text-center mb-8">
-                <motion.div
-                  className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 mb-6"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: "spring", duration: 0.8 }}
-                >
-                  <CheckCircle2 className="w-10 h-10 text-white" />
-                </motion.div>
-                <h1 className="text-5xl font-black bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent mb-4">
-                  Análise Concluída!
-                </h1>
-                <p className="text-xl text-purple-200">Seu relatório personalizado está pronto</p>
-              </div>
-
-              <GlassCard className="p-8 mb-8">
-                <div className="prose prose-invert max-w-none">
-                  <pre className="whitespace-pre-wrap font-sans text-sm md:text-base leading-relaxed text-white">
-                    {relatorioFinal}
-                  </pre>
-                </div>
-              </GlassCard>
-
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <motion.button
-                  onClick={handleShare}
-                  disabled={isSharing}
-                  className="flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold rounded-2xl shadow-xl disabled:opacity-50"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  {isSharing ? (
-                    <LoaderCircle className="mr-2 animate-spin" size={20} />
-                  ) : (
-                    <Share2 className="mr-2" size={20} />
-                  )}
-                  {isSharing ? 'Compartilhando...' : 'Compartilhar Resultado'}
-                </motion.button>
-
-                <motion.button
-                  onClick={() => {
-                    perguntaIndex.current = 0;
-                    setStatus('idle');
-                  }}
-                  className="flex items-center justify-center px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-2xl shadow-xl"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <RefreshCw className="mr-2" size={20} />
-                  Nova Análise
-                </motion.button>
-              </div>
+          <motion.div key="finished" variants={containerVariants} initial="hidden" animate="visible" exit="exit" className="w-full">
+             <motion.div variants={itemVariants} className="text-center mb-8">
+               <FileText className="mx-auto h-20 w-20 text-primary" strokeWidth={1}/>
+               <h1 className="text-4xl font-bold font-heading mt-4">O Seu Relatório de Análise Narrativa</h1>
+             </motion.div>
+            <motion.div variants={itemVariants} className="glass-card p-6 text-left whitespace-pre-wrap font-mono text-sm leading-relaxed overflow-auto max-h-[50vh]">
+                {relatorioFinal}
             </motion.div>
-          </div>
+            <motion.div variants={itemVariants} className="text-center mt-8">
+                <button onClick={iniciarSessao} className="flex items-center gap-2 mx-auto px-8 py-3 bg-primary text-primary-foreground font-bold rounded-full text-lg hover:bg-primary/90 transition-all duration-300 transform hover:scale-105 shadow-lg shadow-primary/30">
+                  <Play />
+                  Fazer Nova Análise
+                </button>
+            </motion.div>
+          </motion.div>
         );
-
-      default:
-        return null;
+      
+      default: return null;
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-blue-900 text-white relative overflow-hidden">
-      {/* Background animado */}
-      <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(120,119,198,0.3),rgba(255,255,255,0))]" />
-        <AnimatedParticles />
+    <main className="relative flex flex-col items-center justify-center min-h-screen bg-background p-4 overflow-hidden">
+      <div className="absolute inset-0 z-0">
+        <Canvas>
+          <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
+        </Canvas>
+        <div className="absolute inset-0 bg-background/50" />
       </div>
-      
-      {/* Conteúdo principal */}
-      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center p-4">
+
+      <div className="z-10 w-full max-w-2xl md:max-w-3xl">
         <AnimatePresence mode="wait">
-          <motion.div
-            key={status}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.5 }}
-            className="w-full"
-          >
-            {renderContent()}
-          </motion.div>
+          {renderContent()}
         </AnimatePresence>
       </div>
-    </div>
+    </main>
   );
-}
+};
+
+export default DNAInterface;
