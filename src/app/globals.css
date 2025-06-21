@@ -7,7 +7,7 @@
 :root {
   /* Core Colors - Inspirado na imagem */
   --primary: #d66b00;
-  --primary-dark: #00cc6a;
+  --primary-dark: #944a00;
   --secondary: #1a1a1a;
   --accent: #333333;
   --success: #ff9d00;
@@ -32,7 +32,7 @@
   --border-secondary: rgba(255, 255, 255, 0.1);
   
   /* Gradients */
-  --gradient-primary: linear-gradient(135deg, #944a00 0%, #00cc6a 100%);
+  --gradient-primary: linear-gradient(135deg, #944a00 0%, #cc6900 100%);
   --gradient-secondary: linear-gradient(135deg, #1a1a1a 0%, #333333 100%);
   --gradient-accent: linear-gradient(135deg, #b86b00 0%, #ffffff 100%);
   
