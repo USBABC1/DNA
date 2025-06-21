@@ -6,7 +6,6 @@ import {
   Mic, 
   Square, 
   Play, 
-  BarChart2, 
   AlertCircle, 
   LoaderCircle,
   Brain,
@@ -19,42 +18,25 @@ import {
   Zap
 } from 'lucide-react';
 
-// Define a local type for the simulated question data
-interface PerguntaSimulada {
-  id: number;
-  texto: string;
-  audioUrl: string;
-}
-
-// Simulação dos dados que viriam da lib/config
-const PERGUNTAS_DNA: PerguntaSimulada[] = [
-  { id: 1, texto: "Conte-me sobre um momento que marcou sua vida profundamente.", audioUrl: "001.mp3" },
-  { id: 2, texto: "Como você se vê daqui a 10 anos?", audioUrl: "002.mp3" },
-  { id: 3, texto: "Qual é o seu maior medo e como você lida com ele?", audioUrl: "003.mp3" },
-  { id: 4, texto: "Descreva uma situação onde você teve que tomar uma decisão difícil.", audioUrl: "004.mp3" },
-  { id: 5, texto: "O que mais te motiva a seguir em frente todos os dias?", audioUrl: "005.mp3" }
-];
-
-const APRESENTACAO_AUDIO_URL = "000.mp3";
+// Importando tipos e configurações reais do projeto com caminhos relativos
+import { Pergunta, ExpertProfile } from '../lib/types';
+import { PERGUNTAS_DNA, criarPerfilInicial } from '../lib/config';
+import { initAudio, playAudioFromUrl, startRecording, stopRecording } from '../services/webAudioService';
+import { analisarFragmento, gerarSinteseFinal } from '../lib/analysisEngine';
 
 // Componente de partículas animadas
 const AnimatedParticles = () => {
   const [particleContainer, setParticleContainer] = useState<{width: number, height: number} | null>(null);
 
   useEffect(() => {
-    // Set initial dimensions
-    if (window) {
-      setParticleContainer({ width: window.innerWidth, height: window.innerHeight });
-    }
-
-    const handleResize = () => {
-      if (window) {
+    const setDimensions = () => {
+      if (typeof window !== 'undefined') {
         setParticleContainer({ width: window.innerWidth, height: window.innerHeight });
       }
     };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    setDimensions();
+    window.addEventListener('resize', setDimensions);
+    return () => window.removeEventListener('resize', setDimensions);
   }, []);
   
   const particles = Array.from({ length: 50 }, (_, i) => i);
@@ -80,9 +62,7 @@ const AnimatedParticles = () => {
             repeat: Infinity,
             ease: "linear"
           }}
-          style={{
-            filter: 'blur(0.5px)'
-          }}
+          style={{ filter: 'blur(0.5px)' }}
         />
       ))}
     </div>
@@ -100,7 +80,7 @@ const ProgressBar = ({ current, total }: { current: number; total: number }) => 
       <motion.div
         className="h-full bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500"
         initial={{ width: 0 }}
-        animate={{ width: `${(current / total) * 100}%` }}
+        animate={{ width: `${((current) / total) * 100}%` }}
         transition={{ duration: 0.8, ease: "easeOut" }}
       />
     </div>
@@ -120,78 +100,43 @@ const GlassCard = ({ children, className = "" }: { children: React.ReactNode; cl
 
 export default function DNAAnalysisApp() {
   const [status, setStatus] = useState("idle");
-  const [perguntaAtual, setPerguntaAtual] = useState<PerguntaSimulada | null>(null);
+  const [perguntaAtual, setPerguntaAtual] = useState<Pergunta | null>(null);
+  const [perfil, setPerfil] = useState<ExpertProfile | null>(null);
   const [relatorioFinal, setRelatorioFinal] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSharing, setIsSharing] = useState(false);
   
   const perguntaIndex = useRef(0);
+  const audioApresentacaoRef = useRef(PERGUNTAS_DNA[0]);
+  const sessoesDePerguntasRef = useRef(PERGUNTAS_DNA.slice(1));
 
-  // Simulação de funções que viriam dos serviços
-  const playAudioFromUrl = async (url: string, callback: () => void) => {
-    // Simula reprodução de áudio
-    setTimeout(callback, 2000);
-  };
-
-  const startRecording = async (): Promise<void> => {
-    // Simula início da gravação
-    return new Promise(resolve => setTimeout(resolve, 100));
-  };
-
-  const stopRecording = async (): Promise<Blob> => {
-    // Simula parada da gravação e retorna blob simulado
-    return new Blob(['audio data'], { type: 'audio/wav' });
-  };
-
+  // Função REAL para transcrever áudio via API
   const transcribeAudio = async (audioBlob: Blob): Promise<string> => {
-    // Simula transcrição
-    const respostas = [
-      "Esta é uma resposta simulada para a primeira pergunta sobre momentos marcantes.",
-      "Daqui a 10 anos me vejo realizado profissionalmente e pessoalmente.",
-      "Meu maior medo é não conseguir realizar meus sonhos, mas lido com isso através da persistência.",
-      "Uma decisão difícil foi mudar de carreira, mas foi a melhor escolha que fiz.",
-      "O que me motiva é a possibilidade de impactar positivamente a vida das pessoas."
-    ];
-    return respostas[perguntaIndex.current - 1] || "Resposta simulada";
-  };
+    try {
+      const response = await fetch('/api/transcribe', {
+        method: 'POST',
+        body: audioBlob,
+      });
 
-  const analisarFragmento = (transcricao: string, perfil: any, pergunta: any) => {
-    // Simula análise do fragmento
-    return { ...perfil, respostas: [...(perfil.respostas || []), transcricao] };
-  };
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Falha na API de transcrição');
+      }
 
-  const gerarSinteseFinal = (perfil: any): string => {
-    return `🧬 ANÁLISE NARRATIVA PROFUNDA - RELATÓRIO PERSONALIZADO
-
-✨ PERFIL PSICOLÓGICO IDENTIFICADO:
-Você demonstra um perfil de liderança natural com forte orientação para crescimento pessoal. Suas respostas revelam uma personalidade resiliente, com capacidade de adaptação e visão de futuro bem definida.
-
-🎯 CARACTERÍSTICAS DOMINANTES:
-• Orientação para resultados
-• Capacidade de reflexão profunda  
-• Resiliência emocional
-• Visão estratégica de longo prazo
-• Empatia e consciência social
-
-🚀 POTENCIAIS DE DESENVOLVIMENTO:
-Sua trajetória indica forte potencial para posições de liderança e mentoria. Recomenda-se investir em habilidades de comunicação e gestão de equipes.
-
-💡 INSIGHTS COMPORTAMENTAIS:
-Suas narrativas sugerem um padrão de tomada de decisão baseado em valores sólidos, com equilibrio entre razão e intuição.
-
-🌟 PRÓXIMOS PASSOS RECOMENDADOS:
-1. Desenvolver network profissional
-2. Investir em educação continuada
-3. Buscar posições de maior responsabilidade
-4. Praticar mentoria com outros profissionais
-
-Esta análise foi gerada com base em suas respostas únicas e reflete seu momento atual de desenvolvimento pessoal e profissional.`;
+      const result = await response.json();
+      return result.transcript;
+    } catch (err: any) {
+      console.error("Erro ao transcrever áudio:", err);
+      setError(err.message || 'Erro ao conectar com o serviço de transcrição.');
+      return "";
+    }
   };
 
   const handleStartPresentationAndSession = async () => {
+    initAudio(); // Inicializa o AudioContext com a interação do usuário
     try {
       setStatus('presenting');
-      await playAudioFromUrl(APRESENTACAO_AUDIO_URL, () => {
+      await playAudioFromUrl(audioApresentacaoRef.current.audioUrl, () => {
         iniciarSessaoDePerguntas();
       });
     } catch (err) {
@@ -203,21 +148,19 @@ Esta análise foi gerada com base em suas respostas únicas e reflete seu moment
   
   const iniciarSessaoDePerguntas = () => {
     perguntaIndex.current = 0;
+    setPerfil(criarPerfilInicial());
     setRelatorioFinal("");
     setError(null);
     fazerProximaPergunta();
   };
 
-  const fazerProximaPergunta = async (repetir = false) => {
-    if (!repetir) {
-      if (perguntaIndex.current >= PERGUNTAS_DNA.length) {
-        finalizarSessao();
-        return;
-      }
-      perguntaIndex.current++;
+  const fazerProximaPergunta = async () => {
+    if (perguntaIndex.current >= sessoesDePerguntasRef.current.length) {
+      finalizarSessao();
+      return;
     }
 
-    const currentQuestion = PERGUNTAS_DNA[perguntaIndex.current - 1];
+    const currentQuestion = sessoesDePerguntasRef.current[perguntaIndex.current];
     setPerguntaAtual(currentQuestion);
     setStatus("listening");
 
@@ -256,34 +199,38 @@ Esta análise foi gerada com base em suas respostas únicas e reflete seu moment
   };
 
   const processarResposta = async (audioBlob: Blob) => {
-    if (!perguntaAtual) return;
+    if (!perguntaAtual || !perfil) return;
     try {
       const transcricao = await transcribeAudio(audioBlob);
       if (transcricao && transcricao.trim().length > 0) {
-        const perfilAtualizado = analisarFragmento(transcricao, {}, perguntaAtual);
+        const perfilAtualizado = analisarFragmento(transcricao, perfil, perguntaAtual);
+        setPerfil(perfilAtualizado);
+        perguntaIndex.current++;
         fazerProximaPergunta();
       } else {
         throw new Error("A resposta não pôde ser entendida.");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Erro no processamento da resposta:", err);
-      setError("Desculpe, não conseguimos entender sua resposta. Por favor, tente falar mais claramente.");
+      setError(err.message || "Desculpe, não conseguimos entender sua resposta. Por favor, tente falar mais claramente.");
       setStatus("waiting_for_user");
     }
   };
 
   const finalizarSessao = () => {
-    const relatorio = gerarSinteseFinal({});
+    if (!perfil) return;
+    const relatorio = gerarSinteseFinal(perfil);
     setRelatorioFinal(relatorio);
     setStatus("finished");
   };
 
   const handleShare = async () => {
     setIsSharing(true);
-    // Use a temporary textarea element to copy text to clipboard
     const copyToClipboard = (text: string) => {
         const textArea = document.createElement("textarea");
         textArea.value = text;
+        textArea.style.position = "fixed"; 
+        textArea.style.opacity = "0";
         document.body.appendChild(textArea);
         textArea.focus();
         textArea.select();
@@ -300,11 +247,10 @@ Esta análise foi gerada com base em suas respostas únicas e reflete seu moment
         await navigator.share({
           title: 'Minha Análise Narrativa Profunda',
           text: 'Acabei de descobrir insights incríveis sobre meu perfil pessoal!',
-          url: window.location.href
+          url: window.location.href,
         });
       } else {
         copyToClipboard(relatorioFinal);
-        // Using a custom alert/modal is better, but alert is used here for simplicity as per original code
         alert('Relatório copiado para a área de transferência!');
       }
     } catch (err) {
@@ -428,7 +374,7 @@ Esta análise foi gerada com base em suas respostas únicas e reflete seu moment
       case "processing":
         return (
           <div className="text-center max-w-4xl mx-auto">
-            <ProgressBar current={perguntaIndex.current} total={PERGUNTAS_DNA.length} />
+            <ProgressBar current={perguntaIndex.current + 1} total={sessoesDePerguntasRef.current.length} />
             
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -501,7 +447,7 @@ Esta análise foi gerada com base em suas respostas únicas e reflete seu moment
                       waiting_for_user: '🎤 Clique no microfone e fale naturalmente',
                       recording: '⏺️ Gravando... Clique no quadrado quando terminar',
                       processing: '🧠 Analisando sua resposta com IA...'
-                    }[status]
+                    }[status as string]
                   }
                 </motion.p>
               </GlassCard>
