@@ -5,7 +5,7 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mic, Square, Play, BarChart2, AlertCircle, LoaderCircle } from "lucide-react";
-import { PERGUNTAS_DNA, criarPerfilInicial } from "../lib/config";
+import { PERGUNTAS_DNA, criarPerfilInicial, APRESENTACAO_AUDIO_URL } from "../lib/config";
 import { ExpertProfile, Pergunta, SessionStatus } from "../lib/types";
 import { analisarFragmento, gerarSinteseFinal } from "../lib/analysisEngine";
 import { playAudioFromUrl, startRecording, stopRecording, initAudio } from "../services/webAudioService";
@@ -33,16 +33,34 @@ export default function Home() {
 
   const perguntaIndex = useRef(0);
 
-  // Função simplificada que inicia a sessão de perguntas
-  const iniciarSessao = () => {
-    initAudio(); // Inicializa o contexto de áudio na primeira interação
+  // Função que inicia todo o processo a partir do clique do botão
+  const handleStartProcess = async () => {
+    try {
+      // Inicializa o áudio na primeira interação do usuário
+      initAudio();
+      
+      // Muda o status para "apresentando" e toca o áudio 000.mp3
+      setStatus('presenting');
+      await playAudioFromUrl(APRESENTACAO_AUDIO_URL, () => {
+        // Quando a apresentação terminar, inicia a sessão de perguntas
+        iniciarSessaoDePerguntas();
+      });
+    } catch (err) {
+      console.error("Erro ao iniciar apresentação:", err);
+      setError("Não foi possível tocar o áudio de apresentação. Iniciando perguntas...");
+      iniciarSessaoDePerguntas(); // Se a apresentação falhar, vai direto para as perguntas
+    }
+  };
+  
+  // Função que prepara e inicia o ciclo de perguntas
+  const iniciarSessaoDePerguntas = () => {
     perguntaIndex.current = 0;
     setPerfil(criarPerfilInicial());
     setRelatorioFinal("");
     setError(null);
     fazerProximaPergunta();
   };
-  
+
   const fazerProximaPergunta = async (repetir = false) => {
     if (!repetir) {
       if (perguntaIndex.current >= PERGUNTAS_DNA.length) {
@@ -62,7 +80,7 @@ export default function Home() {
       });
     } catch (err) {
       console.error("Erro ao tocar áudio da pergunta:", err);
-      setError("Não foi possível tocar o áudio. Verifique sua conexão e os arquivos.");
+      setError("Não foi possível tocar o áudio da pergunta. Verifique sua conexão.");
       setStatus("waiting_for_user");
     }
   };
@@ -115,18 +133,24 @@ export default function Home() {
   };
 
   const renderContent = () => {
-    const isFirstStep = perguntaIndex.current === 1;
-
     switch (status) {
       case "idle":
         return (
           <div className="text-center">
             <h1 className="text-5xl font-bold font-heading mb-4">Análise Narrativa Profunda</h1>
             <p className="text-xl mb-8">Responda a uma série de perguntas para revelar seu perfil interior.</p>
-            {/* O botão agora chama a função 'iniciarSessao' diretamente */}
-            <button onClick={iniciarSessao} className="btn btn-primary bg-primary text-primary-foreground hover:bg-primary/90 text-lg py-3 px-6 rounded-lg flex items-center mx-auto">
+            {/* O botão agora chama a função handleStartProcess */}
+            <button onClick={handleStartProcess} className="btn btn-primary bg-primary text-primary-foreground hover:bg-primary/90 text-lg py-3 px-6 rounded-lg flex items-center mx-auto">
               <Play className="mr-2" /> Iniciar Sessão
             </button>
+          </div>
+        );
+      case "presenting":
+        return (
+          <div className="text-center">
+            <h1 className="text-5xl font-bold font-heading mb-4">Análise Narrativa Profunda</h1>
+            <LoaderCircle className="mx-auto my-8 h-16 w-16 animate-spin text-primary" />
+            <p className="text-xl text-muted-foreground">Tocando apresentação...</p>
           </div>
         );
       case "listening":
@@ -135,9 +159,7 @@ export default function Home() {
       case "processing":
         return (
           <div className="text-center">
-            <p className="text-lg mb-4">
-              {isFirstStep ? "Apresentação" : `Pergunta ${perguntaIndex.current - 1} de ${PERGUNTAS_DNA.length - 1}`}
-            </p>
+            <p className="text-lg mb-4">Pergunta {perguntaIndex.current} de {PERGUNTAS_DNA.length}</p>
             <h2 className="text-3xl font-heading mb-6 min-h-[8rem] flex items-center justify-center">
               {perguntaAtual?.texto}
             </h2>
@@ -167,7 +189,7 @@ export default function Home() {
             <p className="mt-4 text-sm text-muted-foreground">
               {
                 {
-                  listening: 'Ouvindo...',
+                  listening: 'Ouvindo a pergunta...',
                   waiting_for_user: 'Clique no microfone para gravar sua resposta.',
                   recording: 'Gravando... Clique no quadrado para parar.',
                   processing: 'Processando sua resposta...'
@@ -185,7 +207,7 @@ export default function Home() {
                 {relatorioFinal}
               </pre>
             </div>
-             <button onClick={() => { setStatus('idle'); perguntaIndex.current = 0; }} className="btn btn-primary bg-primary text-primary-foreground hover:bg-primary/90 text-lg py-3 px-6 rounded-lg flex items-center mx-auto mt-8">
+             <button onClick={() => setStatus('idle')} className="btn btn-primary bg-primary text-primary-foreground hover:bg-primary/90 text-lg py-3 px-6 rounded-lg flex items-center mx-auto mt-8">
               <BarChart2 className="mr-2" /> Fazer Nova Análise
             </button>
           </div>
