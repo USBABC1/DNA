@@ -46,7 +46,7 @@
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-border-primary; /* Corrigido para usar uma variável válida */
   }
   
   html {
@@ -299,7 +299,7 @@
     box-shadow: var(--shadow-glow);
   }
   
-  .cta-button:hover {
+  .cta-button:hover:not(.disabled) {
     transform: translateY(-2px);
     box-shadow: 0 0 30px rgba(34, 197, 94, 0.5);
   }
@@ -490,4 +490,6 @@
   .badge-glow {
     @apply absolute inset-0 rounded-3xl animate-pulse;
     background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    filter: blur(15px
+    filter: blur(15px); /* CORRIGIDO: Parêntese de fechamento e ponto e vírgula adicionados */
+  }
+}
