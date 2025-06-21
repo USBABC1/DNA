@@ -2,17 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/*
-  CORREÇÃO APLICADA AQUI:
-  Define a cor de fundo diretamente na tag <html> para garantir que
-  o Tailwind processe e aplique o tema escuro em toda a aplicação.
-  Isso também ajuda a evitar problemas de "flash" de fundo branco
-  durante o carregamento da página.
-*/
-html {
-  @apply bg-brand-background text-brand-foreground;
-}
-
 :root {
   --background: 240 10% 3.9%;
   --foreground: 0 0% 98%;
@@ -34,9 +23,23 @@ html {
   --input: 240 3.7% 15.9%;
   --ring: 262.1 83.3% 57.8%;
   --radius: 0.5rem;
+
+  /*
+    CORREÇÃO APLICADA AQUI:
+    Definimos as cores da sua marca como variáveis CSS padrão.
+  */
+  --brand-background-color: #0D0C1D;
+  --brand-foreground-color: #F0F2F5;
 }
 
+/*
+  Agora, aplicamos essas variáveis diretamente ao body.
+  Esta é a forma mais robusta de garantir que o fundo e o texto
+  padrão sejam aplicados em toda a aplicação.
+*/
 body {
+  background-color: var(--brand-background-color);
+  color: var(--brand-foreground-color);
   font-feature-settings: "rlig" 1, "calt" 1;
 }
 
