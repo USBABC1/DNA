@@ -2,7 +2,7 @@
 
 // Importações essenciais do React e bibliotecas
 import React from 'react';
-import * as THREE from 'three'; // <-- CORREÇÃO: Importação adicionada
+import * as THREE from 'three';
 
 // Componentes de UI e utilitários
 import { Button } from '@/components/ui/button';
@@ -17,10 +17,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { AudioWaveform, BrainCircuit, FileText, Mic, Play, Square, Loader2, Volume2, VolumeX } from 'lucide-react';
 
 // Lógica de negócio e tipos
-import { PERGUNTAS_DNA, criarPerfilInicial } from '../lib/config';
-import { analisarFragmento, gerarSinteseFinal } from '../lib/analysisEngine';
-import type { ExpertProfile, SessionStatus, Pergunta } from '../lib/types';
-import { initAudio, playAudioFromUrl, startRecording, stopRecording } from '../services/webAudioService';
+import { PERGUNTAS_DNA, criarPerfilInicial } from '@/lib/config';
+import { analisarFragmento, gerarSinteseFinal } from '@/lib/analysisEngine';
+import type { ExpertProfile, SessionStatus, Pergunta } from '@/lib/types';
+import { initAudio, playAudioFromUrl, startRecording, stopRecording } from '@/services/webAudioService';
 
 /**
  * Hook customizado para gerenciar a lógica de transcrição e análise.
