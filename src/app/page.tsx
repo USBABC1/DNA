@@ -6,10 +6,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Mic, Square, Play, BarChart2, AlertCircle, LoaderCircle, Sparkles, Brain, MessageCircle, CheckCircle, ArrowRight, Volume2, RotateCcw } from "lucide-react";
 
 // Nossas importações de lógica e configuração do projeto (caminhos corrigidos)
-import { PERGUNTAS_DNA, criarPerfilInicial } from "@/lib/config";
-import { ExpertProfile, Pergunta, SessionStatus } from "@/lib/types";
-import { analisarFragmento, gerarSinteseFinal } from "@/lib/analysisEngine";
-import { playAudioFromUrl, startRecording, stopRecording, initAudio } from "@/services/webAudioService";
+import { PERGUNTAS_DNA, criarPerfilInicial } from "../lib/config";
+import { ExpertProfile, Pergunta, SessionStatus } from "../lib/types";
+import { analisarFragmento, gerarSinteseFinal } from "../lib/analysisEngine";
+import { playAudioFromUrl, startRecording, stopRecording, initAudio } from "../services/webAudioService";
 
 // Função para chamar nossa API de transcrição real
 async function transcribeAudio(audioBlob: Blob): Promise<string> {
