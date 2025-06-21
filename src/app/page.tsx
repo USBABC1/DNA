@@ -96,8 +96,8 @@ const AdvancedProgressIndicator = ({ current, total }: { current: number; total:
               />
               <defs>
                 <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#22c55e" />
-                  <stop offset="100%" stopColor="#3b82f6" />
+                  <stop offset="0%" stopColor="#00f28c" />
+                  <stop offset="100%" stopColor="#00a360" />
                 </linearGradient>
               </defs>
             </svg>
@@ -111,7 +111,7 @@ const AdvancedProgressIndicator = ({ current, total }: { current: number; total:
           </div>
         </div>
         <div className="text-right">
-          <div className="text-3xl font-bold text-green-400">{current}</div>
+          <div className="text-3xl font-bold text-primary">{current}</div>
           <div className="text-sm text-white/60">Concluídas</div>
         </div>
       </div>
@@ -171,122 +171,82 @@ const EnhancedLiveStats = ({ perfil }: { perfil: ExpertProfile }) => {
   );
 };
 
-// Componente para a tela inicial premium
+// Componente de estatísticas simples para a tela de boas-vindas
+const WelcomeStats = () => (
+    <div className="welcome-stats">
+        <div className="welcome-stat-item">
+            <p className="welcome-stat-value">100%</p>
+            <p className="welcome-stat-label">Confidencial</p>
+        </div>
+        <div className="welcome-stat-item">
+            <p className="welcome-stat-value">45 min</p>
+            <p className="welcome-stat-label">Duração Média</p>
+        </div>
+        <div className="welcome-stat-item">
+            <p className="welcome-stat-value">108</p>
+            <p className="welcome-stat-label">Questões</p>
+        </div>
+        <div className="welcome-stat-item">
+            <p className="welcome-stat-value">IA</p>
+            <p className="welcome-stat-label">Análise Avançada</p>
+        </div>
+    </div>
+);
+
+// Componente para a tela inicial - ATUALIZADO
 const PremiumWelcomeScreen = ({ onStart }: { onStart: () => void }) => (
   <motion.div
     initial={{ opacity: 0, scale: 0.95 }}
     animate={{ opacity: 1, scale: 1 }}
     exit={{ opacity: 0, scale: 0.95 }}
     transition={{ duration: 0.8, ease: "easeOut" }}
-    className="w-full max-w-6xl text-center"
+    className="w-full max-w-4xl text-center flex flex-col items-center justify-center"
   >
     <div className="hero-section">
       <motion.div
-        initial={{ scale: 0, rotate: -180 }}
-        animate={{ scale: 1, rotate: 0 }}
-        transition={{ delay: 0.3, type: "spring", stiffness: 200, damping: 20 }}
-        className="hero-logo"
-      >
-        <div className="logo-container">
-          <Brain className="w-16 h-16 text-white" />
-          <div className="logo-pulse"></div>
-        </div>
-        <Sparkles className="sparkle-1" />
-        <Sparkles className="sparkle-2" />
-        <Sparkles className="sparkle-3" />
-      </motion.div>
-      
-      <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
+        transition={{ delay: 0.2 }}
         className="hero-content"
       >
         <h1 className="hero-title">
-          <span className="title-main">DNA</span>
-          <span className="title-sub">Deep Narrative Analysis</span>
-          <div className="title-accent">Powered by Advanced AI</div>
+          Chance To Overcome <br/> Your Potential
         </h1>
         
         <p className="hero-description">
-          Plataforma profissional de análise psicológica através de narrativa pessoal. 
-          Utilizamos inteligência artificial avançada para revelar padrões profundos 
-          da sua personalidade e estrutura cognitiva.
+          Uma jornada interativa de autoanálise através da sua narrativa. 
+          Utilizamos inteligência artificial para revelar as camadas mais profundas da sua personalidade.
         </p>
-      </motion.div>
-      
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.7 }}
-        className="features-grid"
-      >
-        <div className="feature-card">
-          <div className="feature-icon bg-green-500/10">
-            <Award className="w-8 h-8 text-green-400" />
-          </div>
-          <h3>Análise Científica</h3>
-          <p>Baseada em modelos psicológicos validados como Big Five e Valores de Schwartz</p>
-        </div>
-        
-        <div className="feature-card">
-          <div className="feature-icon bg-blue-500/10">
-            <Brain className="w-8 h-8 text-blue-400" />
-          </div>
-          <h3>IA Avançada</h3>
-          <p>Processamento de linguagem natural com análise semântica profunda</p>
-        </div>
-        
-        <div className="feature-card">
-          <div className="feature-icon bg-purple-500/10">
-            <TrendingUp className="w-8 h-8 text-purple-400" />
-          </div>
-          <h3>Insights Profundos</h3>
-          <p>Revelações sobre padrões comportamentais e estruturas de personalidade</p>
-        </div>
-        
-        <div className="feature-card">
-          <div className="feature-icon bg-yellow-500/10">
-            <Lightbulb className="w-8 h-8 text-yellow-400" />
-          </div>
-          <h3>Relatório Detalhado</h3>
-          <p>Análise completa com recomendações personalizadas e insights acionáveis</p>
-        </div>
       </motion.div>
       
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.9 }}
+        transition={{ delay: 0.4 }}
         className="cta-section"
       >
         <button
           onClick={onStart}
           className="cta-button group"
         >
-          <span className="cta-text">Iniciar Análise Profissional</span>
+          <span className="cta-text">Começar Análise</span>
           <ArrowRight className="cta-icon" />
           <div className="cta-glow"></div>
         </button>
-        
-        <div className="cta-info">
-          <div className="info-item">
-            <Timer className="w-4 h-4" />
-            <span>~45 minutos</span>
-          </div>
-          <div className="info-item">
-            <Eye className="w-4 h-4" />
-            <span>108 perguntas</span>
-          </div>
-          <div className="info-item">
-            <Award className="w-4 h-4" />
-            <span>Certificado profissional</span>
-          </div>
-        </div>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.6 }}
+        className="w-full"
+      >
+        <WelcomeStats />
       </motion.div>
     </div>
   </motion.div>
 );
+
 
 // Componente para a tela de sessão premium
 const PremiumSessionScreen = ({
