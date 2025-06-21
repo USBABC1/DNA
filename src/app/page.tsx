@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -144,6 +146,7 @@ const PERGUNTAS_DNA = [
   { texto: "O que você quer muito e ao mesmo tempo teme que aconteça de verdade?", audioUrl: "/audio/107.mp3", dominio: "SentidoEProposito" },
   { texto: "Qual mudança de vida você sabe que precisa fazer, mas ainda não começou?", audioUrl: "/audio/108.mp3", dominio: "SentidoEProposito" },
 ];
+
 const APRESENTACAO_AUDIO_URL = "000.mp3";
 
 // Componente de partículas animadas
