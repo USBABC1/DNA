@@ -2,8 +2,19 @@
 
 import { ExpertProfile, Pergunta, ValorSchwartz, BigFive, Motivador } from './types'
 
-// Dicionários de palavras-chave para uma análise mais detalhada
-const keyWords = {
+// --- INÍCIO DA CORREÇÃO DEFINITIVA ---
+// 1. Definimos um tipo explícito para a estrutura do nosso objeto de palavras-chave.
+// Usamos o tipo `Record` para dizer ao TypeScript que estes objetos são dicionários
+// que usam nossos tipos (BigFive, ValorSchwartz, etc.) como chaves.
+type KeyWords = {
+  bigFive: Record<BigFive, string[]>;
+  schwartz: Record<ValorSchwartz, string[]>;
+  motivators: Record<Motivador, string[]>;
+};
+// --- FIM DA CORREÇÃO DEFINITIVA ---
+
+// 2. Aplicamos o tipo `KeyWords` ao nosso objeto.
+const keyWords: KeyWords = {
   bigFive: {
     Openness: ['imaginação', 'arte', 'emoções', 'aventura', 'ideias', 'curiosidade', 'experiência', 'criatividade', 'novo', 'diferente', 'viagem'],
     Conscientiousness: ['organização', 'disciplina', 'dever', 'responsabilidade', 'planejamento', 'foco', 'meta', 'objetivo', 'trabalho', 'eficiência'],
@@ -32,13 +43,9 @@ const keyWords = {
 };
 
 
-/**
- * Analisa um fragmento de texto e atualiza o perfil do especialista.
- */
 export function analisarFragmento(texto: string, perfil: ExpertProfile, pergunta: Pergunta): ExpertProfile {
   const textoLowerCase = texto.toLowerCase();
 
-  // 1. Atualizar Cobertura de Domínio
   if (pergunta.dominio) {
     perfil.coberturaDominios[pergunta.dominio] = (perfil.coberturaDominios[pergunta.dominio] || 0) + 1;
   }
@@ -50,11 +57,8 @@ export function analisarFragmento(texto: string, perfil: ExpertProfile, pergunta
       return acc + (matches ? matches.length : 0);
     }, 0);
   };
-
-  // 2. Analisar traços de personalidade, valores e motivadores com base nos dicionários
-  // --- INÍCIO DA CORREÇÃO ---
-  // Substituímos os loops for...in por Object.keys().forEach() para garantir a segurança de tipos.
-
+  
+  // Agora, com o `keyWords` devidamente tipado, os loops funcionarão sem erros.
   (Object.keys(keyWords.bigFive) as BigFive[]).forEach((trait) => {
     const score = countKeywords(keyWords.bigFive[trait]);
     perfil.bigFive[trait] += score;
@@ -70,9 +74,6 @@ export function analisarFragmento(texto: string, perfil: ExpertProfile, pergunta
     perfil.motivadores[motivator] += score;
   });
 
-  // --- FIM DA CORREÇÃO ---
-
-  // 3. Detecção de Contradições e Metáforas
   if (textoLowerCase.includes(' mas ') || textoLowerCase.includes(' porém ') || textoLowerCase.includes(' embora ') || textoLowerCase.includes(' contudo ')) {
     perfil.metricas.contradicoes += 1;
     perfil.conflitosDeValorDetectados.push(`Conflito potencial na resposta à pergunta: "${pergunta.texto}"`);
@@ -92,9 +93,6 @@ export function analisarFragmento(texto: string, perfil: ExpertProfile, pergunta
 }
 
 
-/**
- * Gera a síntese final e o relatório com base no perfil completo.
- */
 export function gerarSinteseFinal(perfil: ExpertProfile): string {
   const encontrarMaiorValor = (obj: Record<string, number>) => {
     return Object.entries(obj).reduce((a, b) => (b[1] > a[1] ? b : a), ['', -1])[0] || 'Nenhum dominante';
@@ -110,10 +108,7 @@ export function gerarSinteseFinal(perfil: ExpertProfile): string {
       .join('\n');
   };
 
-  let cartaEspelho = `Prezado(a) Analisado(a),
-
-Com base em sua jornada narrativa, emerge um perfil centrado no valor de **${principalValor}** e impulsionado pelo motivador da **${principalMotivador}**. Suas palavras pintam um quadro de alguém que busca ativamente... [desenvolvimento da síntese]`;
-
+  let cartaEspelho = `Prezado(a) Analisado(a),\n\nCom base em sua jornada narrativa, emerge um perfil centrado no valor de **${principalValor}** e impulsionado pelo motivador da **${principalMotivador}**. Suas palavras pintam um quadro de alguém que busca ativamente... [desenvolvimento da síntese]`;
 
   let relatorioFinal = `
 =========================================
