@@ -189,7 +189,7 @@ export default function RootLayout({
           href="#main-content" 
           className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 z-50 bg-white text-black px-4 py-2 rounded-md"
         >
-          Pular para o conteúdo principal
+        
         </a>
 
         {/* Indicador de carregamento global */}
