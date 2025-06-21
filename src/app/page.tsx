@@ -103,22 +103,22 @@ export default function DNAAnalysisApp() {
   const perguntaIndex = useRef(0);
 
   // Simulação de funções que viriam dos serviços
-  const playAudioFromUrl = async (url, callback) => {
+  const playAudioFromUrl = async (url: string, callback: () => void) => {
     // Simula reprodução de áudio
     setTimeout(callback, 2000);
   };
 
-  const startRecording = async () => {
+  const startRecording = async (): Promise<void> => {
     // Simula início da gravação
     return new Promise(resolve => setTimeout(resolve, 100));
   };
 
-  const stopRecording = async () => {
+  const stopRecording = async (): Promise<Blob> => {
     // Simula parada da gravação e retorna blob simulado
     return new Blob(['audio data'], { type: 'audio/wav' });
   };
 
-  const transcribeAudio = async (audioBlob) => {
+  const transcribeAudio = async (audioBlob: Blob): Promise<string> => {
     // Simula transcrição
     const respostas = [
       "Esta é uma resposta simulada para a primeira pergunta sobre momentos marcantes.",
@@ -130,12 +130,12 @@ export default function DNAAnalysisApp() {
     return respostas[perguntaIndex.current - 1] || "Resposta simulada";
   };
 
-  const analisarFragmento = (transcricao, perfil, pergunta) => {
+  const analisarFragmento = (transcricao: string, perfil: any, pergunta: any) => {
     // Simula análise do fragmento
     return { ...perfil, respostas: [...(perfil.respostas || []), transcricao] };
   };
 
-  const gerarSinteseFinal = (perfil) => {
+  const gerarSinteseFinal = (perfil: any): string => {
     return `🧬 ANÁLISE NARRATIVA PROFUNDA - RELATÓRIO PERSONALIZADO
 
 ✨ PERFIL PSICOLÓGICO IDENTIFICADO:
