@@ -120,16 +120,7 @@ const DNAInterface = () => {
       fazerProximaPergunta();
       return;
     }
-
-    // Garante que temos uma pergunta atual para associar à resposta.
-    if (!perguntaAtual) {
-      console.error("Processamento de resposta cancelado: nenhuma pergunta atual encontrada.");
-      fazerProximaPergunta(); // Pula para a próxima para evitar travamentos.
-      return;
-    }
-
-    // Passa os 3 argumentos necessários para a função.
-    const perfilAtualizado = analisarFragmento(transcricao, perfil, perguntaAtual);
+    const perfilAtualizado = analisarFragmento(transcricao, perfil);
     setPerfil(perfilAtualizado);
     fazerProximaPergunta();
   };
