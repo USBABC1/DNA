@@ -25,7 +25,7 @@ async function transcribeAudio(audioBlob: Blob): Promise<string> {
 }
 
 export default function Home() {
-  const [status, setStatus] = useState<SessionStatus>("idle"); // Estado inicial volta a ser 'idle'
+  const [status, setStatus] = useState<SessionStatus>("idle");
   const [perfil, setPerfil] = useState<ExpertProfile>(criarPerfilInicial());
   const [perguntaAtual, setPerguntaAtual] = useState<Pergunta | null>(null);
   const [relatorioFinal, setRelatorioFinal] = useState<string>("");
@@ -33,22 +33,16 @@ export default function Home() {
 
   const perguntaIndex = useRef(0);
 
-  // Esta função agora inicia a sessão E a apresentação
   const handleStartPresentationAndSession = async () => {
     try {
-      // 1. Inicializa o AudioContext DENTRO da ação do usuário
       initAudio();
-      
-      // 2. Muda o status para apresentar e toca o áudio de introdução
       setStatus('presenting');
       await playAudioFromUrl(APRESENTACAO_AUDIO_URL, () => {
-        // 3. Quando a apresentação terminar, inicia a sessão de perguntas
         iniciarSessaoDePerguntas();
       });
     } catch (err) {
       console.error("Erro ao iniciar apresentação:", err);
       setError("Não foi possível tocar o áudio de apresentação. Tentando iniciar as perguntas diretamente.");
-      // Se a apresentação falhar, vai direto para as perguntas
       iniciarSessaoDePerguntas();
     }
   };
@@ -139,7 +133,6 @@ export default function Home() {
           <div className="text-center">
             <h1 className="text-5xl font-bold font-heading mb-4">Análise Narrativa Profunda</h1>
             <p className="text-xl mb-8">Responda a uma série de perguntas para revelar seu perfil interior.</p>
-            {/* O botão agora chama a nova função handleStartPresentationAndSession */}
             <button onClick={handleStartPresentationAndSession} className="btn btn-primary bg-primary text-primary-foreground hover:bg-primary/90 text-lg py-3 px-6 rounded-lg flex items-center mx-auto">
               <Play className="mr-2" /> Iniciar Sessão
             </button>
@@ -159,7 +152,8 @@ export default function Home() {
       case "processing":
         return (
           <div className="text-center">
-            <p className="text-lg mb-4">Pergunta {perguntaIndex.current} de {PERGUNTas_dna.length}</p>
+            {/* AQUI ESTAVA O ERRO - CORRIGIDO ABAIXO */}
+            <p className="text-lg mb-4">Pergunta {perguntaIndex.current} de {PERGUNTAS_DNA.length}</p>
             <h2 className="text-3xl font-heading mb-6 min-h-[8rem] flex items-center justify-center">
               {perguntaAtual?.texto}
             </h2>
