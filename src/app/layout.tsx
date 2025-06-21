@@ -19,11 +19,11 @@ export const metadata: Metadata = {
   title: 'DNA - Deep Narrative Analysis | Análise Psicológica Avançada',
   description: 'Plataforma profissional de análise narrativa profunda usando IA avançada. Descubra padrões psicológicos através da sua narrativa pessoal.',
   keywords: [
-    'análise psicológica', 
-    'DNA narrativo', 
-    'personalidade', 
-    'inteligência artificial', 
-    'psicologia', 
+    'análise psicológica',
+    'DNA narrativo',
+    'personalidade',
+    'inteligência artificial',
+    'psicologia',
     'autoconhecimento',
     'análise de personalidade',
     'big five',
@@ -66,20 +66,23 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR" suppressHydrationWarning className="dark">
+    <html lang="pt-BR" suppressHydrationWarning className="dark scroll-smooth">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <meta name="format-detection" content="telephone=no" />
       </head>
-      <body className={cn(
-        "min-h-screen bg-background font-sans antialiased overflow-x-hidden",
-        fontSans.variable,
-        fontMono.variable
-      )}>
-        <div className="relative">
+      <body
+        className={cn(
+          "min-h-screen bg-background font-sans antialiased text-foreground",
+          "selection:bg-primary selection:text-primary-foreground",
+          fontSans.variable,
+          fontMono.variable
+        )}
+      >
+        <main className="relative flex flex-col min-h-screen w-full overflow-x-hidden">
           {children}
-        </div>
+        </main>
       </body>
     </html>
   );
