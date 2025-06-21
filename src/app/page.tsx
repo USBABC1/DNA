@@ -6,10 +6,10 @@ import { Stars } from '@react-three/drei';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mic, Play, Square, Loader, BrainCircuit, BotMessageSquare, FileText } from 'lucide-react';
 
-import { PERGUNTAS_DNA, criarPerfilInicial } from '@/lib/config';
-import { analisarFragmento, gerarSinteseFinal } from '@/lib/analysisEngine';
-import { ExpertProfile, SessionStatus, Pergunta } from '@/lib/types';
-import { initAudio, playAudioFromUrl, startRecording, stopRecording } from '@/services/webAudioService';
+import { PERGUNTAS_DNA, criarPerfilInicial } from '../lib/config';
+import { analisarFragmento, gerarSinteseFinal } from '../lib/analysisEngine';
+import { ExpertProfile, SessionStatus, Pergunta } from '../lib/types';
+import { initAudio, playAudioFromUrl, startRecording, stopRecording } from '../services/webAudioService';
 
 /**
  * Envia o áudio para a nossa rota de API interna para ser transcrito pela Deepgram.
