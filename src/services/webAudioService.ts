@@ -51,7 +51,7 @@ export const playAudioFromUrl = (url: string, onEnded: () => void): Promise<void
       // --- CORREÇÃO APLICADA AQUI ---
       // Agendamos o início para 0.1 segundo no futuro no relógio do AudioContext.
       // Isso dá ao pipeline de áudio tempo para se preparar e evita o corte no início.
-      const startTime = audioContext.currentTime + 0.3;
+      const startTime = audioContext.currentTime + 0.9;
       source.start(startTime);
       // --- FIM DA CORREÇÃO ---
 
