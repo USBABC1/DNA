@@ -82,7 +82,7 @@ const DNAInterface = () => {
       finalizarSessao();
     }
   };
-  
+
   const handleStartRecording = async () => {
     try {
       await startRecording();
@@ -112,15 +112,19 @@ const DNAInterface = () => {
 
   const processarResposta = async (audioBlob: Blob) => {
     const transcricao = await transcribeAudio(audioBlob);
-    // Verifica se a transcrição está vazia ou contém a mensagem de erro
-    if (!transcricao.trim() || transcricao.startsWith("Desculpe, não consegui processar")) {
-      console.log("Transcrição vazia ou com erro, a tentar a pergunta novamente.");
+    
+    // Verifica se a transcrição está vazia, contém erro, ou se não há pergunta atual (estado inesperado)
+    if (!transcricao.trim() || transcricao.startsWith("Desculpe, não consegui processar") || !perguntaAtual) {
+      console.log("Transcrição vazia, com erro ou pergunta atual nula. A tentar a pergunta novamente.");
       // Volta para a pergunta anterior para que o utilizador possa tentar de novo.
       perguntaIndex.current--; 
       fazerProximaPergunta();
       return;
     }
-    const perfilAtualizado = analisarFragmento(transcricao, perfil);
+
+    // CORREÇÃO: Passa `perguntaAtual` como o terceiro argumento.
+    const perfilAtualizado = analisarFragmento(transcricao, perfil, perguntaAtual);
+    
     setPerfil(perfilAtualizado);
     fazerProximaPergunta();
   };
@@ -149,7 +153,7 @@ const DNAInterface = () => {
             </motion.div>
           </motion.div>
         );
-      
+
       case 'listening':
       case 'waiting_for_user':
       case 'recording':
@@ -197,7 +201,7 @@ const DNAInterface = () => {
             </motion.div>
           </motion.div>
         );
-      
+
       default: return null;
     }
   };
