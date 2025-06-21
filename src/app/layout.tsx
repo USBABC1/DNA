@@ -28,10 +28,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-br">
-      {/* Aplica as variáveis de fonte e a fonte principal ao body.
-        A classe `bg-brand-background` e `text-brand-foreground` definem o tema escuro padrão.
+      {/*
+        CORREÇÃO APLICADA AQUI:
+        As classes de cor de fundo e texto ('bg-brand-background', 'text-brand-foreground')
+        foram removidas daqui porque já estão sendo aplicadas diretamente na tag <html>
+        dentro de 'globals.css'. Isso simplifica o código e evita redundância.
       */}
-      <body className={`${inter.variable} ${spaceGrotesk.variable} font-sans bg-brand-background text-brand-foreground`}>
+      <body className={`${inter.variable} ${spaceGrotesk.variable} font-sans`}>
         {children}
       </body>
     </html>
