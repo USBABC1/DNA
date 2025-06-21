@@ -1,8 +1,9 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  // CORREÇÃO: Simplificando e garantindo que todos os arquivos dentro de 'src' sejam lidos.
   content: [
-    "./src/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {
@@ -11,9 +12,8 @@ module.exports = {
         heading: ['var(--font-space-grotesk)', 'sans-serif'],
       },
       colors: {
-        // Cores personalizadas para o tema escuro/roxo
-        'brand-background': '#0D0C1D', // Um azul-escuro quase preto
-        'brand-foreground': '#F0F2F5', // Um branco suave
+        'brand-background': '#0D0C1D',
+        'brand-foreground': '#F0F2F5',
         'brand-purple': {
           DEFAULT: '#8A4FFF',
           'light': '#A076F9',
@@ -42,16 +42,6 @@ module.exports = {
       backgroundImage: {
         'gradient-radial-glow': 'radial-gradient(circle at 50% 50%, rgba(120, 119, 198, 0.3), rgba(255, 255, 255, 0))',
       },
-      animation: {
-        'spin-slow': 'spin 3s linear infinite',
-        'pulse-glow': 'pulse-glow 2s infinite ease-in-out',
-      },
-      keyframes: {
-        'pulse-glow': {
-          '0%, 100%': { boxShadow: '0 0 0 0 rgba(138, 79, 255, 0.4)' },
-          '70%': { boxShadow: '0 0 0 20px rgba(138, 79, 255, 0)' },
-        },
-      }
     },
   },
   plugins: [require('@tailwindcss/typography')],
