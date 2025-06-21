@@ -1,683 +1,699 @@
-"use client";
+'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import {
-  Mic, Square, Loader, ArrowRight, FileText, Check, AlertTriangle, Brain, 
-  Volume2, BarChart3, Users, Target, Zap, Play, Download, Award,
-  TrendingUp, Eye, Lightbulb, Menu, X
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Mic, 
+  Square, 
+  Loader, 
+  ArrowRight, 
+  FileText, 
+  Check, 
+  AlertTriangle,
+  Brain,
+  Sparkles,
+  Timer,
+  Volume2,
+  VolumeX,
+  BarChart3,
+  Users,
+  Target,
+  Zap,
+  Play,
+  Pause,
+  Download,
+  Share2,
+  Award,
+  TrendingUp,
+  Eye,
+  Lightbulb
 } from 'lucide-react';
+import { PERGUNTAS_DNA, criarPerfilInicial } from '../lib/config';
+import { analisarFragmento, gerarSinteseFinal } from '../lib/analysisEngine';
+import { initAudio, playAudioFromUrl, startRecording, stopRecording } from '../services/webAudioService';
+import type { ExpertProfile, SessionStatus, Pergunta } from '../lib/types';
 
-// Types
-interface Pergunta {
-  id: number;
-  texto: string;
-  dominio: string;
-  audioUrl: string;
-}
-
-interface ExpertProfile {
-  bigFive: Record<string, number>;
-  valoresSchwartz: Record<string, number>;
-  coberturaDominios: Record<string, number>;
-  metricas: {
-    metaforas: number;
-    contradicoes: number;
-    profundidade: number;
-  };
-  fragmentos: string[];
-}
-
-type SessionStatus = 'idle' | 'listening' | 'waiting_for_user' | 'recording' | 'processing' | 'finished';
-
-// Interface para o mapeamento de status
-interface StatusConfig {
-  message: string;
-  icon: React.ComponentType<any>;
-  showWaves?: boolean;
-  isProcessing?: boolean;
-}
-
-// Configurações e dados
-const PERGUNTAS_DNA: Pergunta[] = [
-  { id: 1, texto: "Descreva um momento da sua vida em que você se sentiu mais autêntico e verdadeiro consigo mesmo.", dominio: "Autenticidade", audioUrl: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav" },
-  { id: 2, texto: "Conte sobre uma decisão difícil que você tomou e como ela reflete seus valores fundamentais.", dominio: "Valores", audioUrl: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav" },
-  { id: 3, texto: "Qual é sua maior motivação na vida e como ela se manifesta em suas ações diárias?", dominio: "Motivação", audioUrl: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav" },
-  { id: 4, texto: "Descreva um relacionamento que mudou fundamentalmente sua perspectiva sobre si mesmo.", dominio: "Relacionamentos", audioUrl: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav" },
-  { id: 5, texto: "Como você lida com conflitos internos entre o que quer fazer e o que sente que deve fazer?", dominio: "Conflitos Internos", audioUrl: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav" }
-];
-
-const criarPerfilInicial = (): ExpertProfile => ({
-  bigFive: { abertura: 0, conscienciosidade: 0, extroversao: 0, amabilidade: 0, neuroticismo: 0 },
-  valoresSchwartz: { universalismo: 0, benevolencia: 0, tradicao: 0, conformidade: 0, seguranca: 0, poder: 0, realizacao: 0, hedonismo: 0, estimulacao: 0, autodeterminacao: 0 },
-  coberturaDominios: { Autenticidade: 0, Valores: 0, Motivação: 0, Relacionamentos: 0, "Conflitos Internos": 0 },
-  metricas: { metaforas: 0, contradicoes: 0, profundidade: 0 },
-  fragmentos: []
-});
-
-// Serviços de áudio
-const audioService = {
-  mediaRecorder: null as MediaRecorder | null,
-  audioChunks: [] as Blob[],
-  stream: null as MediaStream | null,
-
-  async initAudio() {
-    if (typeof window === 'undefined' || !navigator.mediaDevices) {
-        throw new Error('Não foi possível acessar o microfone. API não disponível.');
-    }
-    try {
-      this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      return true;
-    } catch (error) {
-      console.error('Erro ao acessar microfone:', error);
-      throw new Error('Não foi possível acessar o microfone. Verifique as permissões.');
-    }
-  },
-
-  async playAudioFromUrl(url: string, onEnd: () => void) {
-    return new Promise<void>((resolve, reject) => {
-      if (typeof Audio === "undefined") {
-        setTimeout(() => { onEnd(); resolve(); }, 2000);
-        return;
-      }
-      const audio = new Audio(url);
-      audio.onended = () => { onEnd(); resolve(); };
-      audio.onerror = (e) => {
-        console.error('Erro ao reproduzir áudio URL:', e);
-        onEnd();
-        reject(new Error('Erro ao reproduzir áudio'));
-      };
-      audio.play().catch(error => {
-        console.error('Erro ao tentar tocar áudio:', error);
-        onEnd();
-        resolve();
-      });
-    });
-  },
-
-  async startRecording() {
-    if (!this.stream) throw new Error('Stream de áudio não inicializado');
-    if (typeof MediaRecorder === "undefined") throw new Error('MediaRecorder API não está disponível.');
-
-    this.audioChunks = [];
-    this.mediaRecorder = new MediaRecorder(this.stream);
-    this.mediaRecorder.ondataavailable = (event) => { if (event.data.size > 0) this.audioChunks.push(event.data); };
-    this.mediaRecorder.start();
-  },
-
-  async stopRecording(): Promise<Blob> {
-    return new Promise((resolve, reject) => {
-      if (!this.mediaRecorder) return reject(new Error('MediaRecorder não inicializado'));
-      if (this.mediaRecorder.state === "inactive") {
-        if (this.audioChunks.length > 0) return resolve(new Blob(this.audioChunks, { type: 'audio/wav' }));
-        return reject(new Error('MediaRecorder estava inativo e sem chunks de áudio.'));
-      }
-      this.mediaRecorder.onstop = () => resolve(new Blob(this.audioChunks, { type: 'audio/wav' }));
-      this.mediaRecorder.onerror = (event) => reject(new Error(`Erro no MediaRecorder: ${(event as any).error?.name}`));
-      this.mediaRecorder.stop();
-    });
-  }
-};
-
-// Engine de análise
-const analysisEngine = {
-  analisarFragmento(transcricao: string, perfil: ExpertProfile, pergunta: Pergunta): ExpertProfile {
-    const novoPerfil = JSON.parse(JSON.stringify(perfil));
-    novoPerfil.fragmentos.push(`[${pergunta.dominio}] ${transcricao}`);
-    const palavras = transcricao.toLowerCase().split(' ');
-    
-    if (palavras.some(p => ['criativo', 'inovador', 'original'].includes(p))) novoPerfil.bigFive.abertura = Math.min(100, (novoPerfil.bigFive.abertura || 0) + 10);
-    if (palavras.some(p => ['responsável', 'organizado', 'disciplinado'].includes(p))) novoPerfil.bigFive.conscienciosidade = Math.min(100, (novoPerfil.bigFive.conscienciosidade || 0) + 10);
-    if (palavras.some(p => ['social', 'grupos', 'pessoas'].includes(p))) novoPerfil.bigFive.extroversao = Math.min(100, (novoPerfil.bigFive.extroversao || 0) + 10);
-    if (palavras.some(p => ['ajudar', 'cuidar', 'gentil'].includes(p))) novoPerfil.bigFive.amabilidade = Math.min(100, (novoPerfil.bigFive.amabilidade || 0) + 10);
-    if (palavras.some(p => ['ansioso', 'preocupado', 'estressado'].includes(p))) novoPerfil.bigFive.neuroticismo = Math.min(100, (novoPerfil.bigFive.neuroticismo || 0) + 10);
-
-    if (palavras.some(p => ['justiça', 'igualdade', 'mundo'].includes(p))) novoPerfil.valoresSchwartz.universalismo = Math.min(100, (novoPerfil.valoresSchwartz.universalismo || 0) + 8);
-    if (palavras.some(p => ['família', 'amigos', 'ajudar'].includes(p))) novoPerfil.valoresSchwartz.benevolencia = Math.min(100, (novoPerfil.valoresSchwartz.benevolencia || 0) + 8);
-    if (palavras.some(p => ['sucesso', 'conquista', 'objetivo'].includes(p))) novoPerfil.valoresSchwartz.realizacao = Math.min(100, (novoPerfil.valoresSchwartz.realizacao || 0) + 8);
-    if (palavras.some(p => ['liberdade', 'independência', 'autonomia'].includes(p))) novoPerfil.valoresSchwartz.autodeterminacao = Math.min(100, (novoPerfil.valoresSchwartz.autodeterminacao || 0) + 8);
-
-    novoPerfil.coberturaDominios[pergunta.dominio] = (novoPerfil.coberturaDominios[pergunta.dominio] || 0) + 1;
-    if (transcricao.includes('como') && (transcricao.includes('igual') || transcricao.includes('parece'))) novoPerfil.metricas.metaforas += 1;
-    if (palavras.some(p => ['mas', 'porém', 'entretanto'].includes(p))) novoPerfil.metricas.contradicoes += 1;
-    novoPerfil.metricas.profundidade += Math.floor(transcricao.length / 100);
-    
-    return novoPerfil;
-  },
-
-  gerarSinteseFinal(perfil: ExpertProfile): string {
-    const traitDominante = Object.entries(perfil.bigFive).sort(([,a], [,b]) => b - a)[0] || ['N/A', 0];
-    const valorDominante = Object.entries(perfil.valoresSchwartz).sort(([,a], [,b]) => b - a)[0] || ['N/A', 0];
-
-    return `
-=== RELATÓRIO DNA - DEEP NARRATIVE ANALYSIS ===
-Data: ${new Date().toLocaleDateString('pt-BR')}
-
-RESUMO EXECUTIVO:
-Análise completa baseada em ${perfil.fragmentos.length} narrativas pessoais.
-
-PERFIL DE PERSONALIDADE (Big Five):
-- Traço Dominante: ${traitDominante[0]} (Score: ${traitDominante[1]})
-- Abertura: ${perfil.bigFive.abertura}/100 | Conscienciosidade: ${perfil.bigFive.conscienciosidade}/100
-- Extroversão: ${perfil.bigFive.extroversao}/100 | Amabilidade: ${perfil.bigFive.amabilidade}/100
-- Neuroticismo: ${perfil.bigFive.neuroticismo}/100
-
-SISTEMA DE VALORES (Schwartz):
-- Valor Principal: ${valorDominante[0]} (Score: ${valorDominante[1]})
-
-MÉTRICAS NARRATIVAS:
-- Metáforas Detectadas: ${perfil.metricas.metaforas} | Padrões Complexos: ${perfil.metricas.contradicoes} | Profundidade Narrativa: ${perfil.metricas.profundidade}
-
-INSIGHTS PRINCIPAIS:
-Sua narrativa revela um perfil com predominância em ${traitDominante[0]}. O valor predominante de ${valorDominante[0]} sugere motivações profundas que orientam suas decisões.
-
-RECOMENDAÇÕES:
-1. Desenvolver ainda mais as características de ${traitDominante[0]}.
-2. Explorar oportunidades alinhadas com ${valorDominante[0]}.
-3. Considerar coaching para maximizar potencial identificado.
-
-=== FIM DO RELATÓRIO ===`.trim();
-  }
-};
-
-// Componentes
-const FloatingElements = React.memo(() => (
-  <div className="floating-elements">
-    {[...Array(20)].map((_, i) => (
-      <div 
-        key={i} 
-        className="floating-dot"
-        style={{ 
-          left: `${Math.random() * 100}%`, 
+// Componente para partículas DNA flutuantes
+const DNAParticles = () => (
+  <div className="dna-particles-container">
+    {[...Array(30)].map((_, i) => (
+      <div
+        key={i}
+        className="dna-particle"
+        style={{
+          left: `${Math.random() * 100}%`,
+          top: `${Math.random() * 100}%`,
           animationDelay: `${Math.random() * 20}s`,
           animationDuration: `${15 + Math.random() * 10}s`
         }}
       />
     ))}
   </div>
-));
-FloatingElements.displayName = "FloatingElements";
+);
 
-const Navigation = React.memo(() => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+// Componente para ondas de áudio animadas
+const AudioWaves = ({ isActive }: { isActive: boolean }) => (
+  <div className="audio-waves">
+    {[...Array(5)].map((_, i) => (
+      <div
+        key={i}
+        className={`audio-wave ${isActive ? 'active' : ''}`}
+        style={{ animationDelay: `${i * 0.1}s` }}
+      />
+    ))}
+  </div>
+);
 
+// Componente para indicador de progresso avançado
+const AdvancedProgressIndicator = ({ current, total }: { current: number; total: number }) => {
+  const progress = (current / total) * 100;
+  const segments = Array.from({ length: total }, (_, i) => i + 1);
+  
   return (
-    <nav className="nav-container">
-      <div className="nav-content">
-        <div className="nav-logo">
-          <Brain className="w-8 h-8 text-green-400" />
-          <span className="nav-brand">DNA</span>
+    <div className="w-full max-w-4xl mx-auto mb-12">
+      <div className="flex justify-between items-center mb-6">
+        <div className="flex items-center space-x-4">
+          <div className="progress-circle">
+            <svg className="w-16 h-16 transform -rotate-90">
+              <circle
+                cx="32"
+                cy="32"
+                r="28"
+                stroke="rgba(255,255,255,0.1)"
+                strokeWidth="4"
+                fill="none"
+              />
+              <circle
+                cx="32"
+                cy="32"
+                r="28"
+                stroke="url(#progressGradient)"
+                strokeWidth="4"
+                fill="none"
+                strokeDasharray={`${2 * Math.PI * 28}`}
+                strokeDashoffset={`${2 * Math.PI * 28 * (1 - progress / 100)}`}
+                className="transition-all duration-1000 ease-out"
+              />
+              <defs>
+                <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#22c55e" />
+                  <stop offset="100%" stopColor="#3b82f6" />
+                </linearGradient>
+              </defs>
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-2xl font-bold text-white">{Math.round(progress)}%</span>
+            </div>
+          </div>
+          <div>
+            <h3 className="text-xl font-semibold text-white">Pergunta {current} de {total}</h3>
+            <p className="text-white/60">Análise em progresso...</p>
+          </div>
         </div>
-        
-        <div className="nav-menu">
-          <span className="nav-item">Sobre Nós</span>
-          <span className="nav-item">Serviços</span>
-          <span className="nav-item">Soluções</span>
-          <span className="nav-item">Clientes</span>
+        <div className="text-right">
+          <div className="text-3xl font-bold text-green-400">{current}</div>
+          <div className="text-sm text-white/60">Concluídas</div>
         </div>
-        
-        <button 
-          className="md:hidden text-white"
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-        >
-          {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
       </div>
-    </nav>
-  );
-});
-Navigation.displayName = "Navigation";
-
-const AudioWaves = React.memo(({ isActive }: { isActive: boolean }) => {
-  const [waveHeight, setWaveHeight] = useState(Array(5).fill(4));
-  
-  useEffect(() => {
-    let animationFrameId: number;
-    if (isActive) {
-      const updateWaves = () => { 
-        setWaveHeight(prev => prev.map((_, i) => Math.sin(Date.now() * 0.01 + i) * 10 + 15)); 
-        animationFrameId = requestAnimationFrame(updateWaves); 
-      };
-      updateWaves();
-    } else { 
-      setWaveHeight(Array(5).fill(4)); 
-    }
-    return () => cancelAnimationFrame(animationFrameId);
-  }, [isActive]);
-  
-  return (
-    <div className="audio-waves">
-      {waveHeight.map((height, i) => 
-        <div 
-          key={i} 
-          className="audio-wave" 
-          style={{ height: `${Math.max(4, height)}px` }}
-        />
-      )}
-    </div>
-  );
-});
-AudioWaves.displayName = "AudioWaves";
-
-const ProgressIndicator = React.memo(({ current, total }: { current: number; total: number }) => {
-  const progress = total > 0 ? (current / total) * 100 : 0;
-  
-  return (
-    <div className="progress-container">
-      <div className="progress-bar">
-        <div 
-          className="progress-fill" 
-          style={{ width: `${progress}%` }}
-        />
-      </div>
-      <div className="progress-text">
-        <span className="text-lg font-semibold text-white">
-          Pergunta {Math.min(current, total)} de {total}
-        </span>
-        <span className="block text-sm text-white/60 mt-1">
-          {Math.round(progress)}% concluído
-        </span>
+      
+      <div className="progress-segments">
+        {segments.map((segment) => (
+          <div
+            key={segment}
+            className={`progress-segment ${segment <= current ? 'completed' : ''}`}
+          />
+        ))}
       </div>
     </div>
   );
-});
-ProgressIndicator.displayName = "ProgressIndicator";
+};
 
-const StatsGrid = React.memo(({ perfil }: { perfil: ExpertProfile }) => {
+// Componente para estatísticas em tempo real melhoradas
+const EnhancedLiveStats = ({ perfil }: { perfil: ExpertProfile }) => {
+  const totalResponses = Object.values(perfil.coberturaDominios).reduce((a, b) => a + b, 0);
+  const dominantValue = Object.entries(perfil.valoresSchwartz)
+    .sort(([,a], [,b]) => b - a)[0]?.[0] || 'Analisando...';
+  const dominantTrait = Object.entries(perfil.bigFive)
+    .sort(([,a], [,b]) => b - a)[0]?.[0] || 'Analisando...';
+  
   const stats = [
-    { icon: BarChart3, value: Object.values(perfil.coberturaDominios).reduce((a, b) => a + b, 0), label: 'Respostas' },
-    { icon: Target, value: perfil.metricas.metaforas, label: 'Metáforas' },
-    { icon: Zap, value: perfil.metricas.contradicoes, label: 'Padrões' },
-    { icon: Users, value: Object.entries(perfil.bigFive).sort(([,a], [,b]) => b - a)[0]?.[0]?.slice(0,8) || '...', label: 'Traço Dom.' },
+    { icon: BarChart3, value: totalResponses, label: 'Respostas Analisadas', color: 'text-green-400', bg: 'bg-green-500/10' },
+    { icon: Target, value: perfil.metricas.metaforas, label: 'Metáforas Detectadas', color: 'text-blue-400', bg: 'bg-blue-500/10' },
+    { icon: Zap, value: perfil.metricas.contradicoes, label: 'Padrões Complexos', color: 'text-yellow-400', bg: 'bg-yellow-500/10' },
+    { icon: Users, value: dominantTrait.slice(0, 8), label: 'Traço Dominante', color: 'text-purple-400', bg: 'bg-purple-500/10' },
   ];
   
   return (
-    <div className="stats-grid">
-      {stats.map((stat) => (
-        <div key={stat.label} className="stat-card">
-          <stat.icon className="stat-icon" />
-          <div className="stat-value">{stat.value}</div>
-          <div className="stat-label">{stat.label}</div>
-        </div>
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-12"
+    >
+      {stats.map((stat, index) => (
+        <motion.div
+          key={index}
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: index * 0.1 }}
+          className="stat-card group"
+        >
+          <div className={`stat-icon ${stat.bg}`}>
+            <stat.icon className={`w-6 h-6 ${stat.color}`} />
+          </div>
+          <div className="stat-content">
+            <div className="stat-value">{stat.value}</div>
+            <div className="stat-label">{stat.label}</div>
+          </div>
+          <div className="stat-glow"></div>
+        </motion.div>
       ))}
-    </div>
+    </motion.div>
   );
-});
-StatsGrid.displayName = "StatsGrid";
+};
 
-const WelcomeScreen = React.memo(({ onStart }: { onStart: () => void }) => (
-  <div className="hero-section">
-    <div className="hero-badge">
-      ACELERE O
+// Componente para a tela inicial premium
+const PremiumWelcomeScreen = ({ onStart }: { onStart: () => void }) => (
+  <motion.div
+    initial={{ opacity: 0, scale: 0.95 }}
+    animate={{ opacity: 1, scale: 1 }}
+    exit={{ opacity: 0, scale: 0.95 }}
+    transition={{ duration: 0.8, ease: "easeOut" }}
+    className="w-full max-w-6xl text-center"
+  >
+    <div className="hero-section">
+      <motion.div
+        initial={{ scale: 0, rotate: -180 }}
+        animate={{ scale: 1, rotate: 0 }}
+        transition={{ delay: 0.3, type: "spring", stiffness: 200, damping: 20 }}
+        className="hero-logo"
+      >
+        <div className="logo-container">
+          <Brain className="w-16 h-16 text-white" />
+          <div className="logo-pulse"></div>
+        </div>
+        <Sparkles className="sparkle-1" />
+        <Sparkles className="sparkle-2" />
+        <Sparkles className="sparkle-3" />
+      </motion.div>
+      
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+        className="hero-content"
+      >
+        <h1 className="hero-title">
+          <span className="title-main">DNA</span>
+          <span className="title-sub">Deep Narrative Analysis</span>
+          <div className="title-accent">Powered by Advanced AI</div>
+        </h1>
+        
+        <p className="hero-description">
+          Plataforma profissional de análise psicológica através de narrativa pessoal. 
+          Utilizamos inteligência artificial avançada para revelar padrões profundos 
+          da sua personalidade e estrutura cognitiva.
+        </p>
+      </motion.div>
+      
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.7 }}
+        className="features-grid"
+      >
+        <div className="feature-card">
+          <div className="feature-icon bg-green-500/10">
+            <Award className="w-8 h-8 text-green-400" />
+          </div>
+          <h3>Análise Científica</h3>
+          <p>Baseada em modelos psicológicos validados como Big Five e Valores de Schwartz</p>
+        </div>
+        
+        <div className="feature-card">
+          <div className="feature-icon bg-blue-500/10">
+            <Brain className="w-8 h-8 text-blue-400" />
+          </div>
+          <h3>IA Avançada</h3>
+          <p>Processamento de linguagem natural com análise semântica profunda</p>
+        </div>
+        
+        <div className="feature-card">
+          <div className="feature-icon bg-purple-500/10">
+            <TrendingUp className="w-8 h-8 text-purple-400" />
+          </div>
+          <h3>Insights Profundos</h3>
+          <p>Revelações sobre padrões comportamentais e estruturas de personalidade</p>
+        </div>
+        
+        <div className="feature-card">
+          <div className="feature-icon bg-yellow-500/10">
+            <Lightbulb className="w-8 h-8 text-yellow-400" />
+          </div>
+          <h3>Relatório Detalhado</h3>
+          <p>Análise completa com recomendações personalizadas e insights acionáveis</p>
+        </div>
+      </motion.div>
+      
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.9 }}
+        className="cta-section"
+      >
+        <button
+          onClick={onStart}
+          className="cta-button group"
+        >
+          <span className="cta-text">Iniciar Análise Profissional</span>
+          <ArrowRight className="cta-icon" />
+          <div className="cta-glow"></div>
+        </button>
+        
+        <div className="cta-info">
+          <div className="info-item">
+            <Timer className="w-4 h-4" />
+            <span>~45 minutos</span>
+          </div>
+          <div className="info-item">
+            <Eye className="w-4 h-4" />
+            <span>108 perguntas</span>
+          </div>
+          <div className="info-item">
+            <Award className="w-4 h-4" />
+            <span>Certificado profissional</span>
+          </div>
+        </div>
+      </motion.div>
     </div>
-    
-    <div className="hero-title">
-      <h1 className="title-main">
-        Chance To <span className="title-highlight">Overcome</span>
-      </h1>
-      <h2 className="title-secondary">Your Potential</h2>
-    </div>
-    
-    <p className="hero-description">
-      Estamos aqui para <strong>Conectar</strong> com sua <strong>Audiência</strong> em um nível pessoal e 
-      <strong> Ajudá-lo</strong> a <strong>Prosperar</strong> nesta emocionante <strong>Nova Fronteira!</strong>
-    </p>
-    
-    <div className="mic-container">
-      <div className="mic-background">
-        <div className="mic-glow-ring"></div>
-      </div>
-      <button onClick={onStart} className="cta-button">
-        <span>Begin Your Journey</span>
-        <ArrowRight className="w-6 h-6 ml-2" />
-      </button>
-    </div>
-    
-    <div className="flex items-center justify-center space-x-8 text-sm text-white/60 mt-8">
-      <div className="flex items-center space-x-2">
-        <Eye className="w-4 h-4" />
-        <span>{PERGUNTAS_DNA.length} perguntas</span>
-      </div>
-      <div className="flex items-center space-x-2">
-        <Award className="w-4 h-4" />
-        <span>Certificado</span>
-      </div>
-    </div>
-  </div>
-));
-WelcomeScreen.displayName = "WelcomeScreen";
+  </motion.div>
+);
 
-const SessionScreen = ({ pergunta, status, onStartRecording, onStopRecording, perfil, currentIndex, total }: { 
-  pergunta: Pergunta | null; 
-  status: SessionStatus; 
-  onStartRecording: () => void; 
-  onStopRecording: () => void; 
-  perfil: ExpertProfile; 
-  currentIndex: number; 
-  total: number; 
+// Componente para a tela de sessão premium
+const PremiumSessionScreen = ({
+  pergunta,
+  status,
+  onStartRecording,
+  onStopRecording,
+  perfil,
+  currentIndex,
+  total
+}: {
+  pergunta: Pergunta | null;
+  status: SessionStatus;
+  onStartRecording: () => void;
+  onStopRecording: () => void;
+  perfil: ExpertProfile;
+  currentIndex: number;
+  total: number;
 }) => {
   const [timer, setTimer] = useState(0);
+  const [audioMuted, setAudioMuted] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    if (status === 'recording') { 
-      intervalRef.current = setInterval(() => setTimer(prev => prev + 1), 1000); 
-    } else { 
-      if (intervalRef.current) clearInterval(intervalRef.current); 
-      setTimer(0); 
+    if (status === 'recording') {
+      intervalRef.current = setInterval(() => {
+        setTimer(prev => prev + 1);
+      }, 1000);
+    } else {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      setTimer(0);
     }
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
   }, [status]);
 
-  // Mapeamento de status com tipagem correta
-  const statusMap: Record<SessionStatus, StatusConfig> = {
-    listening: { message: 'Reproduzindo pergunta...', icon: Volume2, showWaves: true },
-    waiting_for_user: { message: 'Pronto para gravar', icon: Mic, showWaves: false },
-    recording: { message: 'Gravando sua narrativa...', icon: Square, showWaves: true },
-    processing: { message: 'Analisando padrões...', icon: Brain, isProcessing: true },
-    idle: { message: '', icon: Mic },
-    finished: { message: 'Concluído', icon: Check },
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const secs = (seconds % 60).toString().padStart(2, '0');
+    return `${mins}:${secs}`;
   };
-  
-  const config = statusMap[status];
-  const StatusIcon = config.icon;
 
-  if (!pergunta) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader className="w-12 h-12 text-green-400 animate-spin" />
-        <p className="text-white/80 text-lg ml-4">Carregando...</p>
-      </div>
-    );
-  }
+  const getStatusConfig = () => {
+    switch (status) {
+      case 'listening':
+        return {
+          message: 'Reproduzindo pergunta...',
+          icon: Volume2,
+          color: 'text-blue-400',
+          showWaves: true
+        };
+      case 'waiting_for_user':
+        return {
+          message: 'Pronto para gravar sua resposta',
+          icon: Mic,
+          color: 'text-green-400',
+          showWaves: false
+        };
+      case 'recording':
+        return {
+          message: 'Gravando sua narrativa...',
+          icon: Square,
+          color: 'text-red-400',
+          showWaves: true
+        };
+      case 'processing':
+        return {
+          message: 'Analisando padrões narrativos...',
+          icon: Brain,
+          color: 'text-purple-400',
+          showWaves: false
+        };
+      default:
+        return {
+          message: '',
+          icon: Mic,
+          color: 'text-white',
+          showWaves: false
+        };
+    }
+  };
+
+  const statusConfig = getStatusConfig();
 
   return (
-    <div className="w-full max-w-6xl mx-auto px-4">
-      <ProgressIndicator current={currentIndex} total={total} />
-      <StatsGrid perfil={perfil} />
+    <div className="w-full max-w-7xl">
+      <AdvancedProgressIndicator current={currentIndex} total={total} />
       
-      <div className="question-container">
-        <div className="question-card">
-          <div className="question-meta">
-            <div className="question-number">{currentIndex}</div>
-            <div className="question-domain">{pergunta.dominio}</div>
-          </div>
-          <div className="question-text">
-            {pergunta.texto}
-          </div>
-        </div>
-      </div>
+      <EnhancedLiveStats perfil={perfil} />
       
-      <div className="status-container">
-        <div className="status-display">
-          <StatusIcon className="status-icon text-green-400" />
-          <span className="status-text">{config.message}</span>
-          {status === 'recording' && (
-            <span className="recording-timer ml-4">
-              {`${Math.floor(timer / 60).toString().padStart(2, '0')}:${(timer % 60).toString().padStart(2, '0')}`}
-            </span>
-          )}
+      <div className="session-container">
+        <div className="question-section">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={pergunta?.texto}
+              initial={{ opacity: 0, y: 40, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -40, scale: 0.95 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+              className="question-card"
+            >
+              <div className="question-header">
+                <div className="question-number">
+                  <span>{currentIndex}</span>
+                </div>
+                <div className="question-meta">
+                  <div className="domain-tag">{pergunta?.dominio}</div>
+                  <div className="question-progress">Pergunta {currentIndex} de {total}</div>
+                </div>
+              </div>
+              
+              <div className="question-content">
+                <p className="question-text">
+                  {pergunta?.texto}
+                </p>
+              </div>
+            </motion.div>
+          </AnimatePresence>
         </div>
-        
-        {config.showWaves && <AudioWaves isActive={true} />}
-        
-        {config.isProcessing && (
-          <div className="flex space-x-2">
-            {[0,1,2].map(i => 
-              <div 
-                key={i} 
-                className="w-3 h-3 bg-green-400 rounded-full animate-bounce" 
-                style={{animationDelay: `${i*0.2}s`}}
-              />
+
+        <div className="control-section">
+          <motion.div
+            initial={{ scale: 0.9 }}
+            animate={{ scale: 1 }}
+            className="status-display"
+          >
+            <div className="status-content">
+              <statusConfig.icon className={`status-icon ${statusConfig.color}`} />
+              <div className="status-text">
+                <div className="status-message">{statusConfig.message}</div>
+                {status === 'recording' && (
+                  <div className="recording-timer">
+                    <Timer className="w-5 h-5 text-red-400" />
+                    <span className="timer-display">{formatTime(timer)}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {statusConfig.showWaves && <AudioWaves isActive={true} />}
+            
+            {(status === 'listening' || status === 'processing') && (
+              <div className="processing-indicator">
+                <div className="processing-dot"></div>
+                <div className="processing-dot"></div>
+                <div className="processing-dot"></div>
+              </div>
             )}
-          </div>
-        )}
-        
-        <div className="mic-container">
-          <div className="mic-background">
-            <div className="mic-glow-ring"></div>
-          </div>
-          <button 
+          </motion.div>
+
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             onClick={status === 'recording' ? onStopRecording : onStartRecording}
             disabled={status === 'listening' || status === 'processing'}
-            className={`mic-button ${status === 'recording' ? 'recording' : ''} ${(status === 'listening' || status === 'processing') ? 'disabled' : ''}`}
+            className={`record-button ${status === 'recording' ? 'recording' : ''} ${
+              status === 'listening' || status === 'processing' ? 'disabled' : ''
+            }`}
           >
-            {status === 'recording' ? 
-              <Square className="mic-icon" /> : 
-              <Mic className="mic-icon" />
-            }
-          </button>
+            <div className="button-content">
+              {status === 'recording' && (
+                <>
+                  <div className="pulse-ring"></div>
+                  <div className="recording-indicator">
+                    <Square className="w-12 h-12 text-white" />
+                  </div>
+                </>
+              )}
+              
+              {status === 'waiting_for_user' && (
+                <Mic className="w-12 h-12 text-white" />
+              )}
+              
+              {(status === 'listening' || status === 'processing') && (
+                <Loader className="w-12 h-12 text-white animate-spin" />
+              )}
+            </div>
+            
+            <div className="button-glow"></div>
+          </motion.button>
+
+          <div className="control-options">
+            <button
+              onClick={() => setAudioMuted(!audioMuted)}
+              className="option-button"
+            >
+              {audioMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+              <span>{audioMuted ? 'Ativar Áudio' : 'Silenciar'}</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
 };
 
-const ReportScreen = React.memo(({ sintese, onRestart }: { 
-  perfil: ExpertProfile; 
-  sintese: string; 
-  onRestart: () => void; 
-}) => {
-  const [isDownloading, setIsDownloading] = useState(false);
-  
-  const handleDownload = useCallback(() => {
-    setIsDownloading(true);
-    setTimeout(() => {
-      try { 
-        const blob = new Blob([sintese], { type: 'text/plain;charset=utf-8' }); 
-        const url = URL.createObjectURL(blob); 
-        const a = document.createElement('a'); 
-        a.href = url; 
-        a.download = `DNA_Report_${new Date().toISOString().split('T')[0]}.txt`; 
-        document.body.appendChild(a); 
-        a.click(); 
-        document.body.removeChild(a); 
-        URL.revokeObjectURL(url); 
-      } catch (e) { 
-        console.error("Erro ao baixar:", e); 
-      } finally { 
-        setIsDownloading(false); 
-      }
-    }, 500);
-  }, [sintese]);
-  
-  return (
-    <div className="report-container">
-      <div className="report-header">
-        <div className="completion-badge">
-          <Check className="w-12 h-12 text-black" />
-        </div>
-        <h1 className="completion-title">Análise Concluída!</h1>
+// Componente para a tela de relatório premium
+const PremiumReportScreen = ({ report, onRestart }: { report: string; onRestart: () => void }) => (
+  <motion.div
+    initial={{ opacity: 0, scale: 0.95 }}
+    animate={{ opacity: 1, scale: 1 }}
+    transition={{ duration: 0.8 }}
+    className="w-full max-w-7xl"
+  >
+    <div className="report-header">
+      <motion.div
+        initial={{ scale: 0, rotate: -180 }}
+        animate={{ scale: 1, rotate: 0 }}
+        transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
+        className="completion-badge"
+      >
+        <Check className="w-16 h-16 text-white" />
+        <div className="badge-glow"></div>
+      </motion.div>
+      
+      <div className="header-content">
+        <h1 className="completion-title">Análise Concluída com Sucesso</h1>
         <p className="completion-subtitle">
-          Seu relatório DNA está pronto. Explore os insights sobre sua personalidade.
+          Sua jornada narrativa foi processada e analisada. O relatório completo 
+          está disponível abaixo com insights profundos sobre sua personalidade.
         </p>
+      </div>
+    </div>
+
+    <div className="report-container">
+      <div className="report-toolbar">
+        <div className="toolbar-left">
+          <FileText className="w-6 h-6 text-green-400" />
+          <h2>Relatório DNA Completo</h2>
+        </div>
+        <div className="toolbar-right">
+          <button className="toolbar-button">
+            <Download className="w-4 h-4" />
+            <span>Exportar PDF</span>
+          </button>
+          <button className="toolbar-button">
+            <Share2 className="w-4 h-4" />
+            <span>Compartilhar</span>
+          </button>
+        </div>
       </div>
       
       <div className="report-content">
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center space-x-3">
-            <FileText className="w-6 h-6 text-green-400" />
-            <h2 className="text-xl font-semibold text-white">Relatório DNA</h2>
-          </div>
-          <button 
-            onClick={handleDownload} 
-            disabled={isDownloading}
-            className="flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-white text-sm font-medium transition-colors disabled:opacity-50"
-          >
-            {isDownloading ? <Loader className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-            <span>{isDownloading ? 'Baixando...' : 'Download'}</span>
-          </button>
-        </div>
-        
-        <div className="report-text">
-          {sintese}
-        </div>
+        <pre className="report-text">
+          {report}
+        </pre>
       </div>
-      
-      <div className="text-center mt-8">
-        <button onClick={onRestart} className="cta-button">
-          <Play className="w-6 h-6 mr-3" />
-          Nova Análise
+    </div>
+
+    <div className="report-actions">
+      <motion.button
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={onRestart}
+        className="restart-button"
+      >
+        <span>Realizar Nova Análise</span>
+        <ArrowRight className="w-5 h-5" />
+      </motion.button>
+    </div>
+  </motion.div>
+);
+
+// Componente de erro premium
+const PremiumErrorScreen = ({ error, onRetry }: { error: string; onRetry: () => void }) => (
+  <motion.div
+    initial={{ opacity: 0, scale: 0.9 }}
+    animate={{ opacity: 1, scale: 1 }}
+    className="w-full max-w-lg text-center"
+  >
+    <div className="error-container">
+      <div className="error-icon">
+        <AlertTriangle className="w-16 h-16 text-red-400" />
+      </div>
+      <div className="error-content">
+        <h3 className="error-title">Ocorreu um Problema</h3>
+        <p className="error-message">{error}</p>
+        <button onClick={onRetry} className="error-button">
+          Tentar Novamente
         </button>
       </div>
     </div>
-  );
-});
-ReportScreen.displayName = "ReportScreen";
+  </motion.div>
+);
 
-const ErrorScreen = React.memo(({ message, onRetry }: { message: string; onRetry: () => void; }) => (
-  <div className="error-container">
-    <AlertTriangle className="error-icon" />
-    <h2 className="error-title">Ops! Algo deu errado</h2>
-    <p className="error-message">{message}</p>
-    <button onClick={onRetry} className="error-button">
-      Tentar Novamente
-    </button>
-  </div>
-));
-ErrorScreen.displayName = "ErrorScreen";
-
-export default function DNAAnalysisApp() {
-  const [sessionStatus, setSessionStatus] = useState<SessionStatus>('idle');
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [expertProfile, setExpertProfile] = useState<ExpertProfile>(criarPerfilInicial());
-  const [finalReport, setFinalReport] = useState<string>('');
+// Componente principal
+export default function DnaPage() {
+  const [status, setStatus] = useState<SessionStatus>('idle');
+  const [perguntaAtual, setPerguntaAtual] = useState<Pergunta | null>(null);
+  const [perfil, setPerfil] = useState<ExpertProfile>(criarPerfilInicial());
   const [error, setError] = useState<string | null>(null);
-  const [isAudioInitialized, setIsAudioInitialized] = useState(false);
 
-  const currentQuestion = PERGUNTAS_DNA[currentQuestionIndex] || null;
+  const perguntaIndex = useRef(0);
 
-  const playCurrentQuestionInternal = useCallback(async (questionToPlay: Pergunta | null) => {
-    if (!questionToPlay) { 
-      setError("Nenhuma pergunta para tocar."); 
-      setSessionStatus('finished'); 
-      return; 
-    }
-    setSessionStatus('listening');
-    try { 
-      await audioService.playAudioFromUrl(questionToPlay.audioUrl, () => setSessionStatus('waiting_for_user')); 
-    } catch (err) { 
-      console.error('Erro ao tocar áudio:', err); 
-      setError(err instanceof Error ? err.message : 'Erro ao tocar áudio.'); 
-      setSessionStatus('waiting_for_user'); 
-    }
+  useEffect(() => {
+    initAudio().catch(err => {
+      console.error("Erro ao inicializar áudio:", err);
+      setError("Não foi possível acessar o microfone. Verifique as permissões do navegador.");
+    });
   }, []);
 
-  const initializeApp = useCallback(async () => {
-    setError(null); 
-    setSessionStatus('listening');
-    try { 
-      await audioService.initAudio(); 
-      setIsAudioInitialized(true); 
-      await playCurrentQuestionInternal(PERGUNTAS_DNA[0]); 
-    } catch (err) { 
-      setError(err instanceof Error ? err.message : 'Erro ao inicializar.'); 
-      setSessionStatus('idle'); 
-    }
-  }, [playCurrentQuestionInternal]);
-
-  const startRecording = useCallback(async () => {
-    if (!isAudioInitialized) { 
-      setError("Áudio não inicializado. Permita o acesso ao microfone."); 
-      return; 
-    }
+  const iniciarSessao = useCallback(() => {
+    perguntaIndex.current = 0;
+    setPerfil(criarPerfilInicial());
     setError(null);
-    try { 
-      await audioService.startRecording(); 
-      setSessionStatus('recording'); 
-    } catch (err) { 
-      setError(err instanceof Error ? err.message : 'Erro ao gravar.'); 
-      setSessionStatus('waiting_for_user'); 
-    }
-  }, [isAudioInitialized]);
-
-  const stopRecording = useCallback(async () => {
-    setSessionStatus('processing');
-    try {
-      await audioService.stopRecording();
-      if (!currentQuestion) throw new Error("Pergunta atual indefinida.");
-      
-      const mockTranscription = `Resposta simulada para ${currentQuestion.dominio}: Responsável, organizado, ajudando pessoas. Justiça e igualdade.`;
-      const updatedProfile = analysisEngine.analisarFragmento(mockTranscription, expertProfile, currentQuestion);
-      setExpertProfile(updatedProfile);
-      
-      const nextIndex = currentQuestionIndex + 1;
-      if (nextIndex < PERGUNTAS_DNA.length) { 
-        setCurrentQuestionIndex(nextIndex); 
-        setTimeout(() => playCurrentQuestionInternal(PERGUNTAS_DNA[nextIndex]), 1000); 
-      } else { 
-        setFinalReport(analysisEngine.gerarSinteseFinal(updatedProfile)); 
-        setSessionStatus('finished'); 
+    fazerProximaPergunta();
+  }, []);
+  
+  const fazerProximaPergunta = useCallback(async () => {
+    if (perguntaIndex.current < PERGUNTAS_DNA.length) {
+      const pergunta = PERGUNTAS_DNA[perguntaIndex.current];
+      setPerguntaAtual(pergunta);
+      setStatus('listening');
+      try {
+        await playAudioFromUrl(pergunta.audioUrl, () => setStatus('waiting_for_user'));
+        perguntaIndex.current++;
+      } catch (err) {
+        console.error("Erro ao reproduzir áudio:", err);
+        setError("Erro ao reproduzir a pergunta. Tentando novamente...");
+        setTimeout(fazerProximaPergunta, 2000);
       }
-    } catch (err) { 
-      console.error("Erro ao parar gravação:", err); 
-      setError(err instanceof Error ? err.message : 'Erro ao processar gravação.'); 
-      setSessionStatus('waiting_for_user'); 
-    }
-  }, [currentQuestion, currentQuestionIndex, expertProfile, playCurrentQuestionInternal]);
-
-  const restart = useCallback(() => {
-    setSessionStatus('idle'); 
-    setCurrentQuestionIndex(0); 
-    setExpertProfile(criarPerfilInicial()); 
-    setFinalReport(''); 
-    setError(null); 
-    setIsAudioInitialized(false);
-    if (audioService.stream) { 
-      audioService.stream.getTracks().forEach(track => track.stop()); 
-      audioService.stream = null; 
+    } else {
+      setStatus('finished');
     }
   }, []);
 
-  const handleRetry = useCallback(() => {
-    setError(null);
-    if (!isAudioInitialized) initializeApp();
-    else if (currentQuestion && (sessionStatus === 'waiting_for_user' || sessionStatus === 'listening')) playCurrentQuestionInternal(currentQuestion);
-    else restart();
-  }, [isAudioInitialized, initializeApp, currentQuestion, sessionStatus, playCurrentQuestionInternal, restart]);
-
-  useEffect(() => { 
-    return () => { 
-      if (audioService.stream) { 
-        audioService.stream.getTracks().forEach(track => track.stop()); 
-      } 
-    }; 
+  const handleStartRecording = useCallback(async () => {
+    try {
+      await startRecording();
+      setStatus('recording');
+    } catch (err) {
+      console.error("Erro ao iniciar gravação:", err);
+      setError("Não foi possível iniciar a gravação. Verifique as permissões do microfone.");
+    }
   }, []);
+  
+  const handleStopRecording = useCallback(async () => {
+    setStatus('processing');
+    try {
+      const audioBlob = await stopRecording();
+      const transcricao = await transcreverAudio(audioBlob);
+      if (perguntaAtual) {
+        const perfilAtualizado = analisarFragmento(transcricao, perfil, perguntaAtual);
+        setPerfil(perfilAtualizado);
+      }
+      fazerProximaPergunta();
+    } catch (err) {
+      console.error("Erro ao processar gravação:", err);
+      setError("Problema ao processar sua resposta. Continuando para a próxima pergunta...");
+      setTimeout(fazerProximaPergunta, 2000);
+    }
+  }, [perguntaAtual, perfil, fazerProximaPergunta]);
+
+  const transcreverAudio = async (audioBlob: Blob): Promise<string> => {
+    const response = await fetch('/api/transcribe', { method: 'POST', body: audioBlob });
+    if (!response.ok) throw new Error("Falha na transcrição");
+    const data = await response.json();
+    return data.transcript;
+  };
 
   const renderContent = () => {
-    if (error) return <ErrorScreen message={error} onRetry={handleRetry} />;
-    
-    switch (sessionStatus) {
-      case 'idle': 
-        return <WelcomeScreen onStart={initializeApp} />;
-      case 'finished': 
-        return <ReportScreen perfil={expertProfile} sintese={finalReport} onRestart={restart} />;
-      default: 
+    if (error) {
+      return <PremiumErrorScreen error={error} onRetry={() => setError(null)} />;
+    }
+
+    switch (status) {
+      case 'idle':
+        return <PremiumWelcomeScreen onStart={iniciarSessao} />;
+      case 'finished':
+        return <PremiumReportScreen report={gerarSinteseFinal(perfil)} onRestart={iniciarSessao} />;
+      default:
         return (
-          <SessionScreen 
-            pergunta={currentQuestion} 
-            status={sessionStatus} 
-            onStartRecording={startRecording} 
-            onStopRecording={stopRecording} 
-            perfil={expertProfile} 
-            currentIndex={currentQuestionIndex + 1} 
-            total={PERGUNTAS_DNA.length} 
+          <PremiumSessionScreen
+            pergunta={perguntaAtual}
+            status={status}
+            onStartRecording={handleStartRecording}
+            onStopRecording={handleStopRecording}
+            perfil={perfil}
+            currentIndex={perguntaIndex.current}
+            total={PERGUNTAS_DNA.length}
           />
         );
     }
   };
 
   return (
-    <div className="app-container">
-      <FloatingElements />
-      <Navigation />
+    <main className="app-container">
+      <DNAParticles />
       
-      <main className="content-wrapper pt-20">
-        {renderContent()}
-      </main>
+      <div className="content-wrapper">
+        <AnimatePresence mode="wait">
+          {renderContent()}
+        </AnimatePresence>
+      </div>
       
-      <footer className="text-center py-6 text-xs text-white/30">
-        <p>© {new Date().getFullYear()} DNA Analysis Platform. Análise psicológica com IA.</p>
+      <footer className="app-footer">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.5 }}
+          className="footer-content"
+        >
+          <p>DNA - Deep Narrative Analysis © 2024</p>
+          <p>Powered by Advanced AI & Psychological Science</p>
+        </motion.div>
       </footer>
-    </div>
+    </main>
   );
 }
