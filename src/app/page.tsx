@@ -6,10 +6,10 @@ import { Stars } from '@react-three/drei';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mic, Play, Square, Loader, BrainCircuit, BotMessageSquare, FileText } from 'lucide-react';
 
-import { PERGUNTAS_DNA, criarPerfilInicial } from '../lib/config';
-import { analisarFragmento, gerarSinteseFinal } from '../lib/analysisEngine';
-import { ExpertProfile, SessionStatus, Pergunta } from '../lib/types';
-import { initAudio, playAudioFromUrl, startRecording, stopRecording } from '../services/webAudioService';
+import { PERGUNTAS_DNA, criarPerfilInicial } from '@/lib/config';
+import { analisarFragmento, gerarSinteseFinal } from '@/lib/analysisEngine';
+import { ExpertProfile, SessionStatus, Pergunta } from '@/lib/types';
+import { initAudio, playAudioFromUrl, startRecording, stopRecording } from '@/services/webAudioService';
 
 /**
  * Envia o áudio para a nossa rota de API interna para ser transcrito pela Deepgram.
@@ -128,7 +128,7 @@ const DNAInterface = () => {
       return;
     }
 
-    // CORREÇÃO: Passa os 3 argumentos necessários para a função.
+    // Passa os 3 argumentos necessários para a função.
     const perfilAtualizado = analisarFragmento(transcricao, perfil, perguntaAtual);
     setPerfil(perfilAtualizado);
     fazerProximaPergunta();
