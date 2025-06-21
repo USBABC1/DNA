@@ -172,9 +172,11 @@ const DNAInterface = () => {
       return;
     }
     
-    // Corrigido: passando o terceiro parâmetro (perguntaAtual)
-    const perfilAtualizado = analisarFragmento(transcricao, perfil, perguntaAtual);
-    setPerfil(perfilAtualizado);
+    // Verificar se perguntaAtual não é null antes de passar para a função
+    if (perguntaAtual) {
+      const perfilAtualizado = analisarFragmento(transcricao, perfil, perguntaAtual);
+      setPerfil(perfilAtualizado);
+    }
     fazerProximaPergunta();
   };
 
