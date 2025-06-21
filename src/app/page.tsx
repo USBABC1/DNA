@@ -67,87 +67,64 @@ const AudioWaves = ({ isActive }: { isActive: boolean }) => (
 // Componente para indicador de progresso avançado
 const AdvancedProgressIndicator = ({ current, total }: { current: number; total: number }) => {
   const progress = (current / total) * 100;
-  const segments = Array.from({ length: total }, (_, i) => i + 1);
   
   return (
-    <div className="w-full max-w-4xl mx-auto mb-12">
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center space-x-4">
-          <div className="progress-circle">
-            <svg className="w-16 h-16 transform -rotate-90">
-              <circle
-                cx="32"
-                cy="32"
-                r="28"
-                stroke="rgba(255,255,255,0.1)"
-                strokeWidth="4"
-                fill="none"
-              />
-              <circle
-                cx="32"
-                cy="32"
-                r="28"
-                stroke="url(#progressGradient)"
-                strokeWidth="4"
-                fill="none"
-                strokeDasharray={`${2 * Math.PI * 28}`}
-                strokeDashoffset={`${2 * Math.PI * 28 * (1 - progress / 100)}`}
-                className="transition-all duration-1000 ease-out"
-              />
-              <defs>
-                <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#00f28c" />
-                  <stop offset="100%" stopColor="#00a360" />
-                </linearGradient>
-              </defs>
-            </svg>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-2xl font-bold text-white">{Math.round(progress)}%</span>
-            </div>
-          </div>
-          <div>
-            <h3 className="text-xl font-semibold text-white">Pergunta {current} de {total}</h3>
-            <p className="text-white/60">Análise em progresso...</p>
-          </div>
+    <div className="w-full mb-8">
+      <div className="flex justify-between items-center mb-4">
+        <div>
+          <h3 className="text-lg font-semibold text-white">Pergunta {current} de {total}</h3>
+          <p className="text-sm text-white/60">Análise em progresso...</p>
         </div>
-        <div className="text-right">
-          <div className="text-3xl font-bold text-primary">{current}</div>
-          <div className="text-sm text-white/60">Concluídas</div>
+        <div className="progress-circle">
+          <svg className="w-12 h-12 transform -rotate-90">
+            <circle cx="24" cy="24" r="20" stroke="rgba(255,255,255,0.1)" strokeWidth="4" fill="none" />
+            <circle
+              cx="24"
+              cy="24"
+              r="20"
+              stroke="url(#progressGradient)"
+              strokeWidth="4"
+              fill="none"
+              strokeDasharray={`${2 * Math.PI * 20}`}
+              strokeDashoffset={`${2 * Math.PI * 20 * (1 - progress / 100)}`}
+              className="transition-all duration-1000 ease-out"
+            />
+          </svg>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="text-md font-bold text-white">{Math.round(progress)}%</span>
+          </div>
         </div>
       </div>
       
-      <div className="progress-segments">
-        {segments.map((segment) => (
-          <div
-            key={segment}
-            className={`progress-segment ${segment <= current ? 'completed' : ''}`}
-          />
-        ))}
+      <div className="w-full bg-white/10 rounded-full h-2">
+        <div 
+          className="bg-primary h-2 rounded-full transition-all duration-500"
+          style={{ width: `${progress}%`}}
+        ></div>
       </div>
     </div>
   );
 };
 
-// Componente para estatísticas em tempo real melhoradas
+// Componente para estatísticas em tempo real - ATUALIZADO
 const EnhancedLiveStats = ({ perfil }: { perfil: ExpertProfile }) => {
   const totalResponses = Object.values(perfil.coberturaDominios).reduce((a, b) => a + b, 0);
-  const dominantValue = Object.entries(perfil.valoresSchwartz)
-    .sort(([,a], [,b]) => b - a)[0]?.[0] || 'Analisando...';
   const dominantTrait = Object.entries(perfil.bigFive)
-    .sort(([,a], [,b]) => b - a)[0]?.[0] || 'Analisando...';
+    .sort(([,a], [,b]) => b - a)[0]?.[0] || '...';
   
   const stats = [
-    { icon: BarChart3, value: totalResponses, label: 'Respostas Analisadas', color: 'text-green-400', bg: 'bg-green-500/10' },
-    { icon: Target, value: perfil.metricas.metaforas, label: 'Metáforas Detectadas', color: 'text-blue-400', bg: 'bg-blue-500/10' },
-    { icon: Zap, value: perfil.metricas.contradicoes, label: 'Padrões Complexos', color: 'text-yellow-400', bg: 'bg-yellow-500/10' },
-    { icon: Users, value: dominantTrait.slice(0, 8), label: 'Traço Dominante', color: 'text-purple-400', bg: 'bg-purple-500/10' },
+    { icon: Check, value: totalResponses, label: 'Concluídas' },
+    { icon: BarChart3, value: totalResponses, label: 'Respostas Analisadas' },
+    { icon: Target, value: perfil.metricas.metaforas, label: 'Metáforas' },
+    { icon: Zap, value: perfil.metricas.contradicoes, label: 'Padrões Complexos' },
+    { icon: Users, value: dominantTrait.slice(0, 8), label: 'Traço Dominante' },
   ];
   
   return (
     <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-12"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="grid grid-cols-2 gap-3"
     >
       {stats.map((stat, index) => (
         <motion.div
@@ -157,14 +134,10 @@ const EnhancedLiveStats = ({ perfil }: { perfil: ExpertProfile }) => {
           transition={{ delay: index * 0.1 }}
           className="stat-card group"
         >
-          <div className={`stat-icon ${stat.bg}`}>
-            <stat.icon className={`w-6 h-6 ${stat.color}`} />
-          </div>
           <div className="stat-content">
-            <div className="stat-value">{stat.value}</div>
-            <div className="stat-label">{stat.label}</div>
+            <p className="stat-label">{stat.label}</p>
+            <p className="stat-value">{stat.value}</p>
           </div>
-          <div className="stat-glow"></div>
         </motion.div>
       ))}
     </motion.div>
@@ -248,7 +221,7 @@ const PremiumWelcomeScreen = ({ onStart }: { onStart: () => void }) => (
 );
 
 
-// Componente para a tela de sessão premium
+// Componente para a tela de sessão premium - ATUALIZADO
 const PremiumSessionScreen = ({
   pergunta,
   status,
@@ -292,152 +265,61 @@ const PremiumSessionScreen = ({
 
   const getStatusConfig = () => {
     switch (status) {
-      case 'listening':
-        return {
-          message: 'Reproduzindo pergunta...',
-          icon: Volume2,
-          color: 'text-blue-400',
-          showWaves: true
-        };
-      case 'waiting_for_user':
-        return {
-          message: 'Pronto para gravar sua resposta',
-          icon: Mic,
-          color: 'text-green-400',
-          showWaves: false
-        };
-      case 'recording':
-        return {
-          message: 'Gravando sua narrativa...',
-          icon: Square,
-          color: 'text-red-400',
-          showWaves: true
-        };
-      case 'processing':
-        return {
-          message: 'Analisando padrões narrativos...',
-          icon: Brain,
-          color: 'text-purple-400',
-          showWaves: false
-        };
-      default:
-        return {
-          message: '',
-          icon: Mic,
-          color: 'text-white',
-          showWaves: false
-        };
+      case 'listening': return { message: 'Reproduzindo pergunta...', icon: Volume2, color: 'text-blue-400', showWaves: true };
+      case 'waiting_for_user': return { message: 'Pronto para gravar sua resposta', icon: Mic, color: 'text-green-400', showWaves: false };
+      case 'recording': return { message: 'Gravando sua narrativa...', icon: Square, color: 'text-red-400', showWaves: true };
+      case 'processing': return { message: 'Analisando padrões narrativos...', icon: Brain, color: 'text-purple-400', showWaves: false };
+      default: return { message: '', icon: Mic, color: 'text-white', showWaves: false };
     }
   };
 
   const statusConfig = getStatusConfig();
 
   return (
-    <div className="w-full max-w-7xl">
-      <AdvancedProgressIndicator current={currentIndex} total={total} />
-      
-      <EnhancedLiveStats perfil={perfil} />
-      
-      <div className="session-container">
-        <div className="question-section">
+    <div className="w-full max-w-7xl grid grid-cols-1 lg:grid-cols-3 gap-x-12 gap-y-8">
+      {/* Left Sidebar */}
+      <div className="lg:col-span-1">
+        <AdvancedProgressIndicator current={currentIndex} total={total} />
+        <EnhancedLiveStats perfil={perfil} />
+      </div>
+
+      {/* Main Content */}
+      <div className="lg:col-span-2 flex flex-col justify-center items-center">
+        <div className="w-full">
           <AnimatePresence mode="wait">
             <motion.div
               key={pergunta?.texto}
-              initial={{ opacity: 0, y: 40, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -40, scale: 0.95 }}
-              transition={{ duration: 0.6, ease: "easeOut" }}
-              className="question-card"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+              className="question-content-main"
             >
-              <div className="question-header">
-                <div className="question-number">
-                  <span>{currentIndex}</span>
-                </div>
-                <div className="question-meta">
-                  <div className="domain-tag">{pergunta?.dominio}</div>
-                  <div className="question-progress">Pergunta {currentIndex} de {total}</div>
-                </div>
-              </div>
-              
-              <div className="question-content">
-                <p className="question-text">
-                  {pergunta?.texto}
-                </p>
-              </div>
+              <p className="question-text">
+                {pergunta?.texto}
+              </p>
             </motion.div>
           </AnimatePresence>
         </div>
-
-        <div className="control-section">
-          <motion.div
-            initial={{ scale: 0.9 }}
-            animate={{ scale: 1 }}
-            className="status-display"
-          >
-            <div className="status-content">
-              <statusConfig.icon className={`status-icon ${statusConfig.color}`} />
-              <div className="status-text">
-                <div className="status-message">{statusConfig.message}</div>
-                {status === 'recording' && (
-                  <div className="recording-timer">
-                    <Timer className="w-5 h-5 text-red-400" />
-                    <span className="timer-display">{formatTime(timer)}</span>
-                  </div>
-                )}
-              </div>
+        
+        <div className="control-section mt-8">
+            <div className="status-message mb-4">
+                {statusConfig.message}
             </div>
-            
-            {statusConfig.showWaves && <AudioWaves isActive={true} />}
-            
-            {(status === 'listening' || status === 'processing') && (
-              <div className="processing-indicator">
-                <div className="processing-dot"></div>
-                <div className="processing-dot"></div>
-                <div className="processing-dot"></div>
-              </div>
-            )}
-          </motion.div>
-
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={status === 'recording' ? onStopRecording : onStartRecording}
-            disabled={status === 'listening' || status === 'processing'}
-            className={`record-button ${status === 'recording' ? 'recording' : ''} ${
-              status === 'listening' || status === 'processing' ? 'disabled' : ''
-            }`}
-          >
-            <div className="button-content">
-              {status === 'recording' && (
-                <>
-                  <div className="pulse-ring"></div>
-                  <div className="recording-indicator">
-                    <Square className="w-12 h-12 text-white" />
-                  </div>
-                </>
-              )}
-              
-              {status === 'waiting_for_user' && (
-                <Mic className="w-12 h-12 text-white" />
-              )}
-              
-              {(status === 'listening' || status === 'processing') && (
-                <Loader className="w-12 h-12 text-white animate-spin" />
-              )}
-            </div>
-            
-            <div className="button-glow"></div>
-          </motion.button>
-
-          <div className="control-options">
-            <button
-              onClick={() => setAudioMuted(!audioMuted)}
-              className="option-button"
+            <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={status === 'recording' ? onStopRecording : onStartRecording}
+                disabled={status === 'listening' || status === 'processing'}
+                className={`record-button ${status === 'recording' ? 'recording' : ''} ${status === 'listening' || status === 'processing' ? 'disabled' : ''}`}
             >
-              {audioMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-              <span>{audioMuted ? 'Ativar Áudio' : 'Silenciar'}</span>
-            </button>
-          </div>
+                <div className="button-content">
+                {status === 'recording' && <Square className="w-10 h-10 text-white" />}
+                {status === 'waiting_for_user' && <Mic className="w-10 h-10 text-white" />}
+                {(status === 'listening' || status === 'processing') && <Loader className="w-10 h-10 text-white animate-spin" />}
+                </div>
+                {status === 'recording' && <div className="pulse-ring"></div>}
+            </motion.button>
         </div>
       </div>
     </div>
