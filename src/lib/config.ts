@@ -1,254 +1,157 @@
-// Caminho: src/lib/config.ts
+// src/lib/config.ts
+
 import { ExpertProfile, Pergunta } from './types';
 
 export const PERGUNTAS_DNA: Pergunta[] = [
-  // 0. Apresentação
-  { texto: "Olá. Bem-vindo ao DNA, Deep Narrative Analysis. Uma jornada interativa de autoanálise através da sua narrativa. Vamos começar.", audioUrl: "/audio/pergunta_0.mp3" },
+  // Domínio 1: Identidade e Autoconceito
+  { texto: "Quem é você?", audioUrl: "/audio/001.mp3", dominio: "Identidade" },
+  { texto: "Como você se descreveria em três palavras?", audioUrl: "/audio/002.mp3", dominio: "Identidade" },
+  { texto: "Qual é a sua memória mais antiga e o que ela diz sobre você?", audioUrl: "/audio/003.mp3", dominio: "Identidade" },
+  { texto: "Qual é a sua maior força?", audioUrl: "/audio/004.mp3", dominio: "Identidade" },
+  { texto: "Qual é a sua maior fraqueza?", audioUrl: "/audio/005.mp3", dominio: "Identidade" },
+  { texto: "O que te faz sentir vivo(a)?", audioUrl: "/audio/006.mp3", dominio: "Identidade" },
+  { texto: "Se sua vida fosse um livro, qual seria o título do capítulo atual?", audioUrl: "/audio/007.mp3", dominio: "Identidade" },
+  { texto: "O que você mudaria em si mesmo(a) se pudesse?", audioUrl: "/audio/008.mp3", dominio: "Identidade" },
+  { texto: "Qual é a sua paixão secreta?", audioUrl: "/audio/009.mp3", dominio: "Identidade" },
+  { texto: "Como você acha que os outros te veem?", audioUrl: "/audio/010.mp3", dominio: "Identidade" },
+  { texto: "O que você representa?", audioUrl: "/audio/011.mp3", dominio: "Identidade" },
+  { texto: "Qual animal melhor te representa e por quê?", audioUrl: "/audio/012.mp3", dominio: "Identidade" },
 
-  // --- 1. IDENTIDADE & NARRATIVA ---
-  // Fundamentais
-  { texto: "Quem é você além dos crachás que carrega?", audioUrl: "/audio/pergunta_1.mp3" },
-  { texto: "Se sua vida fosse um livro, qual seria o título atual deste capítulo?", audioUrl: "/audio/pergunta_2.mp3" },
-  { texto: "Que versão anterior de você ainda habita dentro da atual?", audioUrl: "/audio/pergunta_3.mp3" },
-  // Aprofundamento
-  { texto: "Qual parte de você permanece constante, independente do contexto?", audioUrl: "/audio/pergunta_4.mp3" },
-  { texto: "Que papel você interpreta que não se alinha com quem realmente é?", audioUrl: "/audio/pergunta_5.mp3" },
-  { texto: "Se pudesse reescrever uma página de sua história, qual seria e como a modificaria?", audioUrl: "/audio/pergunta_6.mp3" },
-  // Paradoxais
-  { texto: "Qual verdade sobre você é simultaneamente falsa?", audioUrl: "/audio/pergunta_7.mp3" },
-  { texto: "Em que momento você é mais autêntico e também mais performático?", audioUrl: "/audio/pergunta_8.mp3" },
-  // Exploradoras
-  { texto: "O que você evita admitir sobre si mesmo?", audioUrl: "/audio/pergunta_9.mp3" },
-  { texto: "O que as pessoas mais erram sobre quem você é?", audioUrl: "/audio/pergunta_10.mp3" },
-  { texto: "Como você descreveria seu 'eu futuro' em três palavras?", audioUrl: "/audio/pergunta_11.mp3" },
-  { texto: "O que sua intimidade silenciosa diria sobre você?", audioUrl: "/audio/pergunta_12.mp3" },
+  // Domínio 2: Valores e Crenças Fundamentais
+  { texto: "O que é mais importante para você na vida?", audioUrl: "/audio/013.mp3", dominio: "Valores" },
+  { texto: "Qual é um princípio que você nunca quebraria?", audioUrl: "/audio/014.mp3", dominio: "Valores" },
+  { texto: "Em que você acredita que a maioria das pessoas não acredita?", audioUrl: "/audio/015.mp3", dominio: "Valores" },
+  { texto: "O que significa 'sucesso' para você?", audioUrl: "/audio/016.mp3", dominio: "Valores" },
+  { texto: "Qual foi a lição mais difícil que você já aprendeu?", audioUrl: "/audio/017.mp3", dominio: "Valores" },
+  { texto: "O que é 'felicidade' para você?", audioUrl: "/audio/018.mp3", dominio: "Valores" },
+  { texto: "Qual a sua opinião sobre espiritualidade ou religião?", audioUrl: "/audio/019.mp3", dominio: "Valores" },
+  { texto: "O que você valoriza mais em um relacionamento?", audioUrl: "/audio/020.mp3", dominio: "Valores" },
+  { texto: "Pelo que você é mais grato(a)?", audioUrl: "/audio/021.mp3", dominio: "Valores" },
+  { texto: "Qual a sua definição de 'uma vida bem vivida'?", audioUrl: "/audio/022.mp3", dominio: "Valores" },
+  { texto: "Qual crença sobre o mundo mais te influencia?", audioUrl: "/audio/023.mp3", dominio: "Valores" },
+  { texto: "Se você tivesse que defender uma causa, qual seria?", audioUrl: "/audio/024.mp3", dominio: "Valores" },
 
-  // --- 2. VALORES & PRINCÍPIOS ---
-  // Fundamentais
-  { texto: "O que permaneceria intocável se tudo ruísse ao redor?", audioUrl: "/audio/pergunta_13.mp3" },
-  { texto: "Qual princípio você defende mesmo quando custa algo a você?", audioUrl: "/audio/pergunta_14.mp3" },
-  { texto: "O que você se recusa a negociar, mesmo quando seria vantajoso?", audioUrl: "/audio/pergunta_15.mp3" },
-  // Aprofundamento
-  { texto: "Quais valores seus foram herdados e quais foram conquistados?", audioUrl: "/audio/pergunta_16.mp3" },
-  { texto: "Que valor você admira nos outros mas luta para incorporar?", audioUrl: "/audio/pergunta_17.mp3" },
-  { texto: "Em que situação seus valores entram em conflito entre si?", audioUrl: "/audio/pergunta_18.mp3" },
-  // Paradoxais
-  { texto: "Qual valor você defende publicamente mas viola em privado?", audioUrl: "/audio/pergunta_19.mp3" },
-  { texto: "O que você valoriza que também te aprisiona?", audioUrl: "/audio/pergunta_20.mp3" },
-  // Exploradoras
-  { texto: "Como seus valores influenciam sua rotina diária?", audioUrl: "/audio/pergunta_21.mp3" },
-  { texto: "Que valor você priorizaria se fosse seu mentor de 20 anos atrás?", audioUrl: "/audio/pergunta_22.mp3" },
-  { texto: "Qual valor seu mais surpreende quando se olha no espelho?", audioUrl: "/audio/pergunta_23.mp3" },
-  { texto: "Que princípio seu tem sido testado recentemente — e como reagiu?", audioUrl: "/audio/pergunta_24.mp3" },
+  // Domínio 3: Crenças sobre Si e o Mundo
+  { texto: "Você acredita em destino ou livre arbítrio?", audioUrl: "/audio/025.mp3", dominio: "CrencasSobreSi" },
+  { texto: "Qual é a sua maior crença limitante?", audioUrl: "/audio/026.mp3", dominio: "CrencasSobreSi" },
+  { texto: "Você se considera uma pessoa otimista ou pessimista?", audioUrl: "/audio/027.mp3", dominio: "CrencasSobreSi" },
+  { texto: "O que você acha que acontece depois da morte?", audioUrl: "/audio/028.mp3", dominio: "CrencasSobreSi" },
+  { texto: "Qual é a sua filosofia de vida?", audioUrl: "/audio/029.mp3", dominio: "CrencasSobreSi" },
+  { texto: "Você acredita que as pessoas podem mudar fundamentalmente?", audioUrl: "/audio/030.mp3", dominio: "CrencasSobreSi" },
+  { texto: "O que te dá esperança?", audioUrl: "/audio/031.mp3", dominio: "CrencasSobreSi" },
+  { texto: "Qual é a sua opinião sobre o fracasso?", audioUrl: "/audio/032.mp3", dominio: "CrencasSobreSi" },
+  { texto: "Qual é a coisa mais corajosa que você já fez?", audioUrl: "/audio/033.mp3", dominio: "CrencasSobreSi" },
+  { texto: "Você se sente mais energizado(a) sozinho(a) ou com outras pessoas?", audioUrl: "/audio/034.mp3", dominio: "CrencasSobreSi" },
+  { texto: "Qual é a sua maior conquista?", audioUrl: "/audio/035.mp3", dominio: "CrencasSobreSi" },
+  { texto: "O que é 'poder' para você?", audioUrl: "/audio/036.mp3", dominio: "CrencasSobreSi" },
 
-  // --- 3. CRENÇAS SOBRE SI ---
-  // Fundamentais
-  { texto: "Que história interna você conta sobre “ser suficiente”?", audioUrl: "/audio/pergunta_25.mp3" },
-  { texto: "Que limite autoimposto você suspeita que seja ilusório?", audioUrl: "/audio/pergunta_26.mp3" },
-  { texto: "O que você acredita ser incapaz de fazer que pode ser apenas medo?", audioUrl: "/audio/pergunta_27.mp3" },
-  // Aprofundamento
-  { texto: "Que qualidade você tem dificuldade em reconhecer em si mesmo?", audioUrl: "/audio/pergunta_28.mp3" },
-  { texto: "Qual habilidade sua é tão natural que você subestima seu valor?", audioUrl: "/audio/pergunta_29.mp3" },
-  { texto: "Que potencial em você permanece adormecido por autocensura?", audioUrl: "/audio/pergunta_30.mp3" },
-  // Paradoxais
-  { texto: "Em que aspecto você é simultaneamente seu maior aliado e sabotador?", audioUrl: "/audio/pergunta_31.mp3" },
-  { texto: "Que verdade sobre si mesmo você sabe intelectualmente, mas não sente emocionalmente?", audioUrl: "/audio/pergunta_32.mp3" },
-  // Exploradoras
-  { texto: "Que narrativa sua sobre “não merecimento” você carrega de longos anos?", audioUrl: "/audio/pergunta_33.mp3" },
-  { texto: "Como você explicaria seu “eu mais confiante” a si mesmo?", audioUrl: "/audio/pergunta_34.mp3" },
-  { texto: "Onde seu perfeccionismo já arruinou um momento importante?", audioUrl: "/audio/pergunta_35.mp3" },
-  { texto: "Que fase da vida foi a primeira em que você se sentiu “totalmente você”?", audioUrl: "/audio/pergunta_36.mp3" },
+  // Domínio 4: Relacionamentos e Conexões
+  { texto: "Quem é a pessoa mais importante na sua vida e por quê?", audioUrl: "/audio/037.mp3", dominio: "Relacionamentos" },
+  { texto: "O que você procura em um(a) amigo(a)?", audioUrl: "/audio/038.mp3", dominio: "Relacionamentos" },
+  { texto: "Descreva um momento em que se sentiu verdadeiramente conectado(a) a alguém.", audioUrl: "/audio/039.mp3", dominio: "Relacionamentos" },
+  { texto: "Como você lida com a perda de um relacionamento?", audioUrl: "/audio/040.mp3", dominio: "Relacionamentos" },
+  { texto: "O que é amor para você?", audioUrl: "/audio/041.mp3", dominio: "Relacionamentos" },
+  { texto: "Qual é o seu maior arrependimento em um relacionamento?", audioUrl: "/audio/042.mp3", dominio: "Relacionamentos" },
+  { texto: "Como você demonstra amor e afeto?", audioUrl: "/audio/043.mp3", dominio: "Relacionamentos" },
+  { texto: "Você perdoa facilmente?", audioUrl: "/audio/044.mp3", dominio: "Relacionamentos" },
+  { texto: "Qual foi o melhor conselho que você já recebeu de alguém?", audioUrl: "/audio/045.mp3", dominio: "Relacionamentos" },
+  { texto: "Como a sua família influenciou quem você é?", audioUrl: "/audio/046.mp3", dominio: "Relacionamentos" },
+  { texto: "Você se sente compreendido(a) pelas pessoas ao seu redor?", audioUrl: "/audio/047.mp3", dominio: "Relacionamentos" },
+  { texto: "O que te faz confiar em alguém?", audioUrl: "/audio/048.mp3", dominio: "Relacionamentos" },
 
-  // --- 4. CRENÇAS SOBRE O MUNDO/OUTROS ---
-  // Fundamentais
-  { texto: "O que o mundo parece estar lhe dizendo repetidamente?", audioUrl: "/audio/pergunta_37.mp3" },
-  { texto: "Qual padrão você percebe nas pessoas que entram em sua vida?", audioUrl: "/audio/pergunta_38.mp3" },
-  { texto: "Que regra não escrita você acredita que governa as interações humanas?", audioUrl: "/audio/pergunta_39.mp3" },
-  // Aprofundamento
-  { texto: "O que você espera dos outros sem nunca comunicar explicitamente?", audioUrl: "/audio/pergunta_40.mp3" },
-  { texto: "Que tipo de mundo você tenta criar no seu espaço de influência?", audioUrl: "/audio/pergunta_41.mp3" },
-  { texto: "Qual crença sobre a realidade você sustenta mesmo contra evidências?", audioUrl: "/audio/pergunta_42.mp3" },
-  // Paradoxais
-  { texto: "Em que sentido o mundo é simultaneamente justo e injusto para você?", audioUrl: "/audio/pergunta_43.mp3" },
-  { texto: "Que verdade sobre a natureza humana você aceita mas deseja que fosse diferente?", audioUrl: "/audio/pergunta_44.mp3" },
-  // Exploradoras
-  { texto: "Que lição o mundo te ensinou da forma mais brusca?", audioUrl: "/audio/pergunta_45.mp3" },
-  { texto: "O que você oferece ao mundo que inventou dentro de si?", audioUrl: "/audio/pergunta_46.mp3" },
-  { texto: "Em quem você confia cegamente — e por quê?", audioUrl: "/audio/pergunta_47.mp3" },
-  { texto: "Qual história coletiva (cultural/familiar) você carrega como verdade não questionada?", audioUrl: "/audio/pergunta_48.mp3" },
+  // Domínio 5: Trajetória de Vida e Experiências
+  { texto: "Qual foi o ponto de virada mais significativo na sua vida?", audioUrl: "/audio/049.mp3", dominio: "Trajetoria" },
+  { texto: "Se você pudesse reviver um dia da sua vida, qual seria?", audioUrl: "/audio/050.mp3", dominio: "Trajetoria" },
+  { texto: "Qual decisão mais mudou o rumo da sua vida?", audioUrl: "/audio/051.mp3", dominio: "Trajetoria" },
+  { texto: "Qual foi o maior desafio que você já superou?", audioUrl: "/audio/052.mp3", dominio: "Trajetoria" },
+  { texto: "O que você aprendeu com seus maiores erros?", audioUrl: "/audio/053.mp3", dominio: "Trajetoria" },
+  { texto: "Como você era há 10 anos? E como espera estar daqui a 10 anos?", audioUrl: "/audio/054.mp3", dominio: "Trajetoria" },
+  { texto: "Qual lugar que você visitou mais te impactou?", audioUrl: "/audio/055.mp3", dominio: "Trajetoria" },
+  { texto: "Qual experiência te ensinou mais sobre si mesmo(a)?", audioUrl: "/audio/056.mp3", dominio: "Trajetoria" },
+  { texto: "Qual é o seu maior arrependimento na vida?", audioUrl: "/audio/057.mp3", dominio: "Trajetoria" },
+  { texto: "Qual o cheiro, som ou sabor que mais te remete à infância?", audioUrl: "/audio/058.mp3", dominio: "Trajetoria" },
+  { texto: "Se você pudesse dar um conselho ao seu eu mais jovem, o que diria?", audioUrl: "/audio/059.mp3", dominio: "Trajetoria" },
+  { texto: "Qual história da sua vida você mais gosta de contar?", audioUrl: "/audio/060.mp3", dominio: "Trajetoria" },
 
-  // --- 5. EXPERIÊNCIAS FORMATIVAS ---
-  // Fundamentais
-  { texto: "Qual memória ainda arde quando você a visita?", audioUrl: "/audio/pergunta_49.mp3" },
-  { texto: "Que evento dividiu sua vida em “antes” e “depois”?", audioUrl: "/audio/pergunta_50.mp3" },
-  { texto: "Qual foi a decepção que mais moldou quem você é hoje?", audioUrl: "/audio/pergunta_51.mp3" },
-  // Aprofundamento
-  { texto: "Que dor você normalizou até esquecê-la como dor?", audioUrl: "/audio/pergunta_52.mp3" },
-  { texto: "Qual foi seu maior fracasso que, em retrospecto, foi um redirecionamento necessário?", audioUrl: "/audio/pergunta_53.mp3" },
-  { texto: "Que momento de conexão humana redefiniu sua compreensão de relacionamentos?", audioUrl: "/audio/pergunta_54.mp3" },
-  // Paradoxais
-  { texto: "Qual experiência foi simultaneamente a pior e a melhor coisa que te aconteceu?", audioUrl: "/audio/pergunta_55.mp3" },
-  { texto: "Que trauma você transformou em força, mas que ainda carrega vestígios de ferida?", audioUrl: "/audio/pergunta_56.mp3" },
-  // Exploradoras
-  { texto: "Que infância você cultiva em você hoje?", audioUrl: "/audio/pergunta_57.mp3" },
-  { texto: "Qual limite que você quebrou ainda reverbera em seus dias?", audioUrl: "/audio/pergunta_58.mp3" },
-  { texto: "Que silêncio na sua história precisa ser contado?", audioUrl: "/audio/pergunta_59.mp3" },
-  { texto: "Qual pessoa que você foi e não reconhece mais?", audioUrl: "/audio/pergunta_60.mp3" },
+  // Domínio 6: Emoções e Vida Interior
+  { texto: "Como você lida com a tristeza?", audioUrl: "/audio/061.mp3", dominio: "Emocoes" },
+  { texto: "O que te faz rir incontrolavelmente?", audioUrl: "/audio/062.mp3", dominio: "Emocoes" },
+  { texto: "Qual é o seu maior medo?", audioUrl: "/audio/063.mp3", dominio: "Emocoes" },
+  { texto: "Como você expressa a raiva?", audioUrl: "/audio/064.mp3", dominio: "Emocoes" },
+  { texto: "Descreva um momento de pura alegria.", audioUrl: "/audio/065.mp3", dominio: "Emocoes" },
+  { texto: "O que te deixa ansioso(a)?", audioUrl: "/audio/066.mp3", dominio: "Emocoes" },
+  { texto: "Como você se acalma quando está estressado(a)?", audioUrl: "/audio/067.mp3", dominio: "Emocoes" },
+  { texto: "Qual emoção você tem mais dificuldade em lidar?", audioUrl: "/audio/068.mp3", dominio: "Emocoes" },
+  { texto: "O que te comove profundamente?", audioUrl: "/audio/069.mp3", dominio: "Emocoes" },
+  { texto: "Você se considera uma pessoa emocionalmente expressiva?", audioUrl: "/audio/070.mp3", dominio: "Emocoes" },
+  { texto: "O que te faz sentir vulnerável?", audioUrl: "/audio/071.mp3", dominio: "Emocoes" },
+  { texto: "Qual é a sua relação com a solidão?", audioUrl: "/audio/072.mp3", dominio: "Emocoes" },
 
-  // --- 6. PADRÕES EMOCIONAIS ---
-  // Fundamentais
-  { texto: "Qual emoção você encontra mais difícil de expressar ou admitir?", audioUrl: "/audio/pergunta_61.mp3" },
-  { texto: "O que desencadeia sua resposta emocional mais intensa?", audioUrl: "/audio/pergunta_62.mp3" },
-  { texto: "Como você se comporta quando está emocionalmente sobrecarregado?", audioUrl: "/audio/pergunta_63.mp3" },
-  // Aprofundamento
-  { texto: "Que emoção você mascara com outra mais aceitável?", audioUrl: "/audio/pergunta_64.mp3" },
-  { texto: "Qual sentimento você associa ao seu “melhor eu”?", audioUrl: "/audio/pergunta_65.mp3" },
-  { texto: "Como você aprendeu a lidar com decepções?", audioUrl: "/audio/pergunta_66.mp3" },
-  // Paradoxais
-  { texto: "Em que situações sua calma exterior esconde turbulência interior?", audioUrl: "/audio/pergunta_67.mp3" },
-  { texto: "Qual emoção você teme que, se plenamente sentida, poderia te consumir?", audioUrl: "/audio/pergunta_68.mp3" },
-  // Exploradoras
-  { texto: "Em que momentos você chora, mesmo sozinho?", audioUrl: "/audio/pergunta_69.mp3" },
-  { texto: "Qual mágoa ainda ativa seu corpo quando lembrada?", audioUrl: "/audio/pergunta_70.mp3" },
-  { texto: "Como você celebra suas conquistas internamente?", audioUrl: "/audio/pergunta_71.mp3" },
-  { texto: "O que faz seu coração acelerar com alegria genuína?", audioUrl: "/audio/pergunta_72.mp3" },
+  // Domínio 7: Conflitos e Resiliência
+  { texto: "Como você lida com conflitos diretos?", audioUrl: "/audio/073.mp3", dominio: "Conflitos" },
+  { texto: "Descreva um momento em que você teve que defender suas crenças.", audioUrl: "/audio/074.mp3", dominio: "Conflitos" },
+  { texto: "Qual foi a última vez que você admitiu estar errado(a)?", audioUrl: "/audio/075.mp3", dominio: "Conflitos" },
+  { texto: "Como você reage sob pressão?", audioUrl: "/audio/076.mp3", dominio: "Conflitos" },
+  { texto: "O que a palavra 'resiliência' significa para você?", audioUrl: "/audio/077.mp3", dominio: "Conflitos" },
+  { texto: "Qual foi a crítica mais dura que você recebeu e como lidou com ela?", audioUrl: "/audio/078.mp3", dominio: "Conflitos" },
+  { texto: "Você guarda rancor?", audioUrl: "/audio/079.mp3", dominio: "Conflitos" },
+  { texto: "Qual foi a decisão mais difícil que você já teve que tomar?", audioUrl: "/audio/080.mp3", dominio: "Conflitos" },
+  { texto: "Como você define seus limites com outras pessoas?", audioUrl: "/audio/081.mp3", dominio: "Conflitos" },
+  { texto: "Descreva um fracasso que te fortaleceu.", audioUrl: "/audio/082.mp3", dominio: "Conflitos" },
+  { texto: "Quando você se sente mais poderoso(a)?", audioUrl: "/audio/083.mp3", dominio: "Conflitos" },
+  { texto: "Qual a sua estratégia para resolver um grande problema?", audioUrl: "/audio/084.mp3", dominio: "Conflitos" },
 
-  // --- 7. COGNIÇÃO & DECISÃO ---
-  // Fundamentais
-  { texto: "Cite uma escolha que grita “isso foi 100% eu”.", audioUrl: "/audio/pergunta_73.mp3" },
-  { texto: "Como você toma decisões quando a análise racional e a intuição divergem?", audioUrl: "/audio/pergunta_74.mp3" },
-  { texto: "Qual é seu processo para resolver problemas complexos?", audioUrl: "/audio/pergunta_75.mp3" },
-  // Aprofundamento
-  { texto: "Que tipo de decisões você tende a adiar ou evitar?", audioUrl: "/audio/pergunta_76.mp3" },
-  { texto: "Como você lida com incertezas quando precisa agir?", audioUrl: "/audio/pergunta_77.mp3" },
-  { texto: "Qual é sua relação com arrependimento em decisões passadas?", audioUrl: "/audio/pergunta_78.mp3" },
-  // Paradoxais
-  { texto: "Quando sua intuição provou estar simultaneamente errada e certa?", audioUrl: "/audio/pergunta_79.mp3" },
-  { texto: "Em que tipo de decisão você é excessivamente cuidadoso e impulsivo ao mesmo tempo?", audioUrl: "/audio/pergunta_80.mp3" },
-  // Exploradoras
-  { texto: "Que decisão mudou o curso da sua vida sem aviso?", audioUrl: "/audio/pergunta_81.mp3" },
-  { texto: "Como você decide quando está emocionalmente abalado?", audioUrl: "/audio/pergunta_82.mp3" },
-  { texto: "Qual risco você evitou que arrepende hoje?", audioUrl: "/audio/pergunta_83.mp3" },
-  { texto: "Que escolha futura você já antevê com ansiedade e esperança ao mesmo tempo?", audioUrl: "/audio/pergunta_84.mp3" },
+  // Domínio 8: Futuro, Sonhos e Aspirações
+  { texto: "Qual é o seu maior sonho?", audioUrl: "/audio/085.mp3", dominio: "Futuro" },
+  { texto: "O que você mais espera do futuro?", audioUrl: "/audio/086.mp3", dominio: "Futuro" },
+  { texto: "Se o dinheiro não fosse um problema, o que você faria da sua vida?", audioUrl: "/audio/087.mp3", dominio: "Futuro" },
+  { texto: "Que legado você gostaria de deixar?", audioUrl: "/audio/088.mp3", dominio: "Futuro" },
+  { texto: "Qual habilidade você mais gostaria de aprender?", audioUrl: "/audio/089.mp3", dominio: "Futuro" },
+  { texto: "Onde você se vê daqui a cinco anos?", audioUrl: "/audio/090.mp3", dominio: "Futuro" },
+  { texto: "Qual é o seu maior objetivo no momento?", audioUrl: "/audio/091.mp3", dominio: "Futuro" },
+  { texto: "O que te impede de alcançar seus sonhos?", audioUrl: "/audio/092.mp3", dominio: "Futuro" },
+  { texto: "Como seria um dia perfeito para você?", audioUrl: "/audio/093.mp3", dominio: "Futuro" },
+  { texto: "Que impacto você gostaria de ter no mundo?", audioUrl: "/audio/094.mp3", dominio: "Futuro" },
+  { texto: "Qual aventura você mais gostaria de viver?", audioUrl: "/audio/095.mp3", dominio: "Futuro" },
+  { texto: "O que te motiva a levantar da cama todos os dias?", audioUrl: "/audio/096.mp3", dominio: "Futuro" },
 
-  // --- 8. CONTRADIÇÕES & PONTOS CEGOS ---
-  // Fundamentais
-  { texto: "Qual incoerência você admite mas ainda não resolve?", audioUrl: "/audio/pergunta_85.mp3" },
-  { texto: "Que feedback recebido sobre você inicialmente rejeitou, mas depois reconheceu como verdade?", audioUrl: "/audio/pergunta_86.mp3" },
-  { texto: "Qual aspecto de si mesmo você tem dificuldade em enxergar claramente?", audioUrl: "/audio/pergunta_87.mp3" },
-  // Aprofundamento
-  { texto: "Em que área sua autopercepção mais diverge de como os outros te veem?", audioUrl: "/audio/pergunta_88.mp3" },
-  { texto: "Qual padrão autodestrutivo você só percebe em retrospecto?", audioUrl: "/audio/pergunta_89.mp3" },
-  { texto: "Que conselho você frequentemente dá aos outros mas raramente segue?", audioUrl: "/audio/pergunta_90.mp3" },
-  // Paradoxais
-  { texto: "Que qualidade sua é simultaneamente sua maior força e fraqueza?", audioUrl: "/audio/pergunta_91.mp3" },
-  { texto: "Qual crença você defende logicamente, mas emocionalmente rejeita?", audioUrl: "/audio/pergunta_92.mp3" },
-  // Exploradoras
-  { texto: "Em que momento seu comportamento surpreende quem te conhece?", audioUrl: "/audio/pergunta_93.mp3" },
-  { texto: "O que você se orgulha de esconder de si mesmo?", audioUrl: "/audio/pergunta_94.mp3" },
-  { texto: "Como o seu humor muda em silêncio?", audioUrl: "/audio/pergunta_95.mp3" },
-  { texto: "Que parte de você vive em negação mesmo quando surge clara?", audioUrl: "/audio/pergunta_96.mp3" },
-
-  // --- 9. AMBIÇÕES & MEDOS ---
-  // Fundamentais
-  { texto: "Se o medo tivesse voz, o que ele sussurra no seu ouvido?", audioUrl: "/audio/pergunta_97.mp3" },
-  { texto: "Que legado seria inaceitável deixar inacabado?", audioUrl: "/audio/pergunta_98.mp3" },
-  { texto: "O que você deseja secretamente, mas hesita em admitir até para si mesmo?", audioUrl: "/audio/pergunta_99.mp3" },
-  // Aprofundamento
-  { texto: "Qual aspiração você abandonou e por quê?", audioUrl: "/audio/pergunta_100.mp3" },
-  { texto: "Que tipo de fracasso você teme mais do que admite?", audioUrl: "/audio/pergunta_101.mp3" },
-  { texto: "Que sonho você adiou dizendo que “um dia fará”, mas que teme nunca tentar?", audioUrl: "/audio/pergunta_102.mp3" },
-  // Paradoxais
-  { texto: "O que você mais deseja que também mais teme alcançar?", audioUrl: "/audio/pergunta_103.mp3" },
-  { texto: "Que sucesso te assustaria mais do que um fracasso visível?", audioUrl: "/audio/pergunta_104.mp3" },
-  // Exploradoras
-  { texto: "Em qual momento você se pegou pensando “isso não era pra mim”?", audioUrl: "/audio/pergunta_105.mp3" },
-  { texto: "Quando foi a última vez que se sentiu verdadeiramente orgulhoso de si?", audioUrl: "/audio/pergunta_106.mp3" },
-  { texto: "O que você quer muito e ao mesmo tempo teme que aconteça de verdade?", audioUrl: "/audio/pergunta_107.mp3" },
-  { texto: "Qual mudança de vida você sabe que precisa fazer, mas ainda não começou?", audioUrl: "/audio/pergunta_108.mp3" },
+  // Domínio 9: Sentido e Propósito
+  { texto: "Qual você acredita ser o seu propósito na vida?", audioUrl: "/audio/097.mp3", dominio: "SentidoEProposito" },
+  { texto: "O que dá sentido à sua vida?", audioUrl: "/audio/098.mp3", dominio: "SentidoEProposito" },
+  { texto: "Se você descobrisse que tem apenas mais um ano de vida, o que faria?", audioUrl: "/audio/099.mp3", dominio: "SentidoEProposito" },
+  { texto: "Pelo que vale a pena lutar?", audioUrl: "/audio/100.mp3", dominio: "SentidoEProposito" },
+  { texto: "Como você contribui para o bem-estar dos outros?", audioUrl: "/audio/101.mp3", dominio: "SentidoEProposito" },
+  { texto: "O que é mais importante: a jornada ou o destino?", audioUrl: "/audio/102.mp3", dominio: "SentidoEProposito" },
+  { texto: "Quando você se sente mais realizado(a)?", audioUrl: "/audio/103.mp3", dominio: "SentidoEProposito" },
+  { texto: "Qual é a pergunta mais importante que uma pessoa pode fazer a si mesma?", audioUrl: "/audio/104.mp3", dominio: "SentidoEProposito" },
+  { texto: "O que você quer que as pessoas se lembrem sobre você?", audioUrl: "/audio/105.mp3", dominio: "SentidoEProposito" },
+  { texto: "Como você encontra significado nas dificuldades?", audioUrl: "/audio/106.mp3", dominio: "SentidoEProposito" },
+  { texto: "O que te inspira a ser uma pessoa melhor?", audioUrl: "/audio/107.mp3", dominio: "SentidoEProposito" },
+  { texto: "Qual é a pergunta que você gostaria que eu tivesse feito?", audioUrl: "/audio/108.mp3", dominio: "SentidoEProposito" },
 ];
 
-export const criarPerfilInicial = (): ExpertProfile => ({
-    cobertura_dominios: {
-      'IDENTIDADE & NARRATIVA': 0,
-      'VALORES & PRINCÍPIOS': 0,
-      'CRENÇAS SOBRE SI': 0,
-      'CRENÇAS SOBRE O MUNDO/OUTROS': 0,
-      'EXPERIÊNCIAS FORMATIVAS': 0,
-      'PADRÕES EMOCIONAIS': 0,
-      'COGNIÇÃO & DECISÃO': 0,
-      'CONTRADIÇÕES & PONTOS CEGOS': 0,
-      'AMBIÇÕES & MEDOS': 0,
+
+/**
+ * Cria e retorna um perfil de especialista inicial, zerado.
+ */
+export function criarPerfilInicial(): ExpertProfile {
+  return {
+    bigFive: { Openness: 0, Conscientiousness: 0, Extraversion: 0, Agreeableness: 0, Neuroticism: 0 },
+    valoresSchwartz: {
+      'Self-Direction': 0, Stimulation: 0, Hedonism: 0, Achievement: 0, Power: 0,
+      Security: 0, Conformity: 0, Tradition: 0, Benevolence: 0, Universalism: 0,
     },
-    metricas: {
-      big_five: {
-        Openness: 0,
-        Conscientiousness: 0,
-        Extraversion: 0,
-        Agreeableness: 0,
-        Neuroticism: 0,
-      },
-      valores_schwartz: {
-        'Self-Direction': 0,
-        Benevolence: 0,
-        Universalism: 0,
-      },
-      motivadores: {
-        Autonomy: 0,
-        Purpose: 0,
-        Belonging: 0,
-      },
-      analise_vocal: {
-        hesitacoes: 0,
-      },
+    motivadores: { Purpose: 0, Autonomy: 0, Mastery: 0, Connection: 0 },
+    coberturaDominios: {
+      Identidade: 0, Valores: 0, CrencasSobreSi: 0, Relacionamentos: 0,
+      Trajetoria: 0, Emocoes: 0, Conflitos: 0, Futuro: 0, SentidoEProposito: 0
     },
-    analise_narrativa: {
-      contradicoes_detectadas: [],
-      metaforas_centrais: [],
-    },
-    fragmentos_processados: 0,
-});
+    metricas: { contradicoes: 0, metaforas: 0 },
+    metaforasCentrais: [],
+    conflitosDeValorDetectados: [],
+  };
+}
 
-export const CARTA_ESPELHO_TEMPLATE = `
-## Carta Espelho
-Pelo que você compartilhou, percebo uma força motriz principal em você que é a busca por **{motivador_principal}**. Parece que ter a liberdade para traçar seu próprio caminho e tomar suas decisões é fundamental. Isso se conecta com um valor secundário de **{valor_secundario}**, uma necessidade de sentir que pertence e é compreendido.
-
-Seu valor central parece ser a **{valor_principal}**. Isso se manifesta em como você interage com o mundo e com os outros. No seu perfil de personalidade (Big Five), isso se reflete em um traço de **{traco_big_five}**, sugerindo uma forte conexão entre seus valores e sua forma de ser.
-`;
-
-export const RELATORIO_FINAL_TEMPLATE = `
-# Relatório de Análise de Perfil
-
-{carta_espelho}
-
----
-
-### Análise Detalhada
-
-**Metáforas Centrais:**
-As imagens que você usa para descrever suas experiências, como "{metaforas}", revelam muito sobre sua percepção do mundo.
-
-**Hierarquia de Valores (Schwartz):**
-Seus valores mais presentes são: {valores_hierarquia}.
-- Self-Direction: {self_direction}
-- Benevolence: {benevolence}
-- Universalism: {universalism}
-
-**Conflitos de Valores:**
-Foi detectado um possível ponto de tensão entre: {conflitos_valores}.
-
-**Perfil Big Five:**
-- Abertura a Experiências (Openness): {openness}
-- Conscienciosidade (Conscientiousness): {conscientiousness}
-- Extroversão (Extraversion): {extraversion}
-- Amabilidade (Agreeableness): {agreeableness}
-- Neuroticismo (Neuroticism): {neuroticism}
-
-**Motivadores Primários:**
-- Autonomia: {autonomy}
-- Propósito: {purpose}
-- Pertencimento: {belonging}
-
-**Análise Vocal (Sinais de Processamento):**
-- Hesitações/Contradições: {hesitacoes}
-`;
+// Os templates de relatório podem ser mantidos aqui se desejado
+export const CARTA_ESPELHO_TEMPLATE = `...`;
+export const RELATORIO_FINAL_TEMPLATE = `...`;
