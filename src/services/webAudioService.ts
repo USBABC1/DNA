@@ -3,10 +3,17 @@
 let audioContext: AudioContext | null = null;
 let source: AudioBufferSourceNode | null = null;
 
-export const initAudio = () => {
-  if (!audioContext) {
-    audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-  }
+export const initAudio = (): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    try {
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      resolve();
+    } catch (error) {
+      reject(error);
+    }
+  });
 };
 
 export const stopAudio = () => {
@@ -21,7 +28,12 @@ export const playAudioFromUrl = (url: string, onEnded: () => void): Promise<void
   return new Promise(async (resolve, reject) => {
     if (!audioContext) {
       // Embora a inicialização seja feita na ação do usuário, isso serve como uma garantia.
-      initAudio();
+      try {
+        await initAudio();
+      } catch (error) {
+        return reject(new Error('AudioContext não pôde ser inicializado.'));
+      }
+      
       if (!audioContext) {
         return reject(new Error('AudioContext não pôde ser inicializado.'));
       }
