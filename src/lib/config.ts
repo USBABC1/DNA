@@ -1,10 +1,13 @@
 // src/lib/config.ts
 
-import { ExpertProfile, Pergunta } from './types';
+import { Pergunta, ExpertProfile } from './types';
 
+// URL do áudio de apresentação
+export const APRESENTACAO_AUDIO_URL = "/audio/001.mp3";
+
+// A lista de perguntas agora começa do áudio 002, contendo 107 perguntas.
 export const PERGUNTAS_DNA: Pergunta[] = [
   // Domínio 1: Identidade e Autoconceito
-  { texto: "Quem é você?", audioUrl: "/audio/001.mp3", dominio: "Identidade" },
   { texto: "Como você se descreveria em três palavras?", audioUrl: "/audio/002.mp3", dominio: "Identidade" },
   { texto: "Qual é a sua memória mais antiga e o que ela diz sobre você?", audioUrl: "/audio/003.mp3", dominio: "Identidade" },
   { texto: "Qual é a sua maior força?", audioUrl: "/audio/004.mp3", dominio: "Identidade" },
@@ -151,7 +154,3 @@ export function criarPerfilInicial(): ExpertProfile {
     conflitosDeValorDetectados: [],
   };
 }
-
-// Os templates de relatório podem ser mantidos aqui se desejado
-export const CARTA_ESPELHO_TEMPLATE = `...`;
-export const RELATORIO_FINAL_TEMPLATE = `...`;
