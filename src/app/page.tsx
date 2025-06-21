@@ -6,10 +6,10 @@ import { Mic, Square, Play, BarChart2, AlertCircle, LoaderCircle, Sparkles, Brai
 
 // Mock data - substitua pelos seus dados reais
 const PERGUNTAS_DNA = [
-  { texto: "Bem-vindo! Esta é uma apresentação do nosso sistema de análise narrativa.", audioUrl: "/audio/intro.mp3" },
-  { texto: "Conte-me sobre um momento que marcou sua vida profissional.", audioUrl: "/audio/q1.mp3" },
-  { texto: "Como você lida com situações de pressão?", audioUrl: "/audio/q2.mp3" },
-  { texto: "Qual é sua maior motivação no trabalho?", audioUrl: "/audio/q3.mp3" },
+  { texto: "Bem-vindo! Esta é uma apresentação do nosso sistema de análise narrativa.", audioUrl: "/audio/000.mp3" },
+  { texto: "Conte-me sobre um momento que marcou sua vida profissional.", audioUrl: "/audio/001.mp3" },
+  { texto: "Como você lida com situações de pressão?", audioUrl: "/audio/002.mp3" },
+  { texto: "Qual é sua maior motivação no trabalho?", audioUrl: "/audio/003.mp3" },
 ];
 
 const criarPerfilInicial = () => ({ score: 0, traits: [] });
