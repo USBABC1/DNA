@@ -64,10 +64,9 @@ export interface ExpertProfile {
 
 // Define os possíveis estados da sessão para controlar a UI
 export type SessionStatus =
-  | 'presenting' // <-- NOVO ESTADO ADICIONADO
-  | 'idle'
-  | 'listening'
-  | 'waiting_for_user'
-  | 'recording'
-  | 'processing'
-  | 'finished';
+  | 'idle' // Estado inicial
+  | 'listening' // Ouvindo a pergunta/apresentação
+  | 'waiting_for_user' // Aguardando gravação
+  | 'recording' // Gravando
+  | 'processing' // Processando a resposta
+  | 'finished'; // Sessão finalizada
