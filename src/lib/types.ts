@@ -64,7 +64,6 @@ export interface ExpertProfile {
 
 // Define os possíveis estados da sessão para controlar a UI
 export type SessionStatus =
-  | 'presenting' // <-- Adicionado novamente
   | 'idle'
   | 'listening'
   | 'waiting_for_user'
