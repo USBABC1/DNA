@@ -1,139 +1,105 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import { Canvas } from '@react-three/fiber';
+// Importações essenciais do React e bibliotecas
+import React from 'react';
+
+// Componentes de UI e utilitários
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { cn } from '@/lib/utils';
+
+// Animação e elementos 3D
+import { Canvas, useFrame } from '@react-three/fiber';
 import { Stars } from '@react-three/drei';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mic, Play, Square, Loader, BrainCircuit, BotMessageSquare, FileText, Volume2, VolumeX } from 'lucide-react';
+import { AudioWaveform, BrainCircuit, FileText, Mic, Play, Square, Loader2, Volume2, VolumeX } from 'lucide-react';
 
+// Lógica de negócio e tipos
 import { PERGUNTAS_DNA, criarPerfilInicial } from '../lib/config';
 import { analisarFragmento, gerarSinteseFinal } from '../lib/analysisEngine';
-import { ExpertProfile, SessionStatus, Pergunta } from '../lib/types';
+import type { ExpertProfile, SessionStatus, Pergunta } from '../lib/types';
 import { initAudio, playAudioFromUrl, startRecording, stopRecording } from '../services/webAudioService';
 
 /**
- * Envia o áudio para a nossa rota de API interna para ser transcrito pela Deepgram.
- * @param audioBlob O áudio gravado no formato Blob.
- * @returns A transcrição em texto.
+ * Hook customizado para gerenciar a lógica de transcrição e análise.
  */
-async function transcribeAudio(audioBlob: Blob): Promise<string> {
-  console.log("A enviar áudio para a API de transcrição:", audioBlob.size, audioBlob.type);
+function useDnaLogic() {
+  const [status, setStatus] = React.useState<SessionStatus>('idle');
+  const [perguntaAtual, setPerguntaAtual] = React.useState<Pergunta | null>(null);
+  const [perfil, setPerfil] = React.useState<ExpertProfile>(criarPerfilInicial());
+  const [relatorioFinal, setRelatorioFinal] = React.useState<string>('');
+  const [audioEnabled, setAudioEnabled] = React.useState(true);
+  const [progress, setProgress] = React.useState(0);
+  const perguntaIndex = React.useRef(0);
 
-  try {
-    const response = await fetch('/api/transcribe', {
-      method: 'POST',
-      body: audioBlob,
-    });
+  React.useEffect(() => {
+    initAudio();
+  }, []);
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || `Erro do servidor: ${response.statusText}`);
+  const transcreverAudio = async (audioBlob: Blob): Promise<string> => {
+    setStatus('processing');
+    console.log("Enviando áudio para transcrição:", audioBlob.size, audioBlob.type);
+    try {
+      const response = await fetch('/api/transcribe', {
+        method: 'POST',
+        body: audioBlob,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Erro do servidor: ${response.statusText}`);
+      }
+      const data = await response.json();
+      console.log("Transcrição recebida:", data.transcript);
+      return data.transcript;
+    } catch (error) {
+      console.error('Falha ao transcrever áudio:', error);
+      // Aqui você poderia notificar o usuário com um toast
+      return "Desculpe, não consegui processar a sua resposta. Vamos tentar a próxima pergunta.";
     }
+  };
 
-    const data = await response.json();
-    console.log("Transcrição recebida:", data.transcript);
-    return data.transcript;
+  const fazerProximaPergunta = React.useCallback(async () => {
+    if (perguntaIndex.current < PERGUNTAS_DNA.length) {
+      const pergunta = PERGUNTAS_DNA[perguntaIndex.current];
+      setPerguntaAtual(pergunta);
+      setStatus('listening');
+      setProgress(((perguntaIndex.current + 1) / PERGUNTAS_DNA.length) * 100);
 
-  } catch (error) {
-    console.error('Não foi possível transcrever o áudio:', error);
-    return "Desculpe, não consegui processar a sua resposta. Vamos tentar a próxima pergunta.";
-  }
-}
-
-// Animações aprimoradas
-const containerVariants = {
-  hidden: { opacity: 0, scale: 0.98, y: 20 },
-  visible: { 
-    opacity: 1, 
-    scale: 1, 
-    y: 0,
-    transition: { 
-      duration: 0.6,
-      ease: [0.25, 0.46, 0.45, 0.94],
-      staggerChildren: 0.15 
-    } 
-  },
-  exit: { 
-    opacity: 0, 
-    scale: 0.98, 
-    y: -20,
-    transition: { duration: 0.3 }
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 30, scale: 0.95 },
-  visible: { 
-    opacity: 1, 
-    y: 0, 
-    scale: 1,
-    transition: { 
-      type: 'spring', 
-      stiffness: 120,
-      damping: 15,
-      mass: 0.8
-    } 
-  },
-};
-
-const pulseVariants = {
-  idle: { scale: 1, opacity: 0.8 },
-  active: { 
-    scale: [1, 1.05, 1], 
-    opacity: [0.8, 1, 0.8],
-    transition: { 
-      repeat: Infinity, 
-      duration: 2,
-      ease: "easeInOut"
+      if (audioEnabled) {
+        await playAudioFromUrl(pergunta.audioUrl, () => setStatus('waiting_for_user'));
+      } else {
+        setTimeout(() => setStatus('waiting_for_user'), 1000); // Pequeno delay para leitura
+      }
+      perguntaIndex.current++;
+    } else {
+      setStatus('processing');
+      const sintese = gerarSinteseFinal(perfil);
+      setRelatorioFinal(sintese);
+      setStatus('finished');
+      setProgress(100);
     }
-  },
-};
+  }, [audioEnabled, perfil]);
 
-const DNAInterface = () => {
-  const [status, setStatus] = useState<SessionStatus>('idle');
-  const [perguntaAtual, setPerguntaAtual] = useState<Pergunta | null>(null);
-  const [perfil, setPerfil] = useState<ExpertProfile>(criarPerfilInicial());
-  const [relatorioFinal, setRelatorioFinal] = useState<string>('');
-  const [audioEnabled, setAudioEnabled] = useState(true);
-  const [progress, setProgress] = useState(0);
-  const perguntaIndex = useRef(0);
-
-  useEffect(() => { initAudio(); }, []);
-
-  // Atualizar progresso
-  useEffect(() => {
-    if (PERGUNTAS_DNA.length > 0) {
-      setProgress((perguntaIndex.current / PERGUNTAS_DNA.length) * 100);
-    }
-  }, [perguntaIndex.current]);
-
-  const iniciarSessao = () => {
+  const iniciarSessao = React.useCallback(() => {
     perguntaIndex.current = 0;
     setPerfil(criarPerfilInicial());
     setRelatorioFinal('');
     setProgress(0);
     fazerProximaPergunta();
-  };
+  }, [fazerProximaPergunta]);
 
-  const fazerProximaPergunta = async () => {
-    if (perguntaIndex.current < PERGUNTAS_DNA.length) {
-      const pergunta = PERGUNTAS_DNA[perguntaIndex.current];
-      setPerguntaAtual(pergunta);
-      setStatus('listening');
-      
-      if (audioEnabled) {
-        await playAudioFromUrl(pergunta.audioUrl, () => setStatus('waiting_for_user'));
-      } else {
-        setStatus('waiting_for_user');
-      }
-      
-      perguntaIndex.current++;
-      setProgress((perguntaIndex.current / PERGUNTAS_DNA.length) * 100);
-    } else {
-      finalizarSessao();
+  const processarResposta = React.useCallback(async (audioBlob: Blob) => {
+    const transcricao = await transcreverAudio(audioBlob);
+
+    if (perguntaAtual) {
+      const perfilAtualizado = analisarFragmento(transcricao, perfil, perguntaAtual);
+      setPerfil(perfilAtualizado);
     }
-  };
-  
+    fazerProximaPergunta();
+  }, [perguntaAtual, perfil, fazerProximaPergunta]);
+
   const handleStartRecording = async () => {
     try {
       await startRecording();
@@ -141,6 +107,7 @@ const DNAInterface = () => {
     } catch (error) {
       console.error("Erro ao iniciar gravação:", error);
       setStatus('waiting_for_user');
+      // Adicionar feedback para o usuário (ex: toast de erro)
     }
   };
 
@@ -148,308 +115,294 @@ const DNAInterface = () => {
     try {
       setStatus('processing');
       const audioBlob = await stopRecording();
-      
-      if (audioBlob.size < 1000) {
-        console.warn("Gravação muito curta, a saltar o processamento.");
+      if (audioBlob.size < 1000) { // Validação de áudio muito curto
+        console.warn("Gravação muito curta, pulando processamento.");
         fazerProximaPergunta();
         return;
       }
-      
       await processarResposta(audioBlob);
     } catch (error) {
       console.error("Erro ao parar gravação:", error);
-      setStatus('waiting_for_user');
+      fazerProximaPergunta(); // Continua para a próxima pergunta mesmo em caso de erro
     }
   };
-
-  const processarResposta = async (audioBlob: Blob) => {
-    const transcricao = await transcribeAudio(audioBlob);
-    
-    if (!transcricao.trim() || transcricao.startsWith("Desculpe, não consegui processar")) {
-      console.log("Transcrição vazia ou com erro, a tentar a pergunta novamente.");
-      perguntaIndex.current--; 
-      fazerProximaPergunta();
-      return;
-    }
-    
-    // Verificar se perguntaAtual não é null antes de passar para a função
-    if (perguntaAtual) {
-      const perfilAtualizado = analisarFragmento(transcricao, perfil, perguntaAtual);
-      setPerfil(perfilAtualizado);
-    }
-    fazerProximaPergunta();
+  
+  return {
+    status,
+    perguntaAtual,
+    relatorioFinal,
+    progress,
+    audioEnabled,
+    perguntaIndex: perguntaIndex.current,
+    totalPerguntas: PERGUNTAS_DNA.length,
+    iniciarSessao,
+    handleStartRecording,
+    handleStopRecording,
+    setAudioEnabled,
   };
+}
 
-  const finalizarSessao = () => {
-    const sintese = gerarSinteseFinal(perfil);
-    setRelatorioFinal(sintese);
-    setStatus('finished');
-    setProgress(100);
-  };
+/**
+ * Componente da Hélice de DNA para o fundo 3D.
+ */
+function DnaHelix() {
+  const ref = React.useRef<THREE.Group>(null!);
+  const count = 60;
+  const radius = 3;
 
-  const renderContent = () => {
-    switch (status) {
-      case 'idle':
+  useFrame((state, delta) => {
+    if (ref.current) {
+      ref.current.rotation.y += delta * 0.1;
+      ref.current.rotation.x += delta * 0.05;
+    }
+  });
+
+  return (
+    <group ref={ref}>
+      {Array.from({ length: count * 2 }).map((_, i) => {
+        const angle = (i / count) * Math.PI * 4;
+        const y = (i / count) * 12 - 6;
+        const color = i % 2 === 0 ? '#4f46e5' : '#ec4899';
+        
         return (
-          <motion.div 
-            key="idle" 
-            variants={containerVariants} 
-            initial="hidden" 
-            animate="visible" 
-            exit="exit" 
-            className="text-center space-y-8"
-          >
-            <motion.div variants={itemVariants} className="relative">
-              <motion.div 
-                variants={pulseVariants}
-                animate="active"
-                className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-full blur-2xl"
-              />
-              <BrainCircuit className="relative mx-auto h-32 w-32 text-transparent bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text" strokeWidth={1}/>
-            </motion.div>
-            
-            <motion.div variants={itemVariants} className="space-y-4">
-              <h1 className="text-5xl md:text-7xl font-extrabold bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent font-heading">
-                DNA
-              </h1>
-              <h2 className="text-2xl md:text-3xl font-light text-gray-300">
-                Deep Narrative Analysis
-              </h2>
-              <p className="text-lg text-gray-400 max-w-2xl mx-auto leading-relaxed">
-                Uma jornada interativa de autoanálise através da sua narrativa pessoal. 
-                Descubra padrões profundos no seu discurso e pensamento.
-              </p>
-            </motion.div>
-
-            <motion.div variants={itemVariants} className="flex flex-col items-center gap-6">
-              <button 
-                onClick={iniciarSessao} 
-                className="group relative flex items-center gap-3 px-12 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold rounded-full text-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 shadow-2xl shadow-blue-500/25 overflow-hidden"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-400 opacity-0 group-hover:opacity-20 transition-opacity duration-300" />
-                <Play className="relative z-10" />
-                <span className="relative z-10">Iniciar Análise</span>
-              </button>
-              
-              <button
-                onClick={() => setAudioEnabled(!audioEnabled)}
-                className="flex items-center gap-2 px-6 py-2 text-gray-400 hover:text-white transition-colors duration-200"
-              >
-                {audioEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
-                <span className="text-sm">{audioEnabled ? 'Áudio Ativado' : 'Áudio Desativado'}</span>
-              </button>
-            </motion.div>
-          </motion.div>
+          <mesh key={i} position={[radius * Math.cos(angle), y, radius * Math.sin(angle)]}>
+            <sphereGeometry args={[0.2, 16, 16]} />
+            <meshStandardMaterial color={color} emissive={color} emissiveIntensity={2} toneMapped={false} />
+          </mesh>
         );
-      
-      case 'listening':
+      })}
+    </group>
+  );
+}
+
+/**
+ * Tela de Boas-Vindas
+ */
+const WelcomeScreen = ({ onStart, onToggleAudio, audioEnabled }: { onStart: () => void; onToggleAudio: () => void; audioEnabled: boolean; }) => (
+  <motion.div
+    key="idle"
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -20 }}
+    transition={{ duration: 0.5 }}
+    className="flex flex-col items-center text-center"
+  >
+    <Card className="w-full max-w-2xl bg-black/30 backdrop-blur-lg border-white/10">
+      <CardHeader>
+        <motion.div
+          initial={{ scale: 0.5, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.2, type: 'spring', stiffness: 150 }}
+        >
+          <BrainCircuit className="mx-auto h-20 w-20 text-indigo-400" strokeWidth={1}/>
+        </motion.div>
+        <CardTitle className="text-6xl font-extrabold tracking-tighter bg-gradient-to-br from-white via-indigo-300 to-pink-300 bg-clip-text text-transparent pb-2">
+          DNA
+        </CardTitle>
+        <CardDescription className="text-xl text-indigo-200/80">
+          Deep Narrative Analysis
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <p className="text-lg text-gray-300 leading-relaxed">
+          Uma jornada interativa de autoanálise através da sua narrativa pessoal.
+          Descubra os padrões profundos que moldam seu discurso e pensamento.
+        </p>
+      </CardContent>
+      <CardFooter className="flex-col gap-4">
+        <Button onClick={onStart} size="lg" className="w-full max-w-xs text-lg font-bold">
+          <Play className="mr-2 h-5 w-5" />
+          Iniciar Análise
+        </Button>
+        <Button onClick={onToggleAudio} variant="ghost" size="sm" className="text-gray-400 hover:text-white">
+          {audioEnabled ? <Volume2 className="mr-2 h-4 w-4" /> : <VolumeX className="mr-2 h-4 w-4" />}
+          {audioEnabled ? 'Áudio Ativado' : 'Áudio Desativado'}
+        </Button>
+      </CardFooter>
+    </Card>
+  </motion.div>
+);
+
+/**
+ * Tela da Sessão de Perguntas
+ */
+const SessionScreen = ({
+  status,
+  pergunta,
+  progress,
+  currentIndex,
+  total,
+  onStartRecording,
+  onStopRecording
+}: {
+  status: SessionStatus;
+  pergunta: Pergunta | null;
+  progress: number;
+  currentIndex: number;
+  total: number;
+  onStartRecording: () => void;
+  onStopRecording: () => void;
+}) => {
+  const getButton = () => {
+    switch(status) {
       case 'waiting_for_user':
+        return (
+          <Button onClick={onStartRecording} size="lg" className="w-full max-w-xs text-lg font-bold bg-green-600 hover:bg-green-700 text-white animate-pulse">
+            <Mic className="mr-2 h-5 w-5" />
+            Gravar Resposta
+          </Button>
+        );
       case 'recording':
+        return (
+          <Button onClick={onStopRecording} size="lg" className="w-full max-w-xs text-lg font-bold bg-red-600 hover:bg-red-700 text-white">
+            <Square className="mr-2 h-5 w-5 animate-pulse" />
+            Parar Gravação
+          </Button>
+        );
       case 'processing':
         return (
-          <motion.div 
-            key="session" 
-            variants={containerVariants} 
-            initial="hidden" 
-            animate="visible" 
-            exit="exit" 
-            className="text-center space-y-8"
-          >
-            {/* Barra de Progresso */}
-            <motion.div variants={itemVariants} className="w-full max-w-md mx-auto">
-              <div className="flex justify-between text-sm text-gray-400 mb-2">
-                <span>Pergunta {perguntaIndex.current}</span>
-                <span>{PERGUNTAS_DNA.length} total</span>
-              </div>
-              <div className="w-full bg-gray-800 rounded-full h-2 overflow-hidden">
-                <motion.div 
-                  className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${progress}%` }}
-                  transition={{ duration: 0.5, ease: "easeOut" }}
-                />
-              </div>
-            </motion.div>
-
-            <motion.div variants={itemVariants} className="relative">
-              <motion.div 
-                variants={pulseVariants}
-                animate={status === 'listening' ? "active" : "idle"}
-                className="absolute inset-0 bg-gradient-to-r from-green-500/20 to-blue-500/20 rounded-full blur-xl"
-              />
-              <BotMessageSquare className="relative mx-auto h-20 w-20 text-blue-400" strokeWidth={1.5}/>
-            </motion.div>
-            
-            {perguntaAtual && (
-              <motion.div variants={itemVariants} className="space-y-4">
-                <div className="bg-gray-900/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-8 min-h-[120px] flex items-center justify-center">
-                  <p className="text-2xl md:text-3xl font-light text-gray-100 leading-relaxed text-center">
-                    {perguntaAtual.texto}
-                  </p>
-                </div>
-              </motion.div>
-            )}
-            
-            <motion.div variants={itemVariants} className="h-24 flex items-center justify-center">
-              {status === 'listening' && (
-                <div className="flex items-center gap-3 text-blue-400">
-                  <motion.div 
-                    animate={{ scale: [1, 1.2, 1] }}
-                    transition={{ repeat: Infinity, duration: 1.5 }}
-                  >
-                    <Volume2 />
-                  </motion.div>
-                  <span className="text-lg animate-pulse">A reproduzir pergunta...</span>
-                </div>
-              )}
-              
-              {status === 'waiting_for_user' && (
-                <button 
-                  onClick={handleStartRecording} 
-                  className="group relative flex items-center gap-3 px-10 py-4 bg-gradient-to-r from-green-600 to-blue-600 text-white font-bold rounded-full text-lg hover:from-green-700 hover:to-blue-700 transition-all duration-300 transform hover:scale-105 shadow-xl shadow-green-500/25"
-                >
-                  <motion.div
-                    animate={{ scale: [1, 1.1, 1] }}
-                    transition={{ repeat: Infinity, duration: 2 }}
-                  >
-                    <Mic />
-                  </motion.div>
-                  Gravar Resposta
-                </button>
-              )}
-              
-              {status === 'recording' && (
-                <button 
-                  onClick={handleStopRecording} 
-                  className="relative flex items-center gap-3 px-10 py-4 bg-gradient-to-r from-red-600 to-pink-600 text-white font-bold rounded-full text-lg transition-all duration-300 overflow-hidden"
-                >
-                  <motion.div
-                    animate={{ opacity: [1, 0.5, 1] }}
-                    transition={{ repeat: Infinity, duration: 1 }}
-                  >
-                    <Square />
-                  </motion.div>
-                  <span>Parar Gravação</span>
-                  <motion.div 
-                    className="absolute inset-0 bg-red-400/20"
-                    animate={{ opacity: [0, 0.3, 0] }}
-                    transition={{ repeat: Infinity, duration: 1.5 }}
-                  />
-                </button>
-              )}
-              
-              {status === 'processing' && (
-                <div className="flex items-center gap-3 text-purple-400">
-                  <Loader className="animate-spin h-6 w-6" />
-                  <span className="text-lg">A analisar resposta...</span>
-                </div>
-              )}
-            </motion.div>
-          </motion.div>
+          <Button disabled size="lg" className="w-full max-w-xs text-lg font-bold">
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            Analisando...
+          </Button>
         );
-
-      case 'finished':
+      case 'listening':
         return (
-          <motion.div 
-            key="finished" 
-            variants={containerVariants} 
-            initial="hidden" 
-            animate="visible" 
-            exit="exit" 
-            className="w-full space-y-8"
-          >
-            <motion.div variants={itemVariants} className="text-center space-y-4">
-              <motion.div 
-                variants={pulseVariants}
-                animate="active"
-                className="relative mx-auto w-24 h-24"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-green-500/20 to-blue-500/20 rounded-full blur-xl" />
-                <FileText className="relative mx-auto h-24 w-24 text-transparent bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text" strokeWidth={1}/>
-              </motion.div>
-              
-              <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">
-                Análise Completa
-              </h1>
-              <p className="text-lg text-gray-400">
-                O seu relatório de análise narrativa está pronto
-              </p>
-            </motion.div>
-            
-            <motion.div 
-              variants={itemVariants} 
-              className="relative bg-gray-900/70 backdrop-blur-sm border border-gray-700 rounded-2xl p-8 shadow-2xl"
-            >
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-green-500 to-blue-500 rounded-t-2xl" />
-              <div className="text-left whitespace-pre-wrap font-mono text-sm leading-relaxed overflow-auto max-h-[60vh] text-gray-300">
-                {relatorioFinal}
-              </div>
-            </motion.div>
-            
-            <motion.div variants={itemVariants} className="text-center">
-              <button 
-                onClick={iniciarSessao} 
-                className="group relative flex items-center gap-3 mx-auto px-10 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold rounded-full text-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 shadow-xl shadow-blue-500/25"
-              >
-                <Play />
-                Nova Análise
-              </button>
-            </motion.div>
-          </motion.div>
+          <Button disabled size="lg" className="w-full max-w-xs text-lg font-bold">
+            <AudioWaveform className="mr-2 h-5 w-5 animate-pulse" />
+            Ouvindo...
+          </Button>
         );
-      
-      default: return null;
+      default:
+        return null;
     }
   };
 
   return (
-    <main className="relative flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black p-4 overflow-hidden">
-      {/* Background Stars */}
-      <div className="absolute inset-0 z-0">
-        <Canvas>
-          <Stars radius={100} depth={50} count={3000} factor={4} saturation={0} fade speed={0.5} />
-        </Canvas>
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-900/80 via-gray-800/60 to-black/80" />
-      </div>
-
-      {/* Floating Elements */}
-      <div className="absolute inset-0 z-0 pointer-events-none">
-        <motion.div 
-          className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"
-          animate={{ 
-            x: [0, 100, 0],
-            y: [0, -50, 0],
-            scale: [1, 1.1, 1]
-          }}
-          transition={{ 
-            repeat: Infinity, 
-            duration: 20,
-            ease: "easeInOut"
-          }}
-        />
-        <motion.div 
-          className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl"
-          animate={{ 
-            x: [0, -80, 0],
-            y: [0, 60, 0],
-            scale: [1, 0.9, 1]
-          }}
-          transition={{ 
-            repeat: Infinity, 
-            duration: 25,
-            ease: "easeInOut"
-          }}
-        />
-      </div>
-
-      {/* Main Content */}
-      <div className="z-10 w-full max-w-4xl">
-        <AnimatePresence mode="wait">
-          {renderContent()}
-        </AnimatePresence>
-      </div>
-    </main>
+    <motion.div
+      key="session"
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.9 }}
+      transition={{ duration: 0.5 }}
+      className="w-full"
+    >
+      <Card className="w-full max-w-3xl mx-auto bg-black/30 backdrop-blur-lg border-white/10">
+        <CardHeader>
+          <div className="flex justify-between items-center text-sm text-gray-400 mb-2">
+            <span>Pergunta {currentIndex} de {total}</span>
+          </div>
+          <Progress value={progress} className="w-full" />
+        </CardHeader>
+        <CardContent className="min-h-[200px] flex items-center justify-center p-8">
+          <AnimatePresence mode="wait">
+            <motion.p
+              key={pergunta?.texto}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.4 }}
+              className="text-2xl md:text-3xl font-light text-center text-gray-100 leading-snug"
+            >
+              {pergunta?.texto}
+            </motion.p>
+          </AnimatePresence>
+        </CardContent>
+        <CardFooter className="h-24 flex items-center justify-center">
+            {getButton()}
+        </CardFooter>
+      </Card>
+    </motion.div>
   );
 };
 
-export default DNAInterface;
+
+/**
+ * Tela de Relatório Final
+ */
+const ReportScreen = ({ report, onRestart }: { report: string; onRestart: () => void; }) => (
+  <motion.div
+    key="finished"
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -20 }}
+    transition={{ duration: 0.5, delay: 0.2 }}
+    className="w-full"
+  >
+    <Card className="w-full max-w-4xl mx-auto bg-black/40 backdrop-blur-xl border-white/10">
+      <CardHeader className="items-center text-center">
+        <FileText className="h-20 w-20 text-green-400" strokeWidth={1}/>
+        <CardTitle className="text-5xl font-extrabold tracking-tighter bg-gradient-to-br from-green-300 to-blue-300 bg-clip-text text-transparent pb-2">
+          Análise Completa
+        </CardTitle>
+        <CardDescription className="text-lg text-gray-400">
+          Seu relatório de análise narrativa está pronto.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="bg-gray-900/50 p-6 rounded-lg border border-gray-700 max-h-[50vh] overflow-y-auto text-left whitespace-pre-wrap font-mono text-sm text-gray-300/90 leading-relaxed">
+          {report}
+        </div>
+      </CardContent>
+      <CardFooter className="justify-center">
+        <Button onClick={onRestart} size="lg" className="text-lg font-bold">
+          <Play className="mr-2 h-5 w-5" />
+          Fazer Nova Análise
+        </Button>
+      </CardFooter>
+    </Card>
+  </motion.div>
+);
+
+/**
+ * Componente Principal da Interface DNA
+ */
+export default function DNAInterface() {
+  const logic = useDnaLogic();
+  
+  const renderContent = () => {
+    switch (logic.status) {
+      case 'idle':
+        return <WelcomeScreen 
+                  onStart={logic.iniciarSessao} 
+                  onToggleAudio={() => logic.setAudioEnabled(!logic.audioEnabled)} 
+                  audioEnabled={logic.audioEnabled} 
+                />;
+      case 'finished':
+        return <ReportScreen report={logic.relatorioFinal} onRestart={logic.iniciarSessao} />;
+      default:
+        return <SessionScreen
+                  status={logic.status}
+                  pergunta={logic.perguntaAtual}
+                  progress={logic.progress}
+                  currentIndex={logic.perguntaIndex}
+                  total={logic.totalPerguntas}
+                  onStartRecording={logic.handleStartRecording}
+                  onStopRecording={logic.handleStopRecording}
+                />;
+    }
+  };
+
+  return (
+    <div className="relative w-full h-screen overflow-hidden bg-black">
+      {/* Cena 3D no fundo */}
+      <div className="absolute inset-0 z-0 opacity-70">
+        <Canvas>
+          <ambientLight intensity={0.2} />
+          <pointLight position={[10, 10, 10]} intensity={1} />
+          <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
+          <DnaHelix />
+        </Canvas>
+      </div>
+      {/* Overlay de gradiente para dar profundidade */}
+      <div className="absolute inset-0 z-10 bg-gradient-to-br from-indigo-950/60 via-black/50 to-pink-950/60" />
+
+      {/* Conteúdo principal */}
+      <main className="relative z-20 flex flex-col items-center justify-center min-h-screen p-4">
+        <AnimatePresence mode="wait">
+          {renderContent()}
+        </AnimatePresence>
+      </main>
+    </div>
+  );
+}
