@@ -1,4 +1,3 @@
-/* Caminho: src/app/globals.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -26,10 +25,7 @@
   --radius: 0.5rem;
 }
 
-body {
-  @apply bg-background text-foreground;
-  font-feature-settings: "rlig" 1, "calt" 1;
-}
+/* A regra 'body' foi removida daqui */
 
 .font-heading {
   font-family: var(--font-space-grotesk);
