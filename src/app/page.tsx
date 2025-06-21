@@ -18,11 +18,11 @@ import {
   Zap
 } from 'lucide-react';
 
-// Corrigindo caminhos de importação para serem relativos à raiz do projeto
-import { Pergunta, ExpertProfile, SessionStatus } from 'src/lib/types';
-import { PERGUNTAS_DNA, criarPerfilInicial } from 'src/lib/config';
-import { initAudio, playAudioFromUrl, startRecording, stopRecording, stopAudio } from 'src/services/webAudioService';
-import { analisarFragmento, gerarSinteseFinal } from 'src/lib/analysisEngine';
+// Corrigindo caminhos de importação para usar o alias '@/' configurado no tsconfig.json
+import { Pergunta, ExpertProfile, SessionStatus } from '@/lib/types';
+import { PERGUNTAS_DNA, criarPerfilInicial } from '@/lib/config';
+import { initAudio, playAudioFromUrl, startRecording, stopRecording, stopAudio } from '@/services/webAudioService';
+import { analisarFragmento, gerarSinteseFinal } from '@/lib/analysisEngine';
 
 // Componente de partículas animadas que se adapta ao tamanho da tela
 const AnimatedParticles = () => {
