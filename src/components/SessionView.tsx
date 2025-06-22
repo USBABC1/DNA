@@ -15,7 +15,7 @@ export function SessionView({ pergunta, status, onStartRecording, onStopRecordin
   const isProcessing = status === 'processing' || status === 'listening';
 
   const statusMap: { [key: string]: { icon: React.ElementType, text: string, color: string } } = {
-    listening: { icon: Volume2, text: "Ouvindo a pergunta...", color: "text-blue-400" },
+    listening: { icon: Volume2, text: "Ouvindo a pergunta...", color: "text-sky-400" },
     waiting_for_user: { icon: Mic, text: "Pronto para gravar sua resposta.", color: "text-primary" },
     recording: { icon: Mic, text: "Gravando sua narrativa...", color: "text-red-400" },
     processing: { icon: Brain, text: "Analisando sua resposta...", color: "text-purple-400" },
@@ -24,7 +24,12 @@ export function SessionView({ pergunta, status, onStartRecording, onStopRecordin
   const currentStatus = statusMap[status] || statusMap['waiting_for_user'];
 
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center text-center p-4">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="w-full h-full flex flex-col items-center justify-center text-center p-4"
+    >
       <div className="glass-card w-full max-w-2xl p-8 md:p-12 space-y-8">
         <AnimatePresence mode="wait">
           <motion.div
@@ -54,9 +59,8 @@ export function SessionView({ pergunta, status, onStartRecording, onStopRecordin
           disabled={isProcessing}
           className={`
             w-24 h-24 rounded-full flex items-center justify-center mx-auto transition-all duration-300 ease-in-out
-            ${isRecording ? 'bg-red-500/80 animate-pulse-glow' : 'bg-primary'}
-            ${isProcessing ? 'bg-muted/50 cursor-not-allowed' : 'hover:scale-110'}
-            shadow-lg shadow-primary/20
+            ${isRecording ? 'bg-red-500/80 shadow-[0_0_25px_rgba(239,68,68,0.7)]' : 'bg-primary shadow-[0_0_25px_hsl(var(--primary)/0.5)]'}
+            ${isProcessing ? 'bg-muted cursor-not-allowed shadow-none' : 'hover:scale-110'}
           `}
         >
           {isProcessing ? (
@@ -68,6 +72,6 @@ export function SessionView({ pergunta, status, onStartRecording, onStopRecordin
           )}
         </button>
       </div>
-    </div>
+    </motion.div>
   );
 }
