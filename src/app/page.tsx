@@ -136,7 +136,7 @@ const ProgressIndicator = ({ current, total }: { current: number; total: number 
 const Logo = () => (
   <div className="logo-container">
     <img 
-      src="/src/logo.png" 
+      src="/logo.png" 
       alt="Logo" 
       className="logo-image"
     />
