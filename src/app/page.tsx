@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AnimatePresence } from 'framer-motion';
 
-// Componentes da UI (Note que a Sidebar não está mais aqui)
+// Componentes da UI
 import { WelcomeScreen } from '@/components/WelcomeScreen';
 import { SessionView } from '@/components/SessionView';
 import { ReportView } from '@/components/ReportView';
@@ -21,6 +21,8 @@ export default function DnaPage() {
   const [error, setError] = useState<string | null>(null);
   const perguntaIndex = useRef(0);
 
+  // --- LÓGICA COMPLETA ---
+
   // Inicializa o áudio assim que o componente é montado
   useEffect(() => {
     initAudio().catch((err) => {
@@ -29,6 +31,7 @@ export default function DnaPage() {
     });
   }, []);
 
+  // Reseta o estado e inicia a primeira pergunta
   const iniciarSessao = useCallback(() => {
     perguntaIndex.current = 0;
     setPerfil(criarPerfilInicial());
@@ -36,24 +39,28 @@ export default function DnaPage() {
     fazerProximaPergunta();
   }, []);
 
+  // Controla o fluxo de perguntas
   const fazerProximaPergunta = useCallback(async () => {
     if (perguntaIndex.current < PERGUNTAS_DNA.length) {
       const pergunta = PERGUNTAS_DNA[perguntaIndex.current];
       setPerguntaAtual(pergunta);
       setStatus('listening');
       try {
+        // Toca o áudio da pergunta e, ao terminar, muda o status
         await playAudioFromUrl(pergunta.audioUrl, () => setStatus('waiting_for_user'));
         perguntaIndex.current++;
       } catch (e) {
-        setError("Erro ao reproduzir a pergunta. Tentando novamente...");
-        console.error(e);
+        console.error("Erro ao reproduzir áudio:", e);
+        setError("Erro ao reproduzir a pergunta. Tentando novamente em 2 segundos...");
         setTimeout(fazerProximaPergunta, 2000);
       }
     } else {
+      // Finaliza a sessão se não houver mais perguntas
       setStatus('finished');
     }
   }, []);
 
+  // Inicia a gravação do microfone
   const handleStartRecording = useCallback(async () => {
     try {
       await startRecording();
@@ -63,6 +70,7 @@ export default function DnaPage() {
     }
   }, []);
 
+  // Para a gravação, transcreve, analisa e avança para a próxima pergunta
   const handleStopRecording = useCallback(async () => {
     setStatus('processing');
     try {
@@ -72,28 +80,31 @@ export default function DnaPage() {
         const perfilAtualizado = analisarFragmento(transcricao, perfil, perguntaAtual);
         setPerfil(perfilAtualizado);
       }
+      // Avança para a próxima pergunta após o processamento
       fazerProximaPergunta();
     } catch (e) {
-      console.error(e);
+      console.error("Erro no processamento da resposta:", e);
       setError("Problema ao processar sua resposta. Continuando para a próxima pergunta...");
       setTimeout(fazerProximaPergunta, 2000);
     }
   }, [perguntaAtual, perfil, fazerProximaPergunta]);
 
+  // Envia o áudio para a API de transcrição
   async function transcreverAudio(audioBlob: Blob): Promise<string> {
     const response = await fetch('/api/transcribe', { method: 'POST', body: audioBlob });
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.error || "Falha na transcrição");
+      throw new Error(errorData.error || "Falha na transcrição da API");
     }
     const data = await response.json();
     return data.transcript;
   }
-
-  // Função para renderizar o conteúdo principal com base no estado
+  
+  // Renderiza o componente correto com base no status da sessão
   const renderContent = () => {
     if (error) {
-       return <div className="text-red-500">{error}</div>;
+       // Exibe uma mensagem de erro na tela
+       return <div className="text-red-400 bg-red-900/50 p-4 rounded-lg">{error}</div>;
     }
 
     switch (status) {
@@ -113,9 +124,8 @@ export default function DnaPage() {
     }
   };
 
-  // A MUDANÇA PRINCIPAL ESTÁ AQUI:
-  // Removemos a Sidebar e envolvemos o conteúdo em um <main>
-  // que centraliza tudo na tela.
+  // --- FIM DA LÓGICA ---
+
   return (
     <main className="flex flex-col items-center justify-center min-h-screen p-4 md:p-8">
       <AnimatePresence mode="wait">
