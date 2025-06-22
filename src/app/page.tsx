@@ -13,12 +13,11 @@ import { analisarFragmento, gerarSinteseFinal } from '../lib/analysisEngine';
 import { initAudio, playAudioFromUrl, startRecording, stopRecording } from '../services/webAudioService';
 import type { ExpertProfile, SessionStatus, Pergunta } from '../lib/types';
 
-// ---------- UI COMPONENTES ----------
+// ----------- UI COMPONENTS -----------
 
-// Partículas decorativas DNA
 function DNAParticles() {
   return (
-    <div className="dna-particles-container">
+    <div className="dna-particles-container pointer-events-none fixed inset-0 z-0">
       {Array.from({ length: 30 }).map((_, i) => (
         <div
           key={i}
@@ -35,10 +34,9 @@ function DNAParticles() {
   );
 }
 
-// Ondas de áudio animadas
 function AudioWaves({ isActive }: { isActive: boolean }) {
   return (
-    <div className="audio-waves">
+    <div className="audio-waves flex gap-1">
       {Array.from({ length: 5 }).map((_, i) => (
         <div
           key={i}
@@ -50,31 +48,30 @@ function AudioWaves({ isActive }: { isActive: boolean }) {
   );
 }
 
-// Indicador de progresso com círculo e barras
 function AdvancedProgressIndicator({ current, total }: { current: number; total: number }) {
   const progress = (current / total) * 100;
   return (
-    <div className="w-full max-w-3xl mx-auto mb-10">
+    <div className="w-full max-w-2xl mx-auto mb-10">
       <div className="flex items-center justify-between mb-6">
-        <div className="relative w-20 h-20 mr-5">
-          <svg className="w-full h-full rotate-[-90deg]">
+        <div className="relative w-16 h-16 mr-5">
+          <svg className="w-full h-full -rotate-90">
             <circle
-              cx="40"
-              cy="40"
-              r="36"
+              cx="32"
+              cy="32"
+              r="28"
               stroke="rgba(255,255,255,0.13)"
               strokeWidth="6"
               fill="none"
             />
             <circle
-              cx="40"
-              cy="40"
-              r="36"
+              cx="32"
+              cy="32"
+              r="28"
               stroke="url(#progressGradient)"
               strokeWidth="6"
               fill="none"
-              strokeDasharray={2 * Math.PI * 36}
-              strokeDashoffset={2 * Math.PI * 36 * (1 - progress / 100)}
+              strokeDasharray={2 * Math.PI * 28}
+              strokeDashoffset={2 * Math.PI * 28 * (1 - progress / 100)}
               className="transition-all duration-1000 ease-out"
             />
             <defs>
@@ -84,14 +81,14 @@ function AdvancedProgressIndicator({ current, total }: { current: number; total:
               </linearGradient>
             </defs>
           </svg>
-          <span className="absolute inset-0 flex items-center justify-center text-xl font-bold text-white">{Math.round(progress)}%</span>
+          <span className="absolute inset-0 flex items-center justify-center text-lg font-bold text-white">{Math.round(progress)}%</span>
         </div>
         <div>
-          <h3 className="text-lg font-semibold text-white">Pergunta {current} de {total}</h3>
-          <p className="text-white/60 text-sm">Análise em progresso...</p>
+          <h3 className="text-base font-semibold text-white">Pergunta {current} de {total}</h3>
+          <p className="text-white/60 text-xs">Análise em progresso...</p>
         </div>
         <div className="text-right">
-          <div className="text-2xl font-bold text-green-400">{current}</div>
+          <div className="text-xl font-bold text-green-400">{current}</div>
           <div className="text-xs text-white/60">Concluídas</div>
         </div>
       </div>
@@ -107,7 +104,6 @@ function AdvancedProgressIndicator({ current, total }: { current: number; total:
   );
 }
 
-// Estatísticas ao vivo
 function EnhancedLiveStats({ perfil }: { perfil: ExpertProfile }) {
   const totalResponses = Object.values(perfil.coberturaDominios).reduce((a, b) => a + b, 0);
   const dominantTrait = Object.entries(perfil.bigFive).sort(([, a], [, b]) => b - a)[0]?.[0] || '...';
@@ -121,7 +117,7 @@ function EnhancedLiveStats({ perfil }: { perfil: ExpertProfile }) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-10"
+      className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-10"
     >
       {stats.map((stat, index) => (
         <motion.div
@@ -129,7 +125,7 @@ function EnhancedLiveStats({ perfil }: { perfil: ExpertProfile }) {
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: index * 0.12 }}
-          className="flex flex-col items-center bg-white/5 rounded-xl p-4 shadow-inner"
+          className="neu-card flex flex-col items-center bg-opacity-90"
         >
           <div className={`mb-1 p-2 rounded-full ${stat.bg}`}>
             <stat.icon className={`w-5 h-5 ${stat.color}`} />
@@ -142,7 +138,6 @@ function EnhancedLiveStats({ perfil }: { perfil: ExpertProfile }) {
   );
 }
 
-// Tela de boas-vindas
 function PremiumWelcomeScreen({ onStart }: { onStart: () => void }) {
   return (
     <motion.div
@@ -150,7 +145,7 @@ function PremiumWelcomeScreen({ onStart }: { onStart: () => void }) {
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.8, ease: "easeOut" }}
-      className="w-full max-w-2xl mx-auto text-center px-4 py-10"
+      className="neu-card w-full max-w-2xl mx-auto text-center py-12 px-4 flex flex-col items-center"
     >
       <motion.div
         initial={{ scale: 0, rotate: -180 }}
@@ -163,25 +158,25 @@ function PremiumWelcomeScreen({ onStart }: { onStart: () => void }) {
           <div className="absolute top-0 right-0 animate-pulse"><Sparkles className="w-6 h-6 text-blue-300" /></div>
         </div>
       </motion.div>
-      <h1 className="text-3xl font-bold text-white mb-2">DNA</h1>
+      <h1 className="text-3xl font-bold text-white mb-2 text-neon-glow">DNA</h1>
       <p className="text-white/70 mb-6">Deep Narrative Analysis: análise psicológica profissional a partir da sua narrativa, usando IA avançada.</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-        <div className="flex flex-col items-center bg-green-600/10 rounded-lg p-4">
+        <div className="neu-card py-4 px-2">
           <Award className="w-7 h-7 text-green-400 mb-2" />
           <span className="text-white font-semibold">Análise Científica</span>
           <span className="text-xs text-white/70">Big Five, Schwartz, modelos validados</span>
         </div>
-        <div className="flex flex-col items-center bg-blue-600/10 rounded-lg p-4">
+        <div className="neu-card py-4 px-2">
           <Brain className="w-7 h-7 text-blue-400 mb-2" />
           <span className="text-white font-semibold">IA Avançada</span>
           <span className="text-xs text-white/70">Processamento semântico profundo</span>
         </div>
-        <div className="flex flex-col items-center bg-purple-600/10 rounded-lg p-4">
+        <div className="neu-card py-4 px-2">
           <TrendingUp className="w-7 h-7 text-purple-400 mb-2" />
           <span className="text-white font-semibold">Insights Profundos</span>
           <span className="text-xs text-white/70">Padrões comportamentais</span>
         </div>
-        <div className="flex flex-col items-center bg-yellow-500/10 rounded-lg p-4">
+        <div className="neu-card py-4 px-2">
           <Lightbulb className="w-7 h-7 text-yellow-400 mb-2" />
           <span className="text-white font-semibold">Relatório Detalhado</span>
           <span className="text-xs text-white/70">Recomendações personalizadas</span>
@@ -191,9 +186,9 @@ function PremiumWelcomeScreen({ onStart }: { onStart: () => void }) {
         whileHover={{ scale: 1.04 }}
         whileTap={{ scale: 0.98 }}
         onClick={onStart}
-        className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-blue-500 text-white font-semibold px-6 py-3 rounded-xl shadow-lg mb-4"
+        className="neu-button neu-button-primary mb-4"
       >
-        Iniciar Análise Profissional <ArrowRight />
+        Iniciar Análise Profissional <ArrowRight className="ml-2" />
       </motion.button>
       <div className="flex justify-center gap-8 text-white/70 text-xs mt-2">
         <div className="flex items-center gap-1"><Timer className="w-4 h-4" /> ~45min</div>
@@ -204,7 +199,6 @@ function PremiumWelcomeScreen({ onStart }: { onStart: () => void }) {
   );
 }
 
-// Tela de sessão de perguntas
 function PremiumSessionScreen({
   pergunta,
   status,
@@ -253,10 +247,10 @@ function PremiumSessionScreen({
   })();
 
   return (
-    <div className="w-full max-w-3xl mx-auto flex flex-col items-center">
+    <div className="w-full max-w-2xl flex flex-col items-center mx-auto">
       <AdvancedProgressIndicator current={currentIndex} total={total} />
       <EnhancedLiveStats perfil={perfil} />
-      <div className="bg-white/5 rounded-xl w-full p-6 flex flex-col items-center shadow-lg">
+      <div className="neu-card w-full flex flex-col items-center">
         <AnimatePresence mode="wait">
           <motion.div
             key={pergunta?.texto}
@@ -294,10 +288,7 @@ function PremiumSessionScreen({
         <button
           onClick={status === 'recording' ? onStopRecording : onStartRecording}
           disabled={status === 'listening' || status === 'processing'}
-          className={`w-16 h-16 rounded-full flex items-center justify-center bg-gradient-to-tr from-green-500 to-blue-500 shadow-lg transition-all
-            ${status === 'recording' ? 'animate-pulse ring-4 ring-red-400' : ''}
-            ${status === 'listening' || status === 'processing' ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'}
-          `}
+          className={`neu-button neu-button-primary w-16 h-16 mt-2 mb-2 ${status === 'recording' ? 'ring-4 ring-red-400 animate-pulse' : ''} ${status === 'listening' || status === 'processing' ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'}`}
         >
           {status === 'recording' ? <Square className="w-9 h-9 text-white" /> :
             status === 'waiting_for_user' ? <Mic className="w-9 h-9 text-white" /> :
@@ -305,7 +296,7 @@ function PremiumSessionScreen({
         </button>
         <button
           onClick={() => setAudioMuted(!audioMuted)}
-          className="mt-4 flex items-center gap-1 px-3 py-1 bg-white/10 text-xs rounded-lg text-white hover:bg-white/20"
+          className="mt-2 flex items-center gap-1 px-3 py-1 bg-white/10 text-xs rounded-lg text-white hover:bg-white/20"
         >
           {audioMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           {audioMuted ? 'Ativar Áudio' : 'Silenciar'}
@@ -315,14 +306,13 @@ function PremiumSessionScreen({
   );
 }
 
-// Tela final do relatório
 function PremiumReportScreen({ report, onRestart }: { report: string; onRestart: () => void }) {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.8 }}
-      className="w-full max-w-3xl mx-auto text-center py-10"
+      className="neu-card w-full max-w-2xl mx-auto text-center py-10"
     >
       <motion.div
         initial={{ scale: 0, rotate: -180 }}
@@ -334,44 +324,43 @@ function PremiumReportScreen({ report, onRestart }: { report: string; onRestart:
       </motion.div>
       <h1 className="text-2xl font-bold text-white mb-2">Análise Concluída</h1>
       <p className="text-white/70 mb-6">Seu relatório está pronto. Confira os insights abaixo:</p>
-      <div className="bg-white/5 rounded-lg p-6 text-left max-h-96 overflow-auto shadow-inner mb-8">
+      <div className="bg-black/30 rounded-lg p-6 text-left max-h-96 overflow-auto shadow-inner mb-8">
         <pre className="text-white/90 text-sm whitespace-pre-wrap">{report}</pre>
       </div>
       <div className="flex justify-center gap-4 mb-6">
-        <button className="flex items-center gap-1 px-3 py-1 bg-green-700/80 text-white rounded-lg font-semibold hover:bg-green-800">
-          <Download className="w-4 h-4" /> Exportar PDF
+        <button className="neu-button">
+          <Download className="w-4 h-4 mr-1" /> Exportar PDF
         </button>
-        <button className="flex items-center gap-1 px-3 py-1 bg-blue-700/80 text-white rounded-lg font-semibold hover:bg-blue-800">
-          <Share2 className="w-4 h-4" /> Compartilhar
+        <button className="neu-button">
+          <Share2 className="w-4 h-4 mr-1" /> Compartilhar
         </button>
       </div>
       <motion.button
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={onRestart}
-        className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-blue-500 text-white font-semibold px-6 py-3 rounded-xl"
+        className="neu-button neu-button-primary"
       >
-        Nova Análise <ArrowRight />
+        Nova Análise <ArrowRight className="w-5 h-5 ml-1" />
       </motion.button>
     </motion.div>
   );
 }
 
-// Tela de erro
 function PremiumErrorScreen({ error, onRetry }: { error: string; onRetry: () => void }) {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="w-full max-w-md mx-auto text-center py-10"
+      className="neu-card w-full max-w-md mx-auto text-center py-10"
     >
-      <div className="flex flex-col items-center bg-red-700/20 rounded-xl p-8">
+      <div className="flex flex-col items-center">
         <AlertTriangle className="w-16 h-16 text-red-400 mb-4" />
         <h3 className="text-lg font-bold text-white mb-1">Ocorreu um Problema</h3>
         <p className="text-white/80 mb-6">{error}</p>
         <button
           onClick={onRetry}
-          className="bg-red-500 text-white px-5 py-2 rounded-xl font-semibold hover:bg-red-600"
+          className="neu-button neu-button-primary"
         >
           Tentar Novamente
         </button>
@@ -380,7 +369,8 @@ function PremiumErrorScreen({ error, onRetry }: { error: string; onRetry: () => 
   );
 }
 
-// ---------- COMPONENTE PRINCIPAL ----------
+// ----------- MAIN PAGE COMPONENT -----------
+
 export default function DnaPage() {
   const [status, setStatus] = useState<SessionStatus>('idle');
   const [perguntaAtual, setPerguntaAtual] = useState<Pergunta | null>(null);
@@ -389,7 +379,7 @@ export default function DnaPage() {
   const perguntaIndex = useRef(0);
 
   useEffect(() => {
-    initAudio().catch(err => {
+    initAudio().catch(() => {
       setError("Não foi possível acessar o microfone. Verifique as permissões do navegador.");
     });
   }, []);
@@ -473,9 +463,9 @@ export default function DnaPage() {
   }
 
   return (
-    <main className="relative min-h-screen flex flex-col items-center bg-gradient-to-br from-[#07263c] via-[#101c2e] to-[#1c2741]">
+    <main className="flex flex-col items-center justify-center w-full min-h-[90vh] relative z-10 px-2 md:px-0">
       <DNAParticles />
-      <div className="flex-1 w-full flex items-center justify-center py-10">
+      <div className="flex flex-col items-center justify-center w-full max-w-4xl mx-auto min-h-[75vh] py-6">
         <AnimatePresence mode="wait">{renderContent()}</AnimatePresence>
       </div>
       <footer className="w-full text-center py-4 text-white/50 text-xs z-10">
