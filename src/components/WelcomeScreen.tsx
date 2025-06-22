@@ -1,3 +1,5 @@
+'use client';
+
 import { motion } from 'framer-motion';
 import { ArrowRight, Brain, Award, TrendingUp, Lightbulb } from 'lucide-react';
 
@@ -14,27 +16,26 @@ export function WelcomeScreen({ onStart }: { onStart: () => void }) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      className="w-full max-w-3xl text-center flex flex-col items-center"
+      transition={{ duration: 0.5 }}
+      className="w-full max-w-3xl text-center flex flex-col items-center p-4"
     >
-      <motion.div 
-        className="animated-border-box mb-8"
+      <motion.div
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 0.2, duration: 0.5, type: 'spring' }}
+        className="glass-card p-4 mb-8"
       >
-        <div className="animated-border-box-content p-6">
-          <Brain className="w-16 h-16 text-primary mx-auto" />
-        </div>
+        <Brain className="w-16 h-16 text-primary mx-auto" />
       </motion.div>
 
-      <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">Deep Narrative Analysis</h2>
+      <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">Deep Narrative Analysis</h1>
       <p className="text-lg text-muted-foreground max-w-xl mx-auto mb-10">
         Uma jornada interativa de autoanálise. Descubra as camadas da sua personalidade através da sua própria narrativa.
       </p>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12 w-full">
         {features.map((feature, i) => (
-           <motion.div 
+           <motion.div
             key={feature.title}
             className="glass-card p-4 text-center"
             initial={{ opacity: 0, y: 20 }}
