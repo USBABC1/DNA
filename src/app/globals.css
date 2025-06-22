@@ -4,33 +4,34 @@
 
 @layer base {
   :root {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
+    /* Nova paleta de cores com AZUL como primário */
+    --background: 224 71% 4%; /* Um azul quase preto, bem escuro */
+    --foreground: 210 40% 98%;
 
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
+    --card: 222 47% 11%;
+    --card-foreground: 210 40% 98%;
 
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 224 71% 4%;
+    --popover-foreground: 210 40% 98%;
 
-    --primary: 158 100% 50%; /* Verde vibrante */
-    --primary-foreground: 240 5.9% 10%;
+    --primary: 217 91% 60%; /* Azul vibrante */
+    --primary-foreground: 210 40% 98%;
 
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 222 47% 11%;
+    --secondary-foreground: 210 40% 98%;
 
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
+    --muted: 222 47% 11%;
+    --muted-foreground: 215 20% 65%;
 
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
+    --accent: 222 47% 11%;
+    --accent-foreground: 210 40% 98%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
 
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 158 100% 50%;
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 217 91% 60%;
 
     --radius: 0.75rem;
   }
@@ -43,10 +44,14 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
+    background-color: hsl(var(--background));
+    /* Efeito de gradiente radial no fundo, como na imagem */
+    background-image: radial-gradient(ellipse at bottom, hsl(var(--primary) / 0.1), transparent 70%);
+    background-attachment: fixed;
   }
 }
 
-/* Efeito de vidro sutil para os cards */
+/* Novo estilo para cards com efeito de vidro */
 .glass-card {
-  @apply bg-secondary/40 backdrop-blur-lg border border-white/10 rounded-2xl;
+  @apply bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-lg shadow-black/20;
 }
