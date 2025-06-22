@@ -1,125 +1,87 @@
-// src/services/webAudioService.ts
+let audioContext: AudioContext | null = null
+let mediaStream: MediaStream | null = null
+let mediaRecorder: MediaRecorder | null = null
+let audioChunks: Blob[] = []
+let microphoneSource: MediaStreamAudioSourceNode | null = null
+let bufferSource: AudioBufferSourceNode | null = null
 
-let audioContext: AudioContext | null = null;
-let source: AudioBufferSourceNode | null = null;
-
-export const initAudio = (): Promise<void> => {
-  return new Promise((resolve, reject) => {
-    try {
-      if (!audioContext) {
-        audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      }
-      resolve();
-    } catch (error) {
-      reject(error);
-    }
-  });
-};
-
-export const stopAudio = () => {
-  if (source) {
-    source.onended = null; // Remove o callback para não acionar a lógica de fim de áudio
-    source.stop();
-    source = null;
+// Inicializa e retorna o AudioContext
+export const getAudioContext = (): AudioContext => {
+  if (!audioContext) {
+    audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
   }
-};
+  return audioContext
+}
 
-export const playAudioFromUrl = (url: string, onEnded: () => void): Promise<void> => {
-  return new Promise(async (resolve, reject) => {
-    if (!audioContext) {
-      // Embora a inicialização seja feita na ação do usuário, isso serve como uma garantia.
-      try {
-        await initAudio();
-      } catch (error) {
-        return reject(new Error('AudioContext não pôde ser inicializado.'));
-      }
-      
-      if (!audioContext) {
-        return reject(new Error('AudioContext não pôde ser inicializado.'));
-      }
-    }
+// Inicia a captura do microfone e retorna um AnalyserNode para visualização
+export const startMicrophone = async (): Promise<AnalyserNode> => {
+  const context = getAudioContext()
+  if (context.state === 'suspended') {
+    await context.resume()
+  }
 
-    // Garante que o contexto de áudio seja retomado se estiver suspenso (necessário para autoplay)
-    if (audioContext.state === 'suspended') {
-      await audioContext.resume();
-    }
+  if (!mediaStream) {
+    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+  }
 
-    try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`Erro ao buscar áudio: ${response.statusText}`);
-      }
-      const arrayBuffer = await response.arrayBuffer();
-      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+  // Configura o MediaRecorder para gravar o áudio
+  mediaRecorder = new MediaRecorder(mediaStream)
+  audioChunks = []
+  mediaRecorder.ondataavailable = (event) => {
+    audioChunks.push(event.data)
+  }
+  mediaRecorder.start()
 
-      if (source) {
-        source.stop();
-      }
+  // Configura o AnalyserNode para a visualização
+  microphoneSource = context.createMediaStreamSource(mediaStream)
+  const analyser = context.createAnalyser()
+  microphoneSource.connect(analyser)
 
-      source = audioContext.createBufferSource();
-      source.buffer = audioBuffer;
-      source.connect(audioContext.destination);
+  return analyser
+}
 
-      // --- CORREÇÃO APLICADA AQUI ---
-      // Agendamos o início para 0.1 segundo no futuro no relógio do AudioContext.
-      // Isso dá ao pipeline de áudio tempo para se preparar e evita o corte no início.
-      const startTime = audioContext.currentTime + 0.9;
-      source.start(startTime);
-      // --- FIM DA CORREÇÃO ---
-
-      source.onended = () => {
-        onEnded();
-        resolve();
-      };
-    } catch (error) {
-      console.error('Falha ao tocar áudio:', error);
-      reject(error);
-    }
-  });
-};
-
-
-// Funções de gravação permanecem as mesmas
-let mediaRecorder: MediaRecorder | null = null;
-let audioChunks: Blob[] = [];
-
-export const startRecording = (): Promise<void> => {
-  return new Promise(async (resolve, reject) => {
-    try {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        return reject(new Error('API de gravação não é suportada neste navegador.'));
-      }
-
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorder = new MediaRecorder(stream);
-      audioChunks = [];
-
-      mediaRecorder.ondataavailable = (event) => {
-        audioChunks.push(event.data);
-      };
-
-      mediaRecorder.start();
-      resolve();
-    } catch (err) {
-      console.error('Erro ao acessar o microfone:', err);
-      reject(err);
-    }
-  });
-};
-
-export const stopRecording = (): Promise<Blob> => {
+// Para a captura do microfone e retorna o Blob de áudio
+export const stopMicrophone = (): Promise<Blob> => {
   return new Promise((resolve) => {
-    if (!mediaRecorder) {
-      throw new Error('O MediaRecorder não foi iniciado.');
+    if (mediaRecorder) {
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm;codecs=opus' })
+        audioChunks = []
+        
+        // Desconecta os nós para liberar recursos
+        microphoneSource?.disconnect()
+        mediaStream?.getTracks().forEach((track) => track.stop())
+        mediaStream = null
+        microphoneSource = null
+
+        resolve(audioBlob)
+      }
+      mediaRecorder.stop()
+    }
+  })
+}
+
+// Toca um buffer de áudio (ex: a pergunta) e retorna um AnalyserNode para visualização
+export const playAudioAndGetAnalyser = (audioBuffer: AudioBuffer): AnalyserNode => {
+    const context = getAudioContext();
+    if (context.state === 'suspended') {
+        context.resume();
     }
 
-    mediaRecorder.onstop = () => {
-      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-      // Para o stream do microfone para que o ícone de gravação suma
-      mediaRecorder?.stream.getTracks().forEach(track => track.stop());
-      resolve(audioBlob);
-    };
+    // Para qualquer áudio que estiver tocando
+    if (bufferSource) {
+        bufferSource.stop();
+    }
 
-    mediaRecorder.stop();
-  });
-};
+    bufferSource = context.createBufferSource();
+    bufferSource.buffer = audioBuffer;
+
+    const analyser = context.createAnalyser();
+    
+    bufferSource.connect(analyser);
+    analyser.connect(context.destination);
+
+    bufferSource.start();
+
+    return analyser;
+}
