@@ -140,8 +140,8 @@ const Logo = () => (
     <Image 
       src="/logo.png" // O caminho é relativo à pasta 'public'
       alt="Logo" 
-      width={55} // Defina a largura da imagem
-      height={20} // Defina a altura da imagem
+      width={75} // Defina a largura da imagem
+      height={30} // Defina a altura da imagem
       className="logo-image"
       priority // Opcional: para carregar a imagem com prioridade
     />
