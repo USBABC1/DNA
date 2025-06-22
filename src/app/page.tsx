@@ -280,9 +280,9 @@ export default function DnaInterface() {
         }}>
           <div style={{ flex: 1 }}>
             <h1 className="question-text">
-              ACCELERATE THE<br />
-              Chance To Overcome<br />
-              <span className="question-highlight">Overcome</span> Your Potential
+              DNA<br />
+              Deep Narrative Analysis<br />
+              <span className="question-highlight">UP</span> LANÇAMENTOS
             </h1>
             
             <button
