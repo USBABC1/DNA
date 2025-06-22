@@ -132,6 +132,27 @@ const ProgressIndicator = ({ current, total }: { current: number; total: number 
   );
 };
 
+// Componente do logo
+const Logo = () => (
+  <div className="logo-container">
+    <img 
+      src="/src/logo.png" 
+      alt="Logo" 
+      className="logo-image"
+    />
+  </div>
+);
+
+// Componente do rodapé
+const Footer = () => (
+  <footer className="footer">
+    <div className="footer-content">
+      <p>DNA</p>
+      <p>Deep Narrative Analysis - UP LANÇAMENTOS 2025</p>
+    </div>
+  </footer>
+);
+
 // Componente principal da interface
 export default function DnaInterface() {
   const [status, setStatus] = useState<SessionStatus>('idle');
@@ -260,30 +281,100 @@ export default function DnaInterface() {
 
   if (status === 'idle') {
     return (
-      <div style={{ 
-        minHeight: '100vh', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        position: 'relative',
-        padding: '2rem'
-      }}>
+      <div className="main-container">
         <FloatingParticles />
         <DottedLines />
+        <Logo />
         
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '4rem',
-          maxWidth: '1200px',
-          width: '100%'
-        }}>
-          <div style={{ flex: 1 }}>
-            <h1 className="question-text">
-              DNA<br />
-              Deep Narrative Analysis<br />
-              <span className="question-highlight">UP</span> LANÇAMENTOS
+        <div className="content-area">
+          <div className="content-flex">
+            <div style={{ flex: 1 }}>
+              <h1 className="question-text">
+                DNA<br />
+                Deep Narrative Analysis<br />
+                <span className="question-highlight">UP</span> LANÇAMENTOS
+              </h1>
+              
+              <button
+                onClick={iniciarSessao}
+                style={{
+                  background: 'linear-gradient(135deg, var(--primary-orange), var(--secondary-orange))',
+                  color: 'white',
+                  border: 'none',
+                  padding: '1rem 2rem',
+                  borderRadius: '12px',
+                  fontSize: '1.1rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 10px 25px rgba(255, 107, 53, 0.3)';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+              >
+                Iniciar Análise DNA
+              </button>
+            </div>
+            
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center',
+              gap: '2rem'
+            }}>
+              <div className="mic-button" style={{ cursor: 'default' }}>
+                <Mic className="mic-icon" />
+              </div>
+              <AudioVisualizer isActive={false} />
+            </div>
+          </div>
+        </div>
+        
+        <Footer />
+      </div>
+    );
+  }
+
+  if (status === 'finished') {
+    return (
+      <div className="main-container">
+        <FloatingParticles />
+        <Logo />
+        
+        <div className="content-area">
+          <div style={{ 
+            maxWidth: '800px', 
+            width: '100%',
+            textAlign: 'center'
+          }}>
+            <h1 className="question-text" style={{ textAlign: 'center', marginBottom: '2rem' }}>
+              Análise <span className="question-highlight">Concluída</span>
             </h1>
+            
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              borderRadius: '16px',
+              padding: '2rem',
+              marginBottom: '2rem',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255, 255, 255, 0.1)'
+            }}>
+              <pre style={{
+                whiteSpace: 'pre-wrap',
+                fontSize: '0.9rem',
+                lineHeight: '1.6',
+                color: 'var(--text-secondary)',
+                maxHeight: '400px',
+                overflowY: 'auto'
+              }}>
+                {gerarSinteseFinal(perfil)}
+              </pre>
+            </div>
             
             <button
               onClick={iniciarSessao}
@@ -298,17 +389,42 @@ export default function DnaInterface() {
                 cursor: 'pointer',
                 transition: 'all 0.3s ease'
               }}
-              onMouseOver={(e) => {
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 10px 25px rgba(255, 107, 53, 0.3)';
-              }}
-              onMouseOut={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'none';
-              }}
             >
-              Iniciar Análise DNA
+              Nova Análise
             </button>
+          </div>
+        </div>
+        
+        <Footer />
+      </div>
+    );
+  }
+
+  return (
+    <div className="main-container">
+      <FloatingParticles />
+      <DottedLines />
+      <Logo />
+      
+      <ProgressIndicator 
+        current={perguntaIndex.current} 
+        total={PERGUNTAS_DNA.length} 
+      />
+      
+      <div className="content-area">
+        <div className="content-flex">
+          <div style={{ flex: 1 }}>
+            <div className="status-indicator">
+              <div className={`status-dot ${statusConfig.dotClass}`} />
+              <span className="status-text">{statusConfig.text}</span>
+            </div>
+            
+            <h1 
+              className="question-text"
+              dangerouslySetInnerHTML={{ 
+                __html: perguntaAtual ? formatQuestionText(perguntaAtual.texto) : '' 
+              }}
+            />
           </div>
           
           <div style={{ 
@@ -317,141 +433,28 @@ export default function DnaInterface() {
             alignItems: 'center',
             gap: '2rem'
           }}>
-            <div className="mic-button" style={{ cursor: 'default' }}>
-              <Mic className="mic-icon" />
-            </div>
-            <AudioVisualizer isActive={false} />
+            <button
+              className={`mic-button ${status === 'recording' ? 'recording' : ''} ${
+                status === 'listening' || status === 'processing' ? 'disabled' : ''
+              }`}
+              onClick={status === 'recording' ? handleStopRecording : handleStartRecording}
+              disabled={status === 'listening' || status === 'processing'}
+            >
+              {status === 'recording' ? (
+                <Square className="mic-icon" />
+              ) : status === 'processing' ? (
+                <Loader className="mic-icon" style={{ animation: 'spin 1s linear infinite' }} />
+              ) : (
+                <Mic className="mic-icon" />
+              )}
+            </button>
+            
+            <AudioVisualizer isActive={isAudioPlaying || status === 'recording'} />
           </div>
         </div>
       </div>
-    );
-  }
-
-  if (status === 'finished') {
-    return (
-      <div style={{ 
-        minHeight: '100vh', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        position: 'relative',
-        padding: '2rem'
-      }}>
-        <FloatingParticles />
-        
-        <div style={{ 
-          maxWidth: '800px', 
-          width: '100%',
-          textAlign: 'center'
-        }}>
-          <h1 className="question-text" style={{ textAlign: 'center', marginBottom: '2rem' }}>
-            Análise <span className="question-highlight">Concluída</span>
-          </h1>
-          
-          <div style={{
-            background: 'rgba(255, 255, 255, 0.05)',
-            borderRadius: '16px',
-            padding: '2rem',
-            marginBottom: '2rem',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255, 255, 255, 0.1)'
-          }}>
-            <pre style={{
-              whiteSpace: 'pre-wrap',
-              fontSize: '0.9rem',
-              lineHeight: '1.6',
-              color: 'var(--text-secondary)',
-              maxHeight: '400px',
-              overflowY: 'auto'
-            }}>
-              {gerarSinteseFinal(perfil)}
-            </pre>
-          </div>
-          
-          <button
-            onClick={iniciarSessao}
-            style={{
-              background: 'linear-gradient(135deg, var(--primary-orange), var(--secondary-orange))',
-              color: 'white',
-              border: 'none',
-              padding: '1rem 2rem',
-              borderRadius: '12px',
-              fontSize: '1.1rem',
-              fontWeight: '600',
-              cursor: 'pointer',
-              transition: 'all 0.3s ease'
-            }}
-          >
-            Nova Análise
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ 
-      minHeight: '100vh', 
-      display: 'flex', 
-      alignItems: 'center', 
-      justifyContent: 'center',
-      position: 'relative',
-      padding: '2rem'
-    }}>
-      <FloatingParticles />
-      <DottedLines />
       
-      <ProgressIndicator 
-        current={perguntaIndex.current} 
-        total={PERGUNTAS_DNA.length} 
-      />
-      
-      <div style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        gap: '4rem',
-        maxWidth: '1200px',
-        width: '100%'
-      }}>
-        <div style={{ flex: 1 }}>
-          <div className="status-indicator">
-            <div className={`status-dot ${statusConfig.dotClass}`} />
-            <span className="status-text">{statusConfig.text}</span>
-          </div>
-          
-          <h1 
-            className="question-text"
-            dangerouslySetInnerHTML={{ 
-              __html: perguntaAtual ? formatQuestionText(perguntaAtual.texto) : '' 
-            }}
-          />
-        </div>
-        
-        <div style={{ 
-          display: 'flex', 
-          flexDirection: 'column', 
-          alignItems: 'center',
-          gap: '2rem'
-        }}>
-          <button
-            className={`mic-button ${status === 'recording' ? 'recording' : ''} ${
-              status === 'listening' || status === 'processing' ? 'disabled' : ''
-            }`}
-            onClick={status === 'recording' ? handleStopRecording : handleStartRecording}
-            disabled={status === 'listening' || status === 'processing'}
-          >
-            {status === 'recording' ? (
-              <Square className="mic-icon" />
-            ) : status === 'processing' ? (
-              <Loader className="mic-icon" style={{ animation: 'spin 1s linear infinite' }} />
-            ) : (
-              <Mic className="mic-icon" />
-            )}
-          </button>
-          
-          <AudioVisualizer isActive={isAudioPlaying || status === 'recording'} />
-        </div>
-      </div>
+      <Footer />
       
       {error && (
         <div style={{
