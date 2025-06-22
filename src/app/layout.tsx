@@ -8,7 +8,6 @@ const fontSans = Inter({
   variable: '--font-sans',
   display: 'swap',
 });
-
 const fontMono = JetBrains_Mono({
   subsets: ['latin'],
   variable: '--font-mono',
@@ -16,20 +15,16 @@ const fontMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'DNA - Deep Narrative Analysis | Análise Psicológica Avançada',
-  description:
-    'Plataforma profissional de análise narrativa profunda usando IA avançada. Descubra padrões psicológicos através da sua narrativa pessoal.',
+  title: 'DNA - Deep Narrative Analysis | Dashboard',
+  description: 'Dashboard profissional de análise narrativa profunda com IA avançada.',
   keywords: [
+    'dashboard',
+    'neumorphic',
     'análise psicológica',
-    'DNA narrativo',
-    'personalidade',
-    'inteligência artificial',
-    'psicologia',
-    'autoconhecimento',
-    'análise de personalidade',
-    'big five',
-    'valores de schwartz',
-    'análise comportamental',
+    'DNA',
+    'dark theme',
+    'IA',
+    'personalidade'
   ],
   authors: [{ name: 'DNA Analysis Team' }],
   creator: 'DNA Analysis Platform',
@@ -40,20 +35,20 @@ export const metadata: Metadata = {
     locale: 'pt_BR',
     url: 'https://dna-analysis.com',
     title: 'DNA - Deep Narrative Analysis',
-    description: 'Análise psicológica profissional através da narrativa pessoal',
+    description: 'Dashboard de análise psicológica profissional através da narrativa pessoal',
     siteName: 'DNA Analysis',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'DNA - Deep Narrative Analysis',
-    description: 'Análise psicológica profissional através da narrativa pessoal',
+    title: 'DNA Dashboard',
+    description: 'Dashboard de análise psicológica profissional com IA',
   },
 };
 
 export const viewport: Viewport = {
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#22c55e' },
-    { media: '(prefers-color-scheme: dark)', color: '#22c55e' },
+    { media: '(prefers-color-scheme: dark)', color: '#22c55e' }
   ],
   width: 'device-width',
   initialScale: 1,
@@ -63,9 +58,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({
   children,
-}: {
-  children: React.ReactNode;
-}) {
+}: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR" suppressHydrationWarning className="dark scroll-smooth">
       <head>
@@ -75,13 +68,13 @@ export default function RootLayout({
       </head>
       <body
         className={cn(
-          "min-h-screen bg-background font-sans antialiased text-foreground",
-          "selection:bg-primary selection:text-primary-foreground",
+          "font-sans min-h-screen antialiased text-foreground bg-background",
           fontSans.variable,
-          fontMono.variable
+          fontMono.variable,
         )}
       >
-        <main className="relative flex flex-col min-h-screen w-full overflow-x-hidden items-center justify-center">
+        <main className="dashboard-container">
+          {/* Aqui você pode adicionar um Header/Sider se quiser */}
           {children}
         </main>
       </body>
