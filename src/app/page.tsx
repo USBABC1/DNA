@@ -8,7 +8,7 @@ import { WelcomeScreen } from '@/components/WelcomeScreen';
 import { SessionView } from '@/components/SessionView';
 import { ReportView } from '@/components/ReportView';
 
-// Lógica e Serviços
+// Lógica e Serviços (O código interno não muda)
 import { PERGUNTAS_DNA, criarPerfilInicial } from '../lib/config';
 import { analisarFragmento, gerarSinteseFinal } from '../lib/analysisEngine';
 import { initAudio, playAudioFromUrl, startRecording, stopRecording } from '../services/webAudioService';
@@ -21,9 +21,7 @@ export default function DnaPage() {
   const [error, setError] = useState<string | null>(null);
   const perguntaIndex = useRef(0);
 
-  // --- LÓGICA COMPLETA ---
-
-  // Inicializa o áudio assim que o componente é montado
+  // --- A lógica interna completa permanece a mesma ---
   useEffect(() => {
     initAudio().catch((err) => {
       console.error("Erro de áudio:", err);
@@ -31,7 +29,6 @@ export default function DnaPage() {
     });
   }, []);
 
-  // Reseta o estado e inicia a primeira pergunta
   const iniciarSessao = useCallback(() => {
     perguntaIndex.current = 0;
     setPerfil(criarPerfilInicial());
@@ -39,14 +36,12 @@ export default function DnaPage() {
     fazerProximaPergunta();
   }, []);
 
-  // Controla o fluxo de perguntas
   const fazerProximaPergunta = useCallback(async () => {
     if (perguntaIndex.current < PERGUNTAS_DNA.length) {
       const pergunta = PERGUNTAS_DNA[perguntaIndex.current];
       setPerguntaAtual(pergunta);
       setStatus('listening');
       try {
-        // Toca o áudio da pergunta e, ao terminar, muda o status
         await playAudioFromUrl(pergunta.audioUrl, () => setStatus('waiting_for_user'));
         perguntaIndex.current++;
       } catch (e) {
@@ -55,12 +50,10 @@ export default function DnaPage() {
         setTimeout(fazerProximaPergunta, 2000);
       }
     } else {
-      // Finaliza a sessão se não houver mais perguntas
       setStatus('finished');
     }
   }, []);
 
-  // Inicia a gravação do microfone
   const handleStartRecording = useCallback(async () => {
     try {
       await startRecording();
@@ -70,7 +63,6 @@ export default function DnaPage() {
     }
   }, []);
 
-  // Para a gravação, transcreve, analisa e avança para a próxima pergunta
   const handleStopRecording = useCallback(async () => {
     setStatus('processing');
     try {
@@ -80,7 +72,6 @@ export default function DnaPage() {
         const perfilAtualizado = analisarFragmento(transcricao, perfil, perguntaAtual);
         setPerfil(perfilAtualizado);
       }
-      // Avança para a próxima pergunta após o processamento
       fazerProximaPergunta();
     } catch (e) {
       console.error("Erro no processamento da resposta:", e);
@@ -89,7 +80,6 @@ export default function DnaPage() {
     }
   }, [perguntaAtual, perfil, fazerProximaPergunta]);
 
-  // Envia o áudio para a API de transcrição
   async function transcreverAudio(audioBlob: Blob): Promise<string> {
     const response = await fetch('/api/transcribe', { method: 'POST', body: audioBlob });
     if (!response.ok) {
@@ -100,10 +90,8 @@ export default function DnaPage() {
     return data.transcript;
   }
   
-  // Renderiza o componente correto com base no status da sessão
   const renderContent = () => {
     if (error) {
-       // Exibe uma mensagem de erro na tela
        return <div className="text-red-400 bg-red-900/50 p-4 rounded-lg">{error}</div>;
     }
 
@@ -124,9 +112,13 @@ export default function DnaPage() {
     }
   };
 
-  // --- FIM DA LÓGICA ---
-
   return (
+    // AQUI ESTÁ A CORREÇÃO PRINCIPAL PARA O LAYOUT:
+    // flex: ativa o layout flexível
+    // flex-col: organiza os itens em uma coluna
+    // items-center: centraliza horizontalmente
+    // justify-center: centraliza verticalmente
+    // min-h-screen: garante que o container ocupe a altura total da tela
     <main className="flex flex-col items-center justify-center min-h-screen p-4 md:p-8">
       <AnimatePresence mode="wait">
         {renderContent()}
