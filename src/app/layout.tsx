@@ -17,7 +17,8 @@ const fontMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: 'DNA - Deep Narrative Analysis | Análise Psicológica Avançada',
-  description: 'Plataforma profissional de análise narrativa profunda usando IA avançada. Descubra padrões psicológicos através da sua narrativa pessoal.',
+  description:
+    'Plataforma profissional de análise narrativa profunda usando IA avançada. Descubra padrões psicológicos através da sua narrativa pessoal.',
   keywords: [
     'análise psicológica',
     'DNA narrativo',
@@ -28,7 +29,7 @@ export const metadata: Metadata = {
     'análise de personalidade',
     'big five',
     'valores de schwartz',
-    'análise comportamental'
+    'análise comportamental',
   ],
   authors: [{ name: 'DNA Analysis Team' }],
   creator: 'DNA Analysis Platform',
@@ -52,7 +53,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#22c55e' },
-    { media: '(prefers-color-scheme: dark)', color: '#22c55e' }
+    { media: '(prefers-color-scheme: dark)', color: '#22c55e' },
   ],
   width: 'device-width',
   initialScale: 1,
@@ -80,7 +81,7 @@ export default function RootLayout({
           fontMono.variable
         )}
       >
-        <main className="relative flex flex-col min-h-screen w-full overflow-x-hidden">
+        <main className="relative flex flex-col min-h-screen w-full overflow-x-hidden items-center justify-center">
           {children}
         </main>
       </body>
