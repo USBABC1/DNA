@@ -2,293 +2,210 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Mic, 
-  Square, 
-  Loader, 
-  ArrowRight, 
-  FileText, 
-  Check, 
-  AlertTriangle,
-  Brain,
-  Sparkles,
-  Timer,
-  Volume2,
-  VolumeX,
-  BarChart3,
-  Users,
-  Target,
-  Zap,
-  Play,
-  Pause,
-  Download,
-  Share2,
-  Award,
-  TrendingUp,
-  Eye,
-  Lightbulb
+import {
+  Mic, Square, Loader, ArrowRight, FileText, Check, AlertTriangle,
+  Brain, Sparkles, Timer, Volume2, VolumeX, BarChart3, Users,
+  Target, Zap, Download, Share2, Award, TrendingUp, Eye, Lightbulb
 } from 'lucide-react';
+
 import { PERGUNTAS_DNA, criarPerfilInicial } from '../lib/config';
 import { analisarFragmento, gerarSinteseFinal } from '../lib/analysisEngine';
 import { initAudio, playAudioFromUrl, startRecording, stopRecording } from '../services/webAudioService';
 import type { ExpertProfile, SessionStatus, Pergunta } from '../lib/types';
 
-// Componente para partículas DNA flutuantes
-const DNAParticles = () => (
-  <div className="dna-particles-container">
-    {[...Array(30)].map((_, i) => (
-      <div
-        key={i}
-        className="dna-particle"
-        style={{
-          left: `${Math.random() * 100}%`,
-          top: `${Math.random() * 100}%`,
-          animationDelay: `${Math.random() * 20}s`,
-          animationDuration: `${15 + Math.random() * 10}s`
-        }}
-      />
-    ))}
-  </div>
-);
+// ---------- UI COMPONENTES ----------
 
-// Componente para ondas de áudio animadas
-const AudioWaves = ({ isActive }: { isActive: boolean }) => (
-  <div className="audio-waves">
-    {[...Array(5)].map((_, i) => (
-      <div
-        key={i}
-        className={`audio-wave ${isActive ? 'active' : ''}`}
-        style={{ animationDelay: `${i * 0.1}s` }}
-      />
-    ))}
-  </div>
-);
-
-// Componente para indicador de progresso avançado
-const AdvancedProgressIndicator = ({ current, total }: { current: number; total: number }) => {
-  const progress = (current / total) * 100;
-  const segments = Array.from({ length: total }, (_, i) => i + 1);
-  
+// Partículas decorativas DNA
+function DNAParticles() {
   return (
-    <div className="w-full max-w-4xl mx-auto mb-12">
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center space-x-4">
-          <div className="progress-circle">
-            <svg className="w-16 h-16 transform -rotate-90">
-              <circle
-                cx="32"
-                cy="32"
-                r="28"
-                stroke="rgba(255,255,255,0.1)"
-                strokeWidth="4"
-                fill="none"
-              />
-              <circle
-                cx="32"
-                cy="32"
-                r="28"
-                stroke="url(#progressGradient)"
-                strokeWidth="4"
-                fill="none"
-                strokeDasharray={`${2 * Math.PI * 28}`}
-                strokeDashoffset={`${2 * Math.PI * 28 * (1 - progress / 100)}`}
-                className="transition-all duration-1000 ease-out"
-              />
-              <defs>
-                <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#22c55e" />
-                  <stop offset="100%" stopColor="#3b82f6" />
-                </linearGradient>
-              </defs>
-            </svg>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-2xl font-bold text-white">{Math.round(progress)}%</span>
-            </div>
-          </div>
-          <div>
-            <h3 className="text-xl font-semibold text-white">Pergunta {current} de {total}</h3>
-            <p className="text-white/60">Análise em progresso...</p>
-          </div>
+    <div className="dna-particles-container">
+      {Array.from({ length: 30 }).map((_, i) => (
+        <div
+          key={i}
+          className="dna-particle"
+          style={{
+            left: `${Math.random() * 100}%`,
+            top: `${Math.random() * 100}%`,
+            animationDelay: `${Math.random() * 20}s`,
+            animationDuration: `${15 + Math.random() * 10}s`
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// Ondas de áudio animadas
+function AudioWaves({ isActive }: { isActive: boolean }) {
+  return (
+    <div className="audio-waves">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div
+          key={i}
+          className={`audio-wave${isActive ? ' active' : ''}`}
+          style={{ animationDelay: `${i * 0.1}s` }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// Indicador de progresso com círculo e barras
+function AdvancedProgressIndicator({ current, total }: { current: number; total: number }) {
+  const progress = (current / total) * 100;
+  return (
+    <div className="w-full max-w-3xl mx-auto mb-10">
+      <div className="flex items-center justify-between mb-6">
+        <div className="relative w-20 h-20 mr-5">
+          <svg className="w-full h-full rotate-[-90deg]">
+            <circle
+              cx="40"
+              cy="40"
+              r="36"
+              stroke="rgba(255,255,255,0.13)"
+              strokeWidth="6"
+              fill="none"
+            />
+            <circle
+              cx="40"
+              cy="40"
+              r="36"
+              stroke="url(#progressGradient)"
+              strokeWidth="6"
+              fill="none"
+              strokeDasharray={2 * Math.PI * 36}
+              strokeDashoffset={2 * Math.PI * 36 * (1 - progress / 100)}
+              className="transition-all duration-1000 ease-out"
+            />
+            <defs>
+              <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#22c55e" />
+                <stop offset="100%" stopColor="#3b82f6" />
+              </linearGradient>
+            </defs>
+          </svg>
+          <span className="absolute inset-0 flex items-center justify-center text-xl font-bold text-white">{Math.round(progress)}%</span>
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold text-white">Pergunta {current} de {total}</h3>
+          <p className="text-white/60 text-sm">Análise em progresso...</p>
         </div>
         <div className="text-right">
-          <div className="text-3xl font-bold text-green-400">{current}</div>
-          <div className="text-sm text-white/60">Concluídas</div>
+          <div className="text-2xl font-bold text-green-400">{current}</div>
+          <div className="text-xs text-white/60">Concluídas</div>
         </div>
       </div>
-      
-      <div className="progress-segments">
-        {segments.map((segment) => (
+      <div className="flex gap-1">
+        {Array.from({ length: total }, (_, i) => (
           <div
-            key={segment}
-            className={`progress-segment ${segment <= current ? 'completed' : ''}`}
+            key={i}
+            className={`flex-1 h-2 rounded ${i < current ? 'bg-green-400' : 'bg-white/20'}`}
           />
         ))}
       </div>
     </div>
   );
-};
+}
 
-// Componente para estatísticas em tempo real melhoradas
-const EnhancedLiveStats = ({ perfil }: { perfil: ExpertProfile }) => {
+// Estatísticas ao vivo
+function EnhancedLiveStats({ perfil }: { perfil: ExpertProfile }) {
   const totalResponses = Object.values(perfil.coberturaDominios).reduce((a, b) => a + b, 0);
-  const dominantValue = Object.entries(perfil.valoresSchwartz)
-    .sort(([,a], [,b]) => b - a)[0]?.[0] || 'Analisando...';
-  const dominantTrait = Object.entries(perfil.bigFive)
-    .sort(([,a], [,b]) => b - a)[0]?.[0] || 'Analisando...';
-  
+  const dominantTrait = Object.entries(perfil.bigFive).sort(([, a], [, b]) => b - a)[0]?.[0] || '...';
   const stats = [
-    { icon: BarChart3, value: totalResponses, label: 'Respostas Analisadas', color: 'text-green-400', bg: 'bg-green-500/10' },
-    { icon: Target, value: perfil.metricas.metaforas, label: 'Metáforas Detectadas', color: 'text-blue-400', bg: 'bg-blue-500/10' },
-    { icon: Zap, value: perfil.metricas.contradicoes, label: 'Padrões Complexos', color: 'text-yellow-400', bg: 'bg-yellow-500/10' },
-    { icon: Users, value: dominantTrait.slice(0, 8), label: 'Traço Dominante', color: 'text-purple-400', bg: 'bg-purple-500/10' },
+    { icon: BarChart3, value: totalResponses, label: 'Respostas', color: 'text-green-400', bg: 'bg-green-500/10' },
+    { icon: Target, value: perfil.metricas.metaforas, label: 'Metáforas', color: 'text-blue-400', bg: 'bg-blue-500/10' },
+    { icon: Zap, value: perfil.metricas.contradicoes, label: 'Complexidade', color: 'text-yellow-400', bg: 'bg-yellow-500/10' },
+    { icon: Users, value: dominantTrait, label: 'Traço Dominante', color: 'text-purple-400', bg: 'bg-purple-500/10' }
   ];
-  
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-12"
+      className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-10"
     >
       {stats.map((stat, index) => (
         <motion.div
           key={index}
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: index * 0.1 }}
-          className="stat-card group"
+          transition={{ delay: index * 0.12 }}
+          className="flex flex-col items-center bg-white/5 rounded-xl p-4 shadow-inner"
         >
-          <div className={`stat-icon ${stat.bg}`}>
-            <stat.icon className={`w-6 h-6 ${stat.color}`} />
+          <div className={`mb-1 p-2 rounded-full ${stat.bg}`}>
+            <stat.icon className={`w-5 h-5 ${stat.color}`} />
           </div>
-          <div className="stat-content">
-            <div className="stat-value">{stat.value}</div>
-            <div className="stat-label">{stat.label}</div>
-          </div>
-          <div className="stat-glow"></div>
+          <span className="font-bold text-lg text-white">{stat.value}</span>
+          <span className="text-xs text-white/70">{stat.label}</span>
         </motion.div>
       ))}
     </motion.div>
   );
-};
+}
 
-// Componente para a tela inicial premium
-const PremiumWelcomeScreen = ({ onStart }: { onStart: () => void }) => (
-  <motion.div
-    initial={{ opacity: 0, scale: 0.95 }}
-    animate={{ opacity: 1, scale: 1 }}
-    exit={{ opacity: 0, scale: 0.95 }}
-    transition={{ duration: 0.8, ease: "easeOut" }}
-    className="w-full max-w-6xl text-center"
-  >
-    <div className="hero-section">
+// Tela de boas-vindas
+function PremiumWelcomeScreen({ onStart }: { onStart: () => void }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.8, ease: "easeOut" }}
+      className="w-full max-w-2xl mx-auto text-center px-4 py-10"
+    >
       <motion.div
         initial={{ scale: 0, rotate: -180 }}
         animate={{ scale: 1, rotate: 0 }}
         transition={{ delay: 0.3, type: "spring", stiffness: 200, damping: 20 }}
-        className="hero-logo"
+        className="flex flex-col items-center mb-8"
       >
-        <div className="logo-container">
+        <div className="relative">
           <Brain className="w-16 h-16 text-white" />
-          <div className="logo-pulse"></div>
+          <div className="absolute top-0 right-0 animate-pulse"><Sparkles className="w-6 h-6 text-blue-300" /></div>
         </div>
-        <Sparkles className="sparkle-1" />
-        <Sparkles className="sparkle-2" />
-        <Sparkles className="sparkle-3" />
       </motion.div>
-      
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
-        className="hero-content"
+      <h1 className="text-3xl font-bold text-white mb-2">DNA</h1>
+      <p className="text-white/70 mb-6">Deep Narrative Analysis: análise psicológica profissional a partir da sua narrativa, usando IA avançada.</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+        <div className="flex flex-col items-center bg-green-600/10 rounded-lg p-4">
+          <Award className="w-7 h-7 text-green-400 mb-2" />
+          <span className="text-white font-semibold">Análise Científica</span>
+          <span className="text-xs text-white/70">Big Five, Schwartz, modelos validados</span>
+        </div>
+        <div className="flex flex-col items-center bg-blue-600/10 rounded-lg p-4">
+          <Brain className="w-7 h-7 text-blue-400 mb-2" />
+          <span className="text-white font-semibold">IA Avançada</span>
+          <span className="text-xs text-white/70">Processamento semântico profundo</span>
+        </div>
+        <div className="flex flex-col items-center bg-purple-600/10 rounded-lg p-4">
+          <TrendingUp className="w-7 h-7 text-purple-400 mb-2" />
+          <span className="text-white font-semibold">Insights Profundos</span>
+          <span className="text-xs text-white/70">Padrões comportamentais</span>
+        </div>
+        <div className="flex flex-col items-center bg-yellow-500/10 rounded-lg p-4">
+          <Lightbulb className="w-7 h-7 text-yellow-400 mb-2" />
+          <span className="text-white font-semibold">Relatório Detalhado</span>
+          <span className="text-xs text-white/70">Recomendações personalizadas</span>
+        </div>
+      </div>
+      <motion.button
+        whileHover={{ scale: 1.04 }}
+        whileTap={{ scale: 0.98 }}
+        onClick={onStart}
+        className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-blue-500 text-white font-semibold px-6 py-3 rounded-xl shadow-lg mb-4"
       >
-        <h1 className="hero-title">
-          <span className="title-main">DNA</span>
-          <span className="title-sub">Deep Narrative Analysis</span>
-        </h1>
-        
-        <p className="hero-description">
-          Plataforma profissional de análise psicológica através de narrativa pessoal. 
-          Utilizamos inteligência artificial avançada para revelar padrões profundos 
-          da sua personalidade e estrutura cognitiva.
-        </p>
-      </motion.div>
-      
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.7 }}
-        className="features-grid"
-      >
-        <div className="feature-card">
-          <div className="feature-icon bg-green-500/10">
-            <Award className="w-8 h-8 text-green-400" />
-          </div>
-          <h3>Análise Científica</h3>
-          <p>Baseada em modelos psicológicos validados como Big Five e Valores de Schwartz</p>
-        </div>
-        
-        <div className="feature-card">
-          <div className="feature-icon bg-blue-500/10">
-            <Brain className="w-8 h-8 text-blue-400" />
-          </div>
-          <h3>IA Avançada</h3>
-          <p>Processamento de linguagem natural com análise semântica profunda</p>
-        </div>
-        
-        <div className="feature-card">
-          <div className="feature-icon bg-purple-500/10">
-            <TrendingUp className="w-8 h-8 text-purple-400" />
-          </div>
-          <h3>Insights Profundos</h3>
-          <p>Revelações sobre padrões comportamentais e estruturas de personalidade</p>
-        </div>
-        
-        <div className="feature-card">
-          <div className="feature-icon bg-yellow-500/10">
-            <Lightbulb className="w-8 h-8 text-yellow-400" />
-          </div>
-          <h3>Relatório Detalhado</h3>
-          <p>Análise completa com recomendações personalizadas e insights acionáveis</p>
-        </div>
-      </motion.div>
-      
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.9 }}
-        className="cta-section"
-      >
-        <button
-          onClick={onStart}
-          className="cta-button group"
-        >
-          <span className="cta-text">Iniciar Análise Profissional</span>
-          <ArrowRight className="cta-icon" />
-          <div className="cta-glow"></div>
-        </button>
-        
-        <div className="cta-info">
-          <div className="info-item">
-            <Timer className="w-4 h-4" />
-            <span>~45 minutos</span>
-          </div>
-          <div className="info-item">
-            <Eye className="w-4 h-4" />
-            <span>108 perguntas</span>
-          </div>
-          <div className="info-item">
-            <Award className="w-4 h-4" />
-            <span>Certificado profissional</span>
-          </div>
-        </div>
-      </motion.div>
-    </div>
-  </motion.div>
-);
+        Iniciar Análise Profissional <ArrowRight />
+      </motion.button>
+      <div className="flex justify-center gap-8 text-white/70 text-xs mt-2">
+        <div className="flex items-center gap-1"><Timer className="w-4 h-4" /> ~45min</div>
+        <div className="flex items-center gap-1"><Eye className="w-4 h-4" /> 108 perguntas</div>
+        <div className="flex items-center gap-1"><Award className="w-4 h-4" /> Certificado</div>
+      </div>
+    </motion.div>
+  );
+}
 
-// Componente para a tela de sessão premium
-const PremiumSessionScreen = ({
+// Tela de sessão de perguntas
+function PremiumSessionScreen({
   pergunta,
   status,
   onStartRecording,
@@ -304,286 +221,175 @@ const PremiumSessionScreen = ({
   perfil: ExpertProfile;
   currentIndex: number;
   total: number;
-}) => {
+}) {
   const [timer, setTimer] = useState(0);
   const [audioMuted, setAudioMuted] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (status === 'recording') {
-      intervalRef.current = setInterval(() => {
-        setTimer(prev => prev + 1);
-      }, 1000);
+      intervalRef.current = setInterval(() => setTimer(t => t + 1), 1000);
     } else {
       if (intervalRef.current) clearInterval(intervalRef.current);
       setTimer(0);
     }
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [status]);
 
   const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
-    const secs = (seconds % 60).toString().padStart(2, '0');
+    const mins = String(Math.floor(seconds / 60)).padStart(2, '0');
+    const secs = String(seconds % 60).padStart(2, '0');
     return `${mins}:${secs}`;
   };
 
-  const getStatusConfig = () => {
+  const statusConfig = (() => {
     switch (status) {
-      case 'listening':
-        return {
-          message: 'Reproduzindo pergunta...',
-          icon: Volume2,
-          color: 'text-blue-400',
-          showWaves: true
-        };
-      case 'waiting_for_user':
-        return {
-          message: 'Pronto para gravar sua resposta',
-          icon: Mic,
-          color: 'text-green-400',
-          showWaves: false
-        };
-      case 'recording':
-        return {
-          message: 'Gravando sua narrativa...',
-          icon: Square,
-          color: 'text-red-400',
-          showWaves: true
-        };
-      case 'processing':
-        return {
-          message: 'Analisando padrões narrativos...',
-          icon: Brain,
-          color: 'text-purple-400',
-          showWaves: false
-        };
-      default:
-        return {
-          message: '',
-          icon: Mic,
-          color: 'text-white',
-          showWaves: false
-        };
+      case 'listening': return { message: 'Reproduzindo pergunta...', icon: Volume2, color: 'text-blue-400', showWaves: true };
+      case 'waiting_for_user': return { message: 'Pronto para gravar sua resposta', icon: Mic, color: 'text-green-400', showWaves: false };
+      case 'recording': return { message: 'Gravando sua narrativa...', icon: Square, color: 'text-red-400', showWaves: true };
+      case 'processing': return { message: 'Analisando...', icon: Brain, color: 'text-purple-400', showWaves: false };
+      default: return { message: '', icon: Mic, color: 'text-white', showWaves: false };
     }
-  };
-
-  const statusConfig = getStatusConfig();
+  })();
 
   return (
-    <div className="w-full max-w-7xl">
+    <div className="w-full max-w-3xl mx-auto flex flex-col items-center">
       <AdvancedProgressIndicator current={currentIndex} total={total} />
-      
       <EnhancedLiveStats perfil={perfil} />
-      
-      <div className="session-container">
-        <div className="question-section">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={pergunta?.texto}
-              initial={{ opacity: 0, y: 40, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -40, scale: 0.95 }}
-              transition={{ duration: 0.6, ease: "easeOut" }}
-              className="question-card"
-            >
-              <div className="question-header">
-                <div className="question-number">
-                  <span>{currentIndex}</span>
-                </div>
-                <div className="question-meta">
-                  <div className="domain-tag">{pergunta?.dominio}</div>
-                  <div className="question-progress">Pergunta {currentIndex} de {total}</div>
-                </div>
-              </div>
-              
-              <div className="question-content">
-                <p className="question-text">
-                  {pergunta?.texto}
-                </p>
-              </div>
-            </motion.div>
-          </AnimatePresence>
-        </div>
-
-        <div className="control-section">
+      <div className="bg-white/5 rounded-xl w-full p-6 flex flex-col items-center shadow-lg">
+        <AnimatePresence mode="wait">
           <motion.div
-            initial={{ scale: 0.9 }}
-            animate={{ scale: 1 }}
-            className="status-display"
+            key={pergunta?.texto}
+            initial={{ opacity: 0, y: 40, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -40, scale: 0.95 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            className="w-full"
           >
-            <div className="status-content">
-              <statusConfig.icon className={`status-icon ${statusConfig.color}`} />
-              <div className="status-text">
-                <div className="status-message">{statusConfig.message}</div>
-                {status === 'recording' && (
-                  <div className="recording-timer">
-                    <Timer className="w-5 h-5 text-red-400" />
-                    <span className="timer-display">{formatTime(timer)}</span>
-                  </div>
-                )}
-              </div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-xs text-white/60">Domínio: <span className="font-semibold">{pergunta?.dominio}</span></div>
+              <div className="text-xs text-white/60">Pergunta {currentIndex} de {total}</div>
             </div>
-            
-            {statusConfig.showWaves && <AudioWaves isActive={true} />}
-            
-            {(status === 'listening' || status === 'processing') && (
-              <div className="processing-indicator">
-                <div className="processing-dot"></div>
-                <div className="processing-dot"></div>
-                <div className="processing-dot"></div>
-              </div>
-            )}
+            <p className="text-xl text-white font-semibold text-center min-h-[60px]">{pergunta?.texto}</p>
           </motion.div>
-
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={status === 'recording' ? onStopRecording : onStartRecording}
-            disabled={status === 'listening' || status === 'processing'}
-            className={`record-button ${status === 'recording' ? 'recording' : ''} ${
-              status === 'listening' || status === 'processing' ? 'disabled' : ''
-            }`}
-          >
-            <div className="button-content">
-              {status === 'recording' && (
-                <>
-                  <div className="pulse-ring"></div>
-                  <div className="recording-indicator">
-                    <Square className="w-12 h-12 text-white" />
-                  </div>
-                </>
-              )}
-              
-              {status === 'waiting_for_user' && (
-                <Mic className="w-12 h-12 text-white" />
-              )}
-              
-              {(status === 'listening' || status === 'processing') && (
-                <Loader className="w-12 h-12 text-white animate-spin" />
-              )}
+        </AnimatePresence>
+        <div className="flex flex-col items-center my-6">
+          <statusConfig.icon className={`w-10 h-10 mb-2 ${statusConfig.color}`} />
+          <div className="text-white text-sm mb-2">{statusConfig.message}</div>
+          {status === 'recording' && (
+            <div className="flex items-center gap-2 mb-2 text-red-300">
+              <Timer className="w-5 h-5" />
+              <span className="font-mono">{formatTime(timer)}</span>
             </div>
-            
-            <div className="button-glow"></div>
-          </motion.button>
-
-          <div className="control-options">
-            <button
-              onClick={() => setAudioMuted(!audioMuted)}
-              className="option-button"
-            >
-              {audioMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-              <span>{audioMuted ? 'Ativar Áudio' : 'Silenciar'}</span>
-            </button>
-          </div>
+          )}
+          {statusConfig.showWaves && <AudioWaves isActive={true} />}
+          {(status === 'listening' || status === 'processing') && (
+            <div className="flex gap-1 mt-2">
+              <span className="animate-bounce w-2 h-2 bg-blue-400 rounded-full" />
+              <span className="animate-bounce w-2 h-2 bg-blue-400 rounded-full" style={{ animationDelay: '0.12s' }} />
+              <span className="animate-bounce w-2 h-2 bg-blue-400 rounded-full" style={{ animationDelay: '0.22s' }} />
+            </div>
+          )}
         </div>
+        <button
+          onClick={status === 'recording' ? onStopRecording : onStartRecording}
+          disabled={status === 'listening' || status === 'processing'}
+          className={`w-16 h-16 rounded-full flex items-center justify-center bg-gradient-to-tr from-green-500 to-blue-500 shadow-lg transition-all
+            ${status === 'recording' ? 'animate-pulse ring-4 ring-red-400' : ''}
+            ${status === 'listening' || status === 'processing' ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'}
+          `}
+        >
+          {status === 'recording' ? <Square className="w-9 h-9 text-white" /> :
+            status === 'waiting_for_user' ? <Mic className="w-9 h-9 text-white" /> :
+              <Loader className="w-9 h-9 text-white animate-spin" />}
+        </button>
+        <button
+          onClick={() => setAudioMuted(!audioMuted)}
+          className="mt-4 flex items-center gap-1 px-3 py-1 bg-white/10 text-xs rounded-lg text-white hover:bg-white/20"
+        >
+          {audioMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+          {audioMuted ? 'Ativar Áudio' : 'Silenciar'}
+        </button>
       </div>
     </div>
   );
-};
+}
 
-// Componente para a tela de relatório premium
-const PremiumReportScreen = ({ report, onRestart }: { report: string; onRestart: () => void }) => (
-  <motion.div
-    initial={{ opacity: 0, scale: 0.95 }}
-    animate={{ opacity: 1, scale: 1 }}
-    transition={{ duration: 0.8 }}
-    className="w-full max-w-7xl"
-  >
-    <div className="report-header">
+// Tela final do relatório
+function PremiumReportScreen({ report, onRestart }: { report: string; onRestart: () => void }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.8 }}
+      className="w-full max-w-3xl mx-auto text-center py-10"
+    >
       <motion.div
         initial={{ scale: 0, rotate: -180 }}
         animate={{ scale: 1, rotate: 0 }}
         transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
-        className="completion-badge"
+        className="flex flex-col items-center mb-6"
       >
         <Check className="w-16 h-16 text-white" />
-        <div className="badge-glow"></div>
       </motion.div>
-      
-      <div className="header-content">
-        <h1 className="completion-title">Análise Concluída com Sucesso</h1>
-        <p className="completion-subtitle">
-          Sua jornada narrativa foi processada e analisada. O relatório completo 
-          está disponível abaixo com insights profundos sobre sua personalidade.
-        </p>
+      <h1 className="text-2xl font-bold text-white mb-2">Análise Concluída</h1>
+      <p className="text-white/70 mb-6">Seu relatório está pronto. Confira os insights abaixo:</p>
+      <div className="bg-white/5 rounded-lg p-6 text-left max-h-96 overflow-auto shadow-inner mb-8">
+        <pre className="text-white/90 text-sm whitespace-pre-wrap">{report}</pre>
       </div>
-    </div>
-
-    <div className="report-container">
-      <div className="report-toolbar">
-        <div className="toolbar-left">
-          <FileText className="w-6 h-6 text-green-400" />
-          <h2>Relatório DNA Completo</h2>
-        </div>
-        <div className="toolbar-right">
-          <button className="toolbar-button">
-            <Download className="w-4 h-4" />
-            <span>Exportar PDF</span>
-          </button>
-          <button className="toolbar-button">
-            <Share2 className="w-4 h-4" />
-            <span>Compartilhar</span>
-          </button>
-        </div>
+      <div className="flex justify-center gap-4 mb-6">
+        <button className="flex items-center gap-1 px-3 py-1 bg-green-700/80 text-white rounded-lg font-semibold hover:bg-green-800">
+          <Download className="w-4 h-4" /> Exportar PDF
+        </button>
+        <button className="flex items-center gap-1 px-3 py-1 bg-blue-700/80 text-white rounded-lg font-semibold hover:bg-blue-800">
+          <Share2 className="w-4 h-4" /> Compartilhar
+        </button>
       </div>
-      
-      <div className="report-content">
-        <pre className="report-text">
-          {report}
-        </pre>
-      </div>
-    </div>
-
-    <div className="report-actions">
       <motion.button
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={onRestart}
-        className="restart-button"
+        className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-blue-500 text-white font-semibold px-6 py-3 rounded-xl"
       >
-        <span>Realizar Nova Análise</span>
-        <ArrowRight className="w-5 h-5" />
+        Nova Análise <ArrowRight />
       </motion.button>
-    </div>
-  </motion.div>
-);
+    </motion.div>
+  );
+}
 
-// Componente de erro premium
-const PremiumErrorScreen = ({ error, onRetry }: { error: string; onRetry: () => void }) => (
-  <motion.div
-    initial={{ opacity: 0, scale: 0.9 }}
-    animate={{ opacity: 1, scale: 1 }}
-    className="w-full max-w-lg text-center"
-  >
-    <div className="error-container">
-      <div className="error-icon">
-        <AlertTriangle className="w-16 h-16 text-red-400" />
-      </div>
-      <div className="error-content">
-        <h3 className="error-title">Ocorreu um Problema</h3>
-        <p className="error-message">{error}</p>
-        <button onClick={onRetry} className="error-button">
+// Tela de erro
+function PremiumErrorScreen({ error, onRetry }: { error: string; onRetry: () => void }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="w-full max-w-md mx-auto text-center py-10"
+    >
+      <div className="flex flex-col items-center bg-red-700/20 rounded-xl p-8">
+        <AlertTriangle className="w-16 h-16 text-red-400 mb-4" />
+        <h3 className="text-lg font-bold text-white mb-1">Ocorreu um Problema</h3>
+        <p className="text-white/80 mb-6">{error}</p>
+        <button
+          onClick={onRetry}
+          className="bg-red-500 text-white px-5 py-2 rounded-xl font-semibold hover:bg-red-600"
+        >
           Tentar Novamente
         </button>
       </div>
-    </div>
-  </motion.div>
-);
+    </motion.div>
+  );
+}
 
-// Componente principal
+// ---------- COMPONENTE PRINCIPAL ----------
 export default function DnaPage() {
   const [status, setStatus] = useState<SessionStatus>('idle');
   const [perguntaAtual, setPerguntaAtual] = useState<Pergunta | null>(null);
   const [perfil, setPerfil] = useState<ExpertProfile>(criarPerfilInicial());
   const [error, setError] = useState<string | null>(null);
-
   const perguntaIndex = useRef(0);
 
   useEffect(() => {
     initAudio().catch(err => {
-      console.error("Erro ao inicializar áudio:", err);
       setError("Não foi possível acessar o microfone. Verifique as permissões do navegador.");
     });
   }, []);
@@ -594,7 +400,7 @@ export default function DnaPage() {
     setError(null);
     fazerProximaPergunta();
   }, []);
-  
+
   const fazerProximaPergunta = useCallback(async () => {
     if (perguntaIndex.current < PERGUNTAS_DNA.length) {
       const pergunta = PERGUNTAS_DNA[perguntaIndex.current];
@@ -603,8 +409,7 @@ export default function DnaPage() {
       try {
         await playAudioFromUrl(pergunta.audioUrl, () => setStatus('waiting_for_user'));
         perguntaIndex.current++;
-      } catch (err) {
-        console.error("Erro ao reproduzir áudio:", err);
+      } catch {
         setError("Erro ao reproduzir a pergunta. Tentando novamente...");
         setTimeout(fazerProximaPergunta, 2000);
       }
@@ -617,12 +422,11 @@ export default function DnaPage() {
     try {
       await startRecording();
       setStatus('recording');
-    } catch (err) {
-      console.error("Erro ao iniciar gravação:", err);
+    } catch {
       setError("Não foi possível iniciar a gravação. Verifique as permissões do microfone.");
     }
   }, []);
-  
+
   const handleStopRecording = useCallback(async () => {
     setStatus('processing');
     try {
@@ -633,25 +437,21 @@ export default function DnaPage() {
         setPerfil(perfilAtualizado);
       }
       fazerProximaPergunta();
-    } catch (err) {
-      console.error("Erro ao processar gravação:", err);
+    } catch {
       setError("Problema ao processar sua resposta. Continuando para a próxima pergunta...");
       setTimeout(fazerProximaPergunta, 2000);
     }
   }, [perguntaAtual, perfil, fazerProximaPergunta]);
 
-  const transcreverAudio = async (audioBlob: Blob): Promise<string> => {
+  async function transcreverAudio(audioBlob: Blob): Promise<string> {
     const response = await fetch('/api/transcribe', { method: 'POST', body: audioBlob });
     if (!response.ok) throw new Error("Falha na transcrição");
     const data = await response.json();
     return data.transcript;
-  };
+  }
 
-  const renderContent = () => {
-    if (error) {
-      return <PremiumErrorScreen error={error} onRetry={() => setError(null)} />;
-    }
-
+  function renderContent() {
+    if (error) return <PremiumErrorScreen error={error} onRetry={() => setError(null)} />;
     switch (status) {
       case 'idle':
         return <PremiumWelcomeScreen onStart={iniciarSessao} />;
@@ -670,28 +470,16 @@ export default function DnaPage() {
           />
         );
     }
-  };
+  }
 
   return (
-    <main className="app-container">
+    <main className="relative min-h-screen flex flex-col items-center bg-gradient-to-br from-[#07263c] via-[#101c2e] to-[#1c2741]">
       <DNAParticles />
-      
-      <div className="content-wrapper">
-        <AnimatePresence mode="wait">
-          {renderContent()}
-        </AnimatePresence>
+      <div className="flex-1 w-full flex items-center justify-center py-10">
+        <AnimatePresence mode="wait">{renderContent()}</AnimatePresence>
       </div>
-      
-      <footer className="app-footer">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.5 }}
-          className="footer-content"
-        >
-          <p>DNA - Deep Narrative Analysis © 2025</p>
-          <p>UP LANÇAMENTOS</p>
-        </motion.div>
+      <footer className="w-full text-center py-4 text-white/50 text-xs z-10">
+        DNA - Deep Narrative Analysis © 2025 &nbsp;|&nbsp; UP LANÇAMENTOS
       </footer>
     </main>
   );
