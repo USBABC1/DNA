@@ -67,7 +67,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR" suppressHydrationWarning className="dark scroll-smooth">
+    <html lang="pt-BR" suppressHydrationWarning className="dark scroll-smooth h-full">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -75,13 +75,14 @@ export default function RootLayout({
       </head>
       <body
         className={cn(
-          "min-h-screen bg-background font-sans antialiased text-foreground",
+          "min-h-screen h-screen w-screen flex items-center justify-center bg-background font-sans antialiased text-foreground",
           "selection:bg-primary selection:text-primary-foreground",
           fontSans.variable,
           fontMono.variable
         )}
+        style={{ margin: 0, padding: 0 }}
       >
-        <main className="flex min-h-screen w-full items-center justify-center overflow-x-hidden">
+        <main className="w-full h-full flex items-center justify-center">
           {children}
         </main>
       </body>
