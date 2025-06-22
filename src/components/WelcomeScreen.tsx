@@ -5,8 +5,10 @@ import { ArrowRight, Brain } from 'lucide-react';
 
 export function WelcomeScreen({ onStart }: { onStart: () => void }) {
   return (
+    // Div principal que organiza o conteúdo da tela
     <div className="w-full h-full flex flex-col items-center justify-center text-center p-4">
-      {/* Container principal para o conteúdo central */}
+      
+      {/* Container do conteúdo central animado */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -39,12 +41,12 @@ export function WelcomeScreen({ onStart }: { onStart: () => void }) {
         </motion.button>
       </motion.div>
 
-      {/* Card flutuante na parte inferior, como na imagem de referência */}
+      {/* Card flutuante que aparece no canto */}
       <motion.div
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 1, delay: 0.5, ease: 'easeOut' }}
-        className="absolute bottom-10 left-10 hidden md:block"
+        className="fixed bottom-10 left-10 hidden md:block"
       >
         <div className="glass-card p-6 w-72">
           <div className="flex items-center space-x-3 mb-3">
