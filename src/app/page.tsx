@@ -3,8 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AnimatePresence } from 'framer-motion';
 
-// Componentes da UI
-import { Sidebar } from '@/components/layout/Sidebar';
+// Componentes da UI (Note que a Sidebar não está mais aqui)
 import { WelcomeScreen } from '@/components/WelcomeScreen';
 import { SessionView } from '@/components/SessionView';
 import { ReportView } from '@/components/ReportView';
@@ -94,7 +93,6 @@ export default function DnaPage() {
   // Função para renderizar o conteúdo principal com base no estado
   const renderContent = () => {
     if (error) {
-       // Poderíamos criar uma tela de erro dedicada aqui
        return <div className="text-red-500">{error}</div>;
     }
 
@@ -115,19 +113,14 @@ export default function DnaPage() {
     }
   };
 
+  // A MUDANÇA PRINCIPAL ESTÁ AQUI:
+  // Removemos a Sidebar e envolvemos o conteúdo em um <main>
+  // que centraliza tudo na tela.
   return (
-    <>
-      <Sidebar 
-        status={status}
-        perfil={perfil}
-        currentIndex={perguntaIndex.current}
-        total={PERGUNTAS_DNA.length}
-      />
-      <main className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 overflow-y-auto h-screen">
-        <AnimatePresence mode="wait">
-          {renderContent()}
-        </AnimatePresence>
-      </main>
-    </>
+    <main className="flex flex-col items-center justify-center min-h-screen p-4 md:p-8">
+      <AnimatePresence mode="wait">
+        {renderContent()}
+      </AnimatePresence>
+    </main>
   );
 }
