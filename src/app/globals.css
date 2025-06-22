@@ -50,22 +50,3 @@
 .glass-card {
   @apply bg-secondary/40 backdrop-blur-lg border border-white/10 rounded-2xl;
 }
-
-/* Estilo para gradiente de borda animado */
-.animated-border-box {
-  @apply relative p-px overflow-hidden rounded-2xl;
-}
-.animated-border-box::before {
-  content: '';
-  @apply absolute -top-1/2 -left-1/2 w-[200%] h-[200%] bg-conic-gradient from-primary/50 via-secondary to-primary/50;
-  animation: rotate 6s linear infinite;
-}
-.animated-border-box-content {
-  @apply relative bg-background rounded-[15px] h-full w-full;
-}
-
-@keyframes rotate {
-  to {
-    transform: rotate(360deg);
-  }
-}
