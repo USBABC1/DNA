@@ -1,77 +1,133 @@
-import { motion, AnimatePresence } from 'framer-motion';
-import { Mic, Square, Loader, Brain, Volume2 } from 'lucide-react';
-import { Pergunta } from '@/lib/types';
-import { AudioVisualizer } from './AudioVisualizer';
+'use client'
+
+import React, { useState, useEffect, useCallback } from 'react'
+import { SessionData, AnalysisReport, AppState } from '@/lib/types'
+import { config } from '@/lib/config'
+import * as webAudioService from '@/services/webAudioService'
+import { processAudio } from '@/lib/analysisEngine'
+import AudioVisualizer from './AudioVisualizer'
+import { Mic } from 'lucide-react'
 
 interface SessionViewProps {
-  pergunta: Pergunta | null;
-  status: string;
-  onStartRecording: () => void;
-  onStopRecording: () => void;
+  onSessionComplete: (report: AnalysisReport) => void
+  setAppState: React.Dispatch<React.SetStateAction<AppState>>
 }
 
-export function SessionView({ pergunta, status, onStartRecording, onStopRecording }: SessionViewProps) {
-  const isRecording = status === 'recording';
-  const isProcessing = status === 'processing' || status === 'listening';
+const SessionView: React.FC<SessionViewProps> = ({ onSessionComplete, setAppState }) => {
+  const [sessionData, setSessionData] = useState<SessionData>({
+    responses: [],
+  })
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
+  const [isRecording, setIsRecording] = useState(false)
+  const [analyserNode, setAnalyserNode] = useState<AnalyserNode | null>(null)
 
-  const statusMap: { [key: string]: { icon: React.ElementType, text: string, color: string } } = {
-    listening: { icon: Volume2, text: "Ouvindo a pergunta...", color: "text-sky-400" },
-    waiting_for_user: { icon: Mic, text: "Pronto para gravar sua resposta.", color: "text-primary" },
-    recording: { icon: Mic, text: "Gravando sua narrativa...", color: "text-red-400" },
-    processing: { icon: Brain, text: "Analisando sua resposta...", color: "text-purple-400" },
-  };
+  const currentQuestion = config.questions[currentQuestionIndex]
 
-  const currentStatus = statusMap[status] || statusMap['waiting_for_user'];
+  // Função para tocar o áudio da pergunta e ativar o visualizador
+  const playQuestionAudio = useCallback(async () => {
+    if (currentQuestion?.audioUrl) {
+      try {
+        setAnalyserNode(null) // Reseta o visualizador
+        const audioContext = webAudioService.getAudioContext()
+        const response = await fetch(currentQuestion.audioUrl)
+        const arrayBuffer = await response.arrayBuffer()
+        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer)
+        const analyser = webAudioService.playAudioAndGetAnalyser(audioBuffer)
+        setAnalyserNode(analyser)
+      } catch (error) {
+        console.error('Error playing question audio:', error)
+      }
+    }
+  }, [currentQuestion])
+
+  useEffect(() => {
+    playQuestionAudio()
+  }, [playQuestionAudio])
+
+  // Função para lidar com a gravação da resposta do usuário
+  const handleToggleRecording = async () => {
+    if (isRecording) {
+      // Parar a gravação
+      setIsRecording(false)
+      setAnalyserNode(null)
+      const audioBlob = await webAudioService.stopMicrophone()
+      
+      const newResponse = {
+        question: currentQuestion.text,
+        audio: audioBlob,
+      }
+      const updatedResponses = [...sessionData.responses, newResponse]
+      setSessionData({ responses: updatedResponses })
+
+      // Passar para a próxima pergunta ou finalizar
+      if (currentQuestionIndex < config.questions.length - 1) {
+        setCurrentQuestionIndex(currentQuestionIndex + 1)
+      } else {
+        // Fim da sessão, gerar relatório
+        setAppState(AppState.Analyzing)
+        const report = await processAudio(updatedResponses)
+        onSessionComplete(report)
+      }
+    } else {
+      // Iniciar a gravação
+      setIsRecording(true)
+      try {
+        const analyser = await webAudioService.startMicrophone()
+        setAnalyserNode(analyser)
+      } catch (error) {
+        console.error('Failed to start microphone:', error)
+        setIsRecording(false)
+      }
+    }
+  }
+
+  // Extrai o texto principal e o potencial da pergunta
+  const questionText = currentQuestion.text;
+  const potentialText = "Potential";
+  const mainTitle = questionText.replace(potentialText, "").trim();
+
 
   return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="w-full h-full flex flex-col items-center justify-center text-center p-4"
-    >
-      <div className="glass-card w-full max-w-2xl p-8 md:p-12 space-y-8">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={pergunta?.texto}
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -30 }}
-            transition={{ duration: 0.5, ease: 'easeInOut' }}
-            className="min-h-[100px] flex items-center justify-center"
-          >
-            <p className="text-2xl md:text-3xl font-medium text-white leading-snug">
-              {pergunta?.texto}
-            </p>
-          </motion.div>
-        </AnimatePresence>
+    <div className="flex items-center justify-center w-full min-h-screen bg-brand-dark font-sans">
+      <div className="w-full max-w-4xl p-8 space-y-8 rounded-lg bg-brand-dark-secondary shadow-2xl">
+        <div className="flex items-center justify-between">
+          {/* Lado Esquerdo: Título e Visualizador */}
+          <div className="flex-grow pr-8">
+            <div className="mb-6">
+              <p className="text-lg font-light tracking-wider text-brand-subtle-text uppercase">
+                Accelerate The
+              </p>
+              <h1 className="text-5xl font-bold text-brand-light-text">
+                {mainTitle}
+                <span className="p-1 ml-2 text-4xl font-semibold rounded-md bg-brand-green-bright text-brand-dark-secondary">
+                  {potentialText}
+                </span>
+              </h1>
+            </div>
 
-        <div className="flex flex-col items-center space-y-4">
-          <div className={`flex items-center space-x-2 ${currentStatus.color}`}>
-            <currentStatus.icon className="w-5 h-5" />
-            <span className="text-sm font-medium">{currentStatus.text}</span>
+            <div className="w-full h-24">
+              {analyserNode && <AudioVisualizer analyserNode={analyserNode} />}
+            </div>
           </div>
-          <AudioVisualizer isActive={isRecording || status === 'listening'} />
-        </div>
 
-        <button
-          onClick={isRecording ? onStopRecording : onStartRecording}
-          disabled={isProcessing}
-          className={`
-            w-24 h-24 rounded-full flex items-center justify-center mx-auto transition-all duration-300 ease-in-out
-            ${isRecording ? 'bg-red-500/80 shadow-[0_0_25px_rgba(239,68,68,0.7)]' : 'bg-primary shadow-[0_0_25px_hsl(var(--primary)/0.5)]'}
-            ${isProcessing ? 'bg-muted cursor-not-allowed shadow-none' : 'hover:scale-110'}
-          `}
-        >
-          {isProcessing ? (
-            <Loader className="w-10 h-10 text-white animate-spin" />
-          ) : isRecording ? (
-            <Square className="w-8 h-8 text-white" />
-          ) : (
-            <Mic className="w-10 h-10 text-primary-foreground" />
-          )}
-        </button>
+          {/* Lado Direito: Botão do Microfone */}
+          <div className="flex-shrink-0">
+            <button
+              onClick={handleToggleRecording}
+              className={`flex items-center justify-center w-28 h-28 rounded-full transition-all duration-300 ease-in-out shadow-lg
+                ${isRecording 
+                  ? 'bg-brand-red shadow-[0_0_20px_theme(colors.brand-red)]' 
+                  : 'bg-brand-green shadow-[0_0_20px_theme(colors.brand-green)]'
+                }
+              `}
+            >
+              <Mic size={50} className="text-white" />
+            </button>
+          </div>
+        </div>
       </div>
-    </motion.div>
-  );
+    </div>
+  )
 }
+
+export default SessionView
