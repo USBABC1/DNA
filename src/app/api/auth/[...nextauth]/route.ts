@@ -1,7 +1,18 @@
 import NextAuth from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import { SupabaseAdapter } from '@auth/supabase-adapter';
-import { supabaseAdmin } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+
+// Configuração do cliente Supabase para o adaptador
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  {
+    db: {
+      schema: 'next_auth',
+    },
+  }
+);
 
 const handler = NextAuth({
   providers: [
@@ -15,17 +26,30 @@ const handler = NextAuth({
     secret: process.env.SUPABASE_SERVICE_ROLE_KEY!,
   }),
   callbacks: {
-    async session({ session, user }) {
-      if (session.user) {
-        session.user.id = user.id;
+    async session({ session, token }) {
+      // Adiciona o ID do usuário à sessão para uso em outras partes da aplicação
+      if (token?.sub) {
+        session.user.id = token.sub;
       }
       return session;
     },
+    async jwt({ token, user }) {
+      // Preserva o ID do usuário no token JWT
+      if (user) {
+        token.sub = user.id;
+      }
+      return token;
+    },
   },
   pages: {
-    signIn: '/',
-    error: '/',
+    signIn: '/auth/signin',
+    error: '/auth/error',
   },
+  session: {
+    strategy: 'jwt',
+  },
+  secret: process.env.NEXTAUTH_SECRET,
 });
 
 export { handler as GET, handler as POST };
+
