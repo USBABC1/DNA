@@ -1,98 +1,105 @@
-import NextAuth from 'next-auth';
+import NextAuth, { NextAuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import { SupabaseAdapter } from '@auth/supabase-adapter';
-import { supabase } from '@/lib/supabase';
+import { SupabaseAdapter } from '@next-auth/supabase-adapter';
+import { createClient } from '@supabase/supabase-js';
 
-const handler = NextAuth({
+// Crie um cliente Supabase aqui para a lógica do lado do servidor de autenticação.
+// É importante usar a chave de serviço (service_role) para operações que a exijam.
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+export const authOptions: NextAuthOptions = {
+  // Configure um ou mais provedores de autenticação
   providers: [
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      clientId: process.env.GOOGLE_CLIENT_ID as string,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
     }),
     CredentialsProvider({
-      name: 'credentials',
+      name: 'Credentials',
       credentials: {
-        email: { label: 'Email', type: 'email' },
-        supabaseToken: { label: 'Supabase Token', type: 'text' },
+        email: { label: "Email", type: "email", placeholder: "seu@email.com" },
+        password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.supabaseToken) {
+        // Se as credenciais não forem fornecidas, retorne nulo
+        if (!credentials?.email || !credentials?.password) {
           return null;
         }
 
-        try {
-          // Verifica o token do Supabase
-          const { data: { user }, error } = await supabase.auth.getUser(credentials.supabaseToken);
-          
-          if (error || !user) {
-            console.error('Erro ao verificar token do Supabase:', error);
-            return null;
-          }
+        // Use o método de login nativo do Supabase
+        const { data, error } = await supabaseAdmin.auth.signInWithPassword({
+          email: credentials.email,
+          password: credentials.password,
+        });
 
-          // Retorna o usuário para o NextAuth
+        // Se houver um erro no login do Supabase, retorne nulo
+        if (error) {
+          console.error('Supabase SignIn Error:', error.message);
+          return null;
+        }
+
+        // Se o login for bem-sucedido e o usuário existir, retorne o objeto de usuário para o NextAuth
+        if (data?.user) {
           return {
-            id: user.id,
-            email: user.email!,
-            name: user.user_metadata?.name || user.email!.split('@')[0],
-            image: user.user_metadata?.avatar_url || null,
+            id: data.user.id,
+            email: data.user.email,
+            name: data.user.user_metadata?.name,
+            image: data.user.user_metadata?.avatar_url,
           };
-        } catch (error) {
-          console.error('Erro na autorização:', error);
-          return null;
         }
-      },
-    }),
+
+        // Retorna nulo se o login falhar por qualquer outro motivo
+        return null;
+      }
+    })
   ],
+
+  // Use o SupabaseAdapter para conectar o NextAuth ao seu banco de dados Supabase
   adapter: SupabaseAdapter({
     url: process.env.NEXT_PUBLIC_SUPABASE_URL!,
     secret: process.env.SUPABASE_SERVICE_ROLE_KEY!,
   }),
-  callbacks: {
-    async session({ session, token }) {
-      if (token?.sub) {
-        session.user.id = token.sub;
-      }
-      return session;
-    },
-    async jwt({ token, user, account }) {
-      if (user) {
-        token.sub = user.id;
-      }
-      
-      // Para login com Google, sincronizar com Supabase
-      if (account?.provider === 'google' && user) {
-        try {
-          // Verifica se o usuário já existe no Supabase
-          const { data: existingUser } = await supabase.auth.admin.getUserById(user.id);
-          
-          if (!existingUser.user) {
-            // Cria o usuário no Supabase se não existir
-            await supabase.auth.admin.createUser({
-              email: user.email!,
-              user_metadata: {
-                name: user.name,
-                avatar_url: user.image,
-              },
-              email_confirm: true,
-            });
-          }
-        } catch (error) {
-          console.error('Erro ao sincronizar usuário com Supabase:', error);
-        }
-      }
-      
-      return token;
-    },
+
+  // A estratégia de sessão JWT é recomendada
+  session: {
+    strategy: 'jwt',
   },
+
+  // Defina as páginas personalizadas para login e erros
   pages: {
     signIn: '/auth/signin',
     error: '/auth/error',
   },
-  session: {
-    strategy: 'jwt',
+
+  // Callbacks são usados para controlar o que acontece durante as ações de autenticação
+  callbacks: {
+    // O callback 'session' é chamado sempre que uma sessão é verificada.
+    // Usamos para adicionar o ID do usuário ao objeto de sessão do cliente.
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.id = token.sub!; // O 'sub' do token JWT é o ID do usuário no Supabase
+      }
+      return session;
+    },
+    
+    // O callback 'redirect' controla para onde o usuário é redirecionado após o login.
+    async redirect({ url, baseUrl }) {
+      // Após o login, redirecione para a página inicial (que é a página da entrevista).
+      // Se houver uma callbackUrl (por exemplo, se o usuário tentou acessar uma página protegida),
+      // o NextAuth irá redirecionar para ela por padrão.
+      // Se não, ele irá para a página inicial.
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
+      if (new URL(url).origin === baseUrl) return url;
+      return baseUrl;
+    }
   },
-  secret: process.env.NEXTAUTH_SECRET,
-});
+};
+
+// Exporte o manipulador do NextAuth
+const handler = NextAuth(authOptions);
 
 export { handler as GET, handler as POST };
