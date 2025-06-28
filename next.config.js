@@ -33,6 +33,8 @@ const nextConfig = {
       },
     ]
   },
+  // Ensure trailing slash consistency
+  trailingSlash: false,
 };
 
 module.exports = nextConfig;

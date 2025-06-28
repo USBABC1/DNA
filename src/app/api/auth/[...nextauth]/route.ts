@@ -36,25 +36,41 @@ const handler = NextAuth({
       return token;
     },
     async redirect({ url, baseUrl }) {
-      // Ensure baseUrl is properly set
-      const cleanBaseUrl = baseUrl || 'http://localhost:3000';
+      // Get the correct base URL for the environment
+      const getBaseUrl = () => {
+        // In production, use the NEXTAUTH_URL or infer from the request
+        if (process.env.NEXTAUTH_URL) {
+          return process.env.NEXTAUTH_URL;
+        }
+        
+        // For Netlify deployment
+        if (process.env.NETLIFY) {
+          return `https://${process.env.DEPLOY_PRIME_URL || 'dnav1.netlify.app'}`;
+        }
+        
+        // Fallback to provided baseUrl or localhost
+        return baseUrl || 'http://localhost:3000';
+      };
+
+      const correctBaseUrl = getBaseUrl();
       
       // Check if url is null, undefined, or empty
       if (!url) {
-        return cleanBaseUrl;
+        return `${correctBaseUrl}/dashboard`;
       }
       
       // Permite redirecionamentos para URLs do mesmo domínio
       if (url.startsWith("/")) {
-        return `${cleanBaseUrl}${url}`;
+        return `${correctBaseUrl}${url}`;
       }
       
       // Permite redirecionamentos para o domínio base
-      if (url.startsWith(cleanBaseUrl)) {
+      if (url.startsWith(correctBaseUrl)) {
         return url;
       }
       
-      return cleanBaseUrl;
+      // Default redirect to dashboard
+      return `${correctBaseUrl}/dashboard`;
     },
   },
   pages: {

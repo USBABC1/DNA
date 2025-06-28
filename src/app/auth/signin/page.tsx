@@ -29,7 +29,7 @@ export default function SignInPage() {
     if (errorParam) {
       switch (errorParam) {
         case 'OAuthCallback':
-          setError('Erro na autenticação com Google. Tente novamente.');
+          setError('Erro na configuração do Google OAuth. Verifique se as URLs de redirecionamento estão corretas no Google Cloud Console.');
           break;
         case 'OAuthAccountNotLinked':
           setError('Esta conta já está vinculada a outro provedor.');
@@ -38,7 +38,7 @@ export default function SignInPage() {
           setError('Não foi possível criar a conta com este email.');
           break;
         case 'Callback':
-          setError('Erro no callback de autenticação.');
+          setError('Erro no callback de autenticação. Tente novamente.');
           break;
         case 'OAuthCreateAccount':
           setError('Não foi possível criar a conta OAuth.');
@@ -52,8 +52,11 @@ export default function SignInPage() {
         case 'SessionRequired':
           setError('Você precisa estar logado para acessar esta página.');
           break;
+        case 'Configuration':
+          setError('Erro de configuração do servidor. As variáveis de ambiente podem não estar configuradas corretamente.');
+          break;
         default:
-          setError('Ocorreu um erro durante a autenticação.');
+          setError('Ocorreu um erro durante a autenticação. Tente novamente.');
       }
     }
   }, [errorParam, router]);
@@ -69,9 +72,11 @@ export default function SignInPage() {
       });
 
       if (result?.error) {
-        setError('Erro ao fazer login com Google. Tente novamente.');
+        console.error('SignIn error:', result.error);
+        setError('Erro ao fazer login com Google. Verifique se as credenciais estão configuradas corretamente.');
       } else if (result?.url) {
-        router.push(result.url);
+        // Successful sign in, redirect to the URL
+        window.location.href = result.url;
       }
     } catch (error) {
       console.error('Erro no login:', error);
@@ -120,6 +125,15 @@ export default function SignInPage() {
                 Seus dados são protegidos e utilizados apenas para análise psicológica.
               </p>
             </div>
+
+            {/* Debug information for development */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="mt-4 p-2 bg-gray-100 rounded text-xs">
+                <p><strong>Debug Info:</strong></p>
+                <p>Callback URL: {callbackUrl}</p>
+                <p>Error: {errorParam || 'None'}</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
