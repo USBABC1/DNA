@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import { cn } from "@/lib/utils";
+import { Toaster } from "@/components/ui/toaster";
 import './globals.css';
 
 const fontSans = Inter({
@@ -66,7 +67,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR" suppressHydrationWarning className="dark">
+    <html lang="pt-BR" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -79,8 +80,10 @@ export default function RootLayout({
       )}>
         <div className="relative">
           {children}
+          <Toaster />
         </div>
       </body>
     </html>
   );
 }
+

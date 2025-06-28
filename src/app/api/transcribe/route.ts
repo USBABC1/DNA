@@ -1,56 +1,119 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
 import { DeepgramClient, createClient } from '@deepgram/sdk';
-import { NextResponse } from 'next/server';
+import { supabaseAdmin } from '@/lib/supabase';
+import { googleDriveService } from '@/services/googleDrive';
 
 /**
- * Rota de API para transcrever áudio usando a Deepgram.
+ * API Route para transcrever áudio e salvar dados
  */
-export async function POST(request: Request) {
-  // Pega a chave da API das variáveis de ambiente.
-  const deepgramApiKey = process.env.DEEPGRAM_API_KEY;
-
-  if (!deepgramApiKey) {
-    console.error("A chave da API da Deepgram não está configurada.");
-    return NextResponse.json(
-      { error: 'A chave da API da Deepgram não está configurada no servidor.' },
-      { status: 500 }
-    );
-  }
-
-  // Inicializa o cliente da Deepgram com a chave.
-  const deepgram: DeepgramClient = createClient(deepgramApiKey);
-
+export async function POST(request: NextRequest) {
   try {
-    // Pega o blob de áudio da requisição.
-    const audioBlob = await request.blob();
-    const audioBuffer = Buffer.from(await audioBlob.arrayBuffer());
-
-    // Envia o áudio para a Deepgram para transcrição.
-    const { result, error } = await deepgram.listen.prerecorded.transcribeFile(
-      audioBuffer,
-      {
-        model: 'nova-2',    // Modelo de transcrição avançado.
-        language: 'pt-BR',  // Define o idioma para Português do Brasil.
-        smart_format: true, // Formatação inteligente (pontuação, parágrafos).
-      }
-    );
-
-    if (error) {
-      console.error('Erro retornado pela API da Deepgram:', error);
-      throw error;
+    // Verifica autenticação
+    const session = await getServerSession();
+    
+    if (!session?.user?.email) {
+      return NextResponse.json(
+        { error: 'Usuário não autenticado' },
+        { status: 401 }
+      );
     }
 
-    // Extrai a transcrição do resultado de forma segura.
-    const transcript = result?.results?.channels[0]?.alternatives[0]?.transcript || '';
-    
-    // Retorna a transcrição em uma resposta JSON.
-    return NextResponse.json({ transcript });
+    // Pega os dados da requisição
+    const formData = await request.formData();
+    const audioFile = formData.get('audio') as File;
+    const sessionId = formData.get('sessionId') as string;
+    const questionIndex = parseInt(formData.get('questionIndex') as string);
+    const questionText = formData.get('questionText') as string;
+
+    if (!audioFile || !sessionId || questionIndex === undefined) {
+      return NextResponse.json(
+        { error: 'Dados obrigatórios não fornecidos' },
+        { status: 400 }
+      );
+    }
+
+    // Verifica se a chave da API da Deepgram está configurada
+    const deepgramApiKey = process.env.DEEPGRAM_API_KEY;
+    if (!deepgramApiKey) {
+      console.error('Chave da API da Deepgram não configurada');
+      return NextResponse.json(
+        { error: 'Serviço de transcrição não configurado' },
+        { status: 500 }
+      );
+    }
+
+    // Converte o arquivo para buffer
+    const audioBuffer = Buffer.from(await audioFile.arrayBuffer());
+
+    // Inicializa o cliente da Deepgram
+    const deepgram: DeepgramClient = createClient(deepgramApiKey);
+
+    // Executa operações em paralelo para máxima eficiência
+    const [transcriptionResult, userFolderId] = await Promise.all([
+      // Transcrição com Deepgram
+      deepgram.listen.prerecorded.transcribeFile(audioBuffer, {
+        model: 'nova-2',
+        language: 'pt-BR',
+        smart_format: true,
+      }),
+      // Criação/obtenção da pasta do usuário no Google Drive
+      googleDriveService.createUserFolder(session.user.email),
+    ]);
+
+    // Verifica se houve erro na transcrição
+    if (transcriptionResult.error) {
+      console.error('Erro na transcrição:', transcriptionResult.error);
+      throw new Error('Falha na transcrição do áudio');
+    }
+
+    // Extrai o texto transcrito
+    const transcript = transcriptionResult.result?.results?.channels[0]?.alternatives[0]?.transcript || '';
+
+    // Faz upload do áudio para o Google Drive
+    const audioFileName = googleDriveService.generateAudioFileName(sessionId, questionIndex);
+    const audioFileId = await googleDriveService.uploadAudioFile(
+      audioBuffer,
+      audioFileName,
+      userFolderId
+    );
+
+    // Salva a resposta no banco de dados
+    const { data: userResponse, error: dbError } = await supabaseAdmin
+      .from('user_responses')
+      .insert([
+        {
+          session_id: sessionId,
+          question_index: questionIndex,
+          question_text: questionText,
+          transcript_text: transcript,
+          audio_file_drive_id: audioFileId,
+        }
+      ])
+      .select()
+      .single();
+
+    if (dbError) {
+      console.error('Erro ao salvar no banco de dados:', dbError);
+      return NextResponse.json(
+        { error: 'Erro ao salvar dados' },
+        { status: 500 }
+      );
+    }
+
+    // Retorna o resultado
+    return NextResponse.json({
+      transcript,
+      response_id: userResponse.id,
+      message: 'Áudio processado e salvo com sucesso'
+    });
 
   } catch (error) {
-    console.error('Erro interno na rota de transcrição:', error);
-    // Retorna uma mensagem de erro genérica.
+    console.error('Erro interno na API de transcrição:', error);
     return NextResponse.json(
-      { error: 'Falha ao transcrever o áudio.' },
+      { error: 'Falha ao processar áudio' },
       { status: 500 }
     );
   }
 }
+
