@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Função para criar cliente Supabase com verificação de ambiente
+// Função para criar cliente Supabase com verificação de ambiente 
 function createSupabaseClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
