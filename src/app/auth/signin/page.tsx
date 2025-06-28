@@ -27,6 +27,8 @@ export default function SignInPage() {
 
     // Handle error from URL params
     if (errorParam) {
+      console.log('OAuth Error:', errorParam);
+      
       switch (errorParam) {
         case 'OAuthCallback':
         case 'Callback':
@@ -64,16 +66,21 @@ export default function SignInPage() {
       setIsLoading(true);
       setError(null);
       
+      console.log('Attempting sign in with callback URL:', callbackUrl);
+      
       const result = await signIn('google', {
         callbackUrl,
         redirect: false,
       });
+
+      console.log('SignIn result:', result);
 
       if (result?.error) {
         console.error('SignIn error:', result.error);
         setError('Erro ao fazer login com Google. Verifique se as credenciais estão configuradas corretamente.');
       } else if (result?.url) {
         // Successful sign in, redirect to the URL
+        console.log('Redirecting to:', result.url);
         window.location.href = result.url;
       }
     } catch (error) {
@@ -130,6 +137,21 @@ export default function SignInPage() {
                 <p><strong>Debug Info:</strong></p>
                 <p>Callback URL: {callbackUrl}</p>
                 <p>Error: {errorParam || 'None'}</p>
+                <p>Current URL: {typeof window !== 'undefined' ? window.location.href : 'N/A'}</p>
+              </div>
+            )}
+
+            {/* Instructions for fixing OAuth */}
+            {errorParam === 'Callback' && (
+              <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-xs">
+                <p className="font-semibold text-yellow-800 mb-2">Para corrigir este erro:</p>
+                <ol className="list-decimal list-inside space-y-1 text-yellow-700">
+                  <li>Acesse o <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" className="underline">Google Cloud Console</a></li>
+                  <li>Vá para APIs & Services → Credentials</li>
+                  <li>Clique no seu OAuth 2.0 Client ID</li>
+                  <li>Adicione esta URL em "Authorized redirect URIs":</li>
+                  <li className="font-mono bg-white p-1 rounded">https://dnav1.netlify.app/api/auth/callback/google</li>
+                </ol>
               </div>
             )}
           </CardContent>

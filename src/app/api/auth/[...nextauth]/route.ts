@@ -34,8 +34,10 @@ const handler = NextAuth({
       return token;
     },
     async redirect({ url, baseUrl }) {
-      // Determine the correct base URL
-      const correctBaseUrl = process.env.NEXTAUTH_URL || 'https://dnav1.netlify.app';
+      // Use the correct base URL from environment or fallback
+      const correctBaseUrl = process.env.NEXTAUTH_URL || baseUrl || 'https://dnav1.netlify.app';
+      
+      console.log('Redirect callback:', { url, baseUrl, correctBaseUrl });
       
       // If no URL provided, redirect to dashboard
       if (!url) {
@@ -49,6 +51,11 @@ const handler = NextAuth({
       
       // If URL starts with our domain, allow it
       if (url.startsWith(correctBaseUrl)) {
+        return url;
+      }
+      
+      // For localhost development
+      if (url.startsWith('http://localhost:3000')) {
         return url;
       }
       
