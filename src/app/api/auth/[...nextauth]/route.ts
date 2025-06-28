@@ -1,6 +1,8 @@
 import NextAuth from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
+import CredentialsProvider from 'next-auth/providers/credentials';
 import { SupabaseAdapter } from '@auth/supabase-adapter';
+import { supabase } from '@/lib/supabase';
 
 // Check if required environment variables are available
 const requiredEnvVars = {
@@ -25,6 +27,38 @@ const authOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID || '',
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+    }),
+    CredentialsProvider({
+      name: 'credentials',
+      credentials: {
+        email: { label: 'Email', type: 'email' },
+        supabaseToken: { label: 'Supabase Token', type: 'text' },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.supabaseToken) {
+          return null;
+        }
+
+        try {
+          // Verificar o token do Supabase
+          const { data: { user }, error } = await supabase.auth.getUser(credentials.supabaseToken);
+          
+          if (error || !user) {
+            console.error('Erro ao verificar token do Supabase:', error);
+            return null;
+          }
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.user_metadata?.name || user.email,
+            image: user.user_metadata?.avatar_url || null,
+          };
+        } catch (error) {
+          console.error('Erro na autorização:', error);
+          return null;
+        }
+      },
     }),
   ],
   adapter: process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY 
@@ -52,6 +86,9 @@ const authOptions = {
     error: '/auth/error',
   },
   secret: process.env.NEXTAUTH_SECRET,
+  session: {
+    strategy: 'jwt' as const,
+  },
 };
 
 const handler = NextAuth(authOptions);
