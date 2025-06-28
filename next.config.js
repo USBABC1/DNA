@@ -8,6 +8,8 @@ const nextConfig = {
   env: {
     NEXTAUTH_URL: process.env.NEXTAUTH_URL,
   },
-}
+};
 
-module.exports = nextConfig
+module.exports = nextConfig;
+
+
