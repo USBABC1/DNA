@@ -4,7 +4,6 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Home, RefreshCw } from 'lucide-react';
 
 export default function AuthError() {
