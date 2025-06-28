@@ -1,27 +1,24 @@
-# Configurações de Build para Netlify com Next.js
 [build]
-  # O comando para construir seu projeto Next.js
   command = "npm run build"
-  
-  # O diretório onde o Next.js gera os arquivos de produção.
-  # O padrão para o Next.js é ".next".
   publish = ".next"
 
-# O plugin do Next.js na Netlify cuida dos redirecionamentos necessários.
-# A regra manual "/* -> /index.html" foi removida para corrigir o erro 404.
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
 
-# Regras de Cache para otimização
+# Configurações de função para NextAuth
+[functions]
+  external_node_modules = ["next-auth"]
+
+# Headers de segurança
+[[headers]]
+  for = "/api/auth/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Cache para assets estáticos
 [[headers]]
   for = "/static/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
-
-[[headers]]
-  for = "/*.js"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000"
-
-[[headers]]
-  for = "/*.css"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000"
