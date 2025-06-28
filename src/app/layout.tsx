@@ -17,6 +17,7 @@ const fontMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXTAUTH_URL || 'http://localhost:3000'),
   title: 'DNA - Deep Narrative Analysis | Análise Psicológica Avançada',
   description: 'Plataforma profissional de análise narrativa profunda usando IA avançada. Descubra padrões psicológicos através da sua narrativa pessoal.',
   keywords: [
@@ -86,4 +87,5 @@ export default function RootLayout({
     </html>
   );
 }
+
 
