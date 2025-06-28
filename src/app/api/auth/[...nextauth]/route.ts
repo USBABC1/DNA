@@ -1,55 +1,56 @@
-import NextAuth from 'next-auth';
-import GoogleProvider from 'next-auth/providers/google';
-import { SupabaseAdapter } from '@auth/supabase-adapter';
-import { createClient } from '@supabase/supabase-js';
+import { DeepgramClient, createClient } from '@deepgram/sdk';
+import { NextResponse } from 'next/server';
 
-// Configuração do cliente Supabase para o adaptador
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    db: {
-      schema: 'next_auth',
-    },
+/**
+ * Rota de API para transcrever áudio usando a Deepgram.
+ */
+export async function POST(request: Request) {
+  // Pega a chave da API das variáveis de ambiente.
+  const deepgramApiKey = process.env.DEEPGRAM_API_KEY;
+
+  if (!deepgramApiKey) {
+    console.error("A chave da API da Deepgram não está configurada.");
+    return NextResponse.json(
+      { error: 'A chave da API da Deepgram não está configurada no servidor.' },
+      { status: 500 }
+    );
   }
-);
 
-const handler = NextAuth({
-  providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
-  ],
-  adapter: SupabaseAdapter({
-    url: process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    secret: process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  }),
-  callbacks: {
-    async session({ session, token }) {
-      // Adiciona o ID do usuário à sessão para uso em outras partes da aplicação
-      if (token?.sub) {
-        session.user.id = token.sub;
+  // Inicializa o cliente da Deepgram com a chave.
+  const deepgram: DeepgramClient = createClient(deepgramApiKey);
+
+  try {
+    // Pega o blob de áudio da requisição.
+    const audioBlob = await request.blob();
+    const audioBuffer = Buffer.from(await audioBlob.arrayBuffer());
+
+    // Envia o áudio para a Deepgram para transcrição.
+    const { result, error } = await deepgram.listen.prerecorded.transcribeFile(
+      audioBuffer,
+      {
+        model: 'nova-2',    // Modelo de transcrição avançado.
+        language: 'pt-BR',  // Define o idioma para Português do Brasil.
+        smart_format: true, // Formatação inteligente (pontuação, parágrafos).
       }
-      return session;
-    },
-    async jwt({ token, user }) {
-      // Preserva o ID do usuário no token JWT
-      if (user) {
-        token.sub = user.id;
-      }
-      return token;
-    },
-  },
-  pages: {
-    signIn: '/auth/signin',
-    error: '/auth/error',
-  },
-  session: {
-    strategy: 'jwt',
-  },
-  secret: process.env.NEXTAUTH_SECRET,
-});
+    );
 
-export { handler as GET, handler as POST };
+    if (error) {
+      console.error('Erro retornado pela API da Deepgram:', error);
+      throw error;
+    }
 
+    // Extrai a transcrição do resultado de forma segura.
+    const transcript = result?.results?.channels[0]?.alternatives[0]?.transcript || '';
+    
+    // Retorna a transcrição em uma resposta JSON.
+    return NextResponse.json({ transcript });
+
+  } catch (error) {
+    console.error('Erro interno na rota de transcrição:', error);
+    // Retorna uma mensagem de erro genérica.
+    return NextResponse.json(
+      { error: 'Falha ao transcrever o áudio.' },
+      { status: 500 }
+    );
+  }
+}
