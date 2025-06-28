@@ -1,6 +1,7 @@
 import NextAuth from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import { SupabaseAdapter } from '@auth/supabase-adapter';
+import { getSession } from 'next-auth/react';
 
 const handler = NextAuth({
   providers: [
@@ -14,37 +15,18 @@ const handler = NextAuth({
     secret: process.env.SUPABASE_SERVICE_ROLE_KEY!,
   }),
   callbacks: {
-    async session({ session, token }) {
-      if (token?.sub) {
-        session.user.id = token.sub;
-      }
+    async session({ session, user }) {
+      // The user object is now the user from the database
+      session.user.id = user.id;
       return session;
-    },
-    async jwt({ token, user }) {
-      if (user) {
-        token.sub = user.id;
-      }
-      return token;
-    },
-    // IMPORTANTE: Callback para debug
-    async redirect({ url, baseUrl }) {
-      // Permite redirecionamentos para URLs no mesmo domínio
-      if (url.startsWith("/")) return `${baseUrl}${url}`;
-      // Permite redirecionamentos para o domínio base
-      if (new URL(url).origin === baseUrl) return url;
-      return baseUrl;
     },
   },
   pages: {
     signIn: '/auth/signin',
     error: '/auth/error',
   },
-  session: {
-    strategy: 'jwt',
-  },
+  // The 'session' block with strategy: 'jwt' has been removed
   secret: process.env.NEXTAUTH_SECRET,
-  // CONFIGURAÇÕES ADICIONAIS PARA NETLIFY
-  debug: process.env.NODE_ENV === 'development',
 });
 
 export { handler as GET, handler as POST };
