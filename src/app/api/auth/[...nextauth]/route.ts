@@ -7,6 +7,13 @@ const handler = NextAuth({
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          prompt: "consent",
+          access_type: "offline",
+          response_type: "code"
+        }
+      }
     }),
   ],
   adapter: SupabaseAdapter({
@@ -15,78 +22,38 @@ const handler = NextAuth({
   }),
   callbacks: {
     async session({ session, token }) {
+      // Adiciona o ID do usuário à sessão para uso em outras partes da aplicação
       if (token?.sub) {
         session.user.id = token.sub;
       }
       return session;
     },
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
+      // Preserva o ID do usuário no token JWT
       if (user) {
         token.sub = user.id;
       }
       return token;
     },
     async redirect({ url, baseUrl }) {
-      // Log para debug
-      console.log('NextAuth redirect:', { url, baseUrl });
-      
-      // Permite redirecionamentos para URLs no mesmo domínio
+      // Permite redirecionamentos para URLs do mesmo domínio
       if (url.startsWith("/")) return `${baseUrl}${url}`;
-      
       // Permite redirecionamentos para o domínio base
-      try {
-        const urlObj = new URL(url);
-        const baseUrlObj = new URL(baseUrl);
-        if (urlObj.origin === baseUrlObj.origin) return url;
-      } catch (error) {
-        console.error('Erro ao processar URLs de redirect:', error);
-      }
-      
+      else if (new URL(url).origin === baseUrl) return url;
       return baseUrl;
     },
-    async signIn({ user, account, profile }) {
-      // Log para debug
-      console.log('NextAuth signIn:', { 
-        user: user?.email, 
-        account: account?.provider,
-        profile: profile?.email 
-      });
-      
-      // Permite login com Google
-      if (account?.provider === "google") {
-        return true;
-      }
-      
-      return false;
-    }
   },
-  // Remove the custom pages configuration to use NextAuth defaults
-  // pages: {
-  //   signIn: '/auth/signin',
-  //   error: '/auth/error',
-  // },
+  pages: {
+    signIn: '/auth/signin',
+    error: '/auth/error',
+  },
   session: {
     strategy: 'jwt',
-    maxAge: 30 * 24 * 60 * 60, // 30 dias
   },
   secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === 'development',
-  
-  // Configurações adicionais para Netlify
-  useSecureCookies: process.env.NODE_ENV === 'production',
-  cookies: {
-    sessionToken: {
-      name: process.env.NODE_ENV === 'production' 
-        ? '__Secure-next-auth.session-token' 
-        : 'next-auth.session-token',
-      options: {
-        httpOnly: true,
-        sameSite: 'lax',
-        path: '/',
-        secure: process.env.NODE_ENV === 'production',
-      },
-    },
-  },
+  // Explicitly set the URL to handle cases where NEXTAUTH_URL might not be available
+  url: process.env.NEXTAUTH_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : undefined),
 });
 
 export { handler as GET, handler as POST };
