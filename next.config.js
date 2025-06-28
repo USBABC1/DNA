@@ -35,6 +35,8 @@ const nextConfig = {
   },
   // Ensure trailing slash consistency
   trailingSlash: false,
+  // Output configuration for Netlify
+  output: 'standalone',
 };
 
 module.exports = nextConfig;
