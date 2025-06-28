@@ -17,7 +17,7 @@ const fontMono = JetBrains_Mono({
   display: 'swap',
 });
 
-// Get base URL with proper fallback
+// Get base URL with proper fallback for build time
 const getBaseUrl = () => {
   if (typeof window !== 'undefined') {
     return window.location.origin;
@@ -28,7 +28,8 @@ const getBaseUrl = () => {
     return nextAuthUrl;
   }
   
-  return 'http://localhost:3000';
+  // Fallback for build time
+  return 'https://dna-analysis.netlify.app';
 };
 
 export const metadata: Metadata = {

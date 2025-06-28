@@ -6,7 +6,8 @@ const nextConfig = {
     domains: ["lh3.googleusercontent.com"],
   },
   env: {
-    NEXTAUTH_URL: process.env.NEXTAUTH_URL,
+    // Only set NEXTAUTH_URL if it exists to avoid build errors
+    ...(process.env.NEXTAUTH_URL && { NEXTAUTH_URL: process.env.NEXTAUTH_URL }),
   },
   // Add headers for better security and CORS handling
   async headers() {
