@@ -11,7 +11,8 @@ const handler = NextAuth({
         params: {
           prompt: "consent",
           access_type: "offline",
-          response_type: "code"
+          response_type: "code",
+          scope: "openid email profile"
         }
       }
     }),
@@ -36,12 +37,12 @@ const handler = NextAuth({
       return token;
     },
     async redirect({ url, baseUrl }) {
-      // Ensure baseUrl is properly set
-      const cleanBaseUrl = baseUrl || 'http://localhost:3000';
+      // Ensure baseUrl is properly set from environment
+      const cleanBaseUrl = process.env.NEXTAUTH_URL || baseUrl || 'https://dnav1.netlify.app';
       
       // Check if url is null, undefined, or empty
       if (!url) {
-        return cleanBaseUrl;
+        return `${cleanBaseUrl}/dashboard`;
       }
       
       // Permite redirecionamentos para URLs do mesmo domínio
@@ -54,7 +55,12 @@ const handler = NextAuth({
         return url;
       }
       
-      return cleanBaseUrl;
+      // Se for uma URL externa, redireciona para o dashboard
+      if (url.startsWith("http")) {
+        return `${cleanBaseUrl}/dashboard`;
+      }
+      
+      return `${cleanBaseUrl}/dashboard`;
     },
   },
   pages: {
@@ -63,9 +69,23 @@ const handler = NextAuth({
   },
   session: {
     strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
+  cookies: {
+    sessionToken: {
+      name: `next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+      },
+    },
   },
   secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === 'development',
+  trustHost: true, // Important for Netlify deployment
 });
 
 export { handler as GET, handler as POST };
+
