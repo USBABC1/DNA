@@ -60,10 +60,11 @@ const handler = NextAuth({
       return false;
     }
   },
-  pages: {
-    signIn: '/auth/signin',
-    error: '/auth/error',
-  },
+  // Remove the custom pages configuration to use NextAuth defaults
+  // pages: {
+  //   signIn: '/auth/signin',
+  //   error: '/auth/error',
+  // },
   session: {
     strategy: 'jwt',
     maxAge: 30 * 24 * 60 * 60, // 30 dias
