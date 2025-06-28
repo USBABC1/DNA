@@ -39,7 +39,7 @@ function SignInContent() {
       
       switch (errorParam) {
         case 'Configuration':
-          setError('Erro de configuração do servidor. Verifique se as variáveis de ambiente estão configuradas corretamente.');
+          setError('Erro de configuração do servidor. As credenciais OAuth não estão configuradas corretamente.');
           break;
         case 'AccessDenied':
           setError('Acesso negado. Você cancelou o login ou não tem permissão.');
@@ -49,7 +49,7 @@ function SignInContent() {
           break;
         case 'OAuthCallback':
         case 'Callback':
-          setError('Erro no callback do OAuth. Verifique se as URLs de redirecionamento estão corretas no Google Cloud Console.');
+          setError('Erro no callback do OAuth. As URLs de redirecionamento não estão configuradas corretamente no Google Cloud Console.');
           break;
         case 'OAuthAccountNotLinked':
           setError('Esta conta já está vinculada a outro provedor de login.');
@@ -71,7 +71,7 @@ function SignInContent() {
           break;
         case 'Default':
         default:
-          setError('Ocorreu um erro durante a autenticação. Tente novamente.');
+          setError('Ocorreu um erro durante a autenticação. As credenciais OAuth não estão configuradas.');
       }
     }
   }, [errorParam, router, mounted]);
@@ -85,18 +85,18 @@ function SignInContent() {
       
       const result = await signIn('google', {
         callbackUrl,
-        redirect: true, // Changed to true for better handling
+        redirect: true,
       });
 
       console.log('SignIn result:', result);
 
       if (result?.error) {
         console.error('SignIn error:', result.error);
-        setError('Erro ao fazer login com Google. Verifique se as credenciais estão configuradas corretamente.');
+        setError('Erro ao fazer login com Google. As credenciais OAuth não estão configuradas corretamente.');
       }
     } catch (error) {
       console.error('Erro no login:', error);
-      setError('Erro inesperado. Tente novamente.');
+      setError('Erro inesperado. As credenciais OAuth não estão configuradas.');
     } finally {
       setIsLoading(false);
     }
@@ -123,7 +123,7 @@ function SignInContent() {
         <Card>
           <CardHeader className="text-center">
             <CardTitle className="text-2xl font-bold text-green-600">
-              DNA - Deep Narrative Analysis
+              🧬 DNA - Deep Narrative Analysis
             </CardTitle>
             <CardDescription>
               Faça login para começar sua jornada de autoconhecimento através da análise narrativa profunda
@@ -157,37 +157,28 @@ function SignInContent() {
               </p>
             </div>
 
-            {/* Debug information for development */}
-            {process.env.NODE_ENV === 'development' && mounted && (
-              <div className="mt-4 p-2 bg-gray-100 rounded text-xs">
-                <p><strong>Debug Info:</strong></p>
-                <p>Callback URL: {callbackUrl}</p>
-                <p>Error: {errorParam || 'None'}</p>
-                <p>Current URL: {typeof window !== 'undefined' ? window.location.href : 'N/A'}</p>
-                <p>Environment Variables Check:</p>
-                <ul className="list-disc list-inside ml-2">
-                  <li>GOOGLE_CLIENT_ID: {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ? '✓ Set' : '✗ Missing'}</li>
-                  <li>NEXTAUTH_URL: {process.env.NEXT_PUBLIC_NEXTAUTH_URL ? '✓ Set' : '✗ Missing'}</li>
-                  <li>NEXTAUTH_SECRET: {typeof window === 'undefined' && process.env.NEXTAUTH_SECRET ? '✓ Set' : '✗ Missing'}</li>
-                </ul>
-              </div>
-            )}
+            {/* Configuration instructions */}
+            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-xs">
+              <p className="font-semibold text-yellow-800 mb-2">⚠️ Configuração Necessária:</p>
+              <p className="text-yellow-700 mb-2">Para que o login funcione, você precisa:</p>
+              <ol className="list-decimal list-inside space-y-1 text-yellow-700">
+                <li>Criar um projeto no <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" className="underline">Google Cloud Console</a></li>
+                <li>Ativar a Google+ API</li>
+                <li>Criar credenciais OAuth 2.0</li>
+                <li>Adicionar estas URLs autorizadas:</li>
+                <li className="font-mono bg-white p-1 rounded text-xs">https://cheery-cupcake-9c2166.netlify.app</li>
+                <li className="font-mono bg-white p-1 rounded text-xs">https://cheery-cupcake-9c2166.netlify.app/api/auth/callback/google</li>
+                <li>Configurar as variáveis de ambiente no Netlify</li>
+              </ol>
+            </div>
 
-            {/* Instructions for fixing OAuth */}
-            {(errorParam === 'Callback' || errorParam === 'Configuration') && (
-              <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-xs">
-                <p className="font-semibold text-yellow-800 mb-2">Para corrigir este erro:</p>
-                <ol className="list-decimal list-inside space-y-1 text-yellow-700">
-                  <li>Verifique se todas as variáveis de ambiente estão configuradas no arquivo .env.local</li>
-                  <li>Acesse o <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" className="underline">Google Cloud Console</a></li>
-                  <li>Vá para APIs & Services → Credentials</li>
-                  <li>Clique no seu OAuth 2.0 Client ID</li>
-                  <li>Adicione estas URLs em "Authorized redirect URIs":</li>
-                  <li className="font-mono bg-white p-1 rounded">http://localhost:3000/api/auth/callback/google</li>
-                  <li className="font-mono bg-white p-1 rounded">https://dnav1.netlify.app/api/auth/callback/google</li>
-                </ol>
-              </div>
-            )}
+            {/* Demo mode notice */}
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded text-xs">
+              <p className="font-semibold text-blue-800 mb-2">🎯 Modo Demonstração:</p>
+              <p className="text-blue-700">
+                Esta é uma versão de demonstração. Para usar o login real, configure as credenciais OAuth conforme as instruções acima.
+              </p>
+            </div>
           </CardContent>
         </Card>
       </div>
