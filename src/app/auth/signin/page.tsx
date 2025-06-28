@@ -13,11 +13,19 @@ function SignInContent() {
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
   
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
   const errorParam = searchParams.get('error');
 
+  // Fix hydration mismatch
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+
     // Check if user is already signed in
     getSession().then((session) => {
       if (session) {
@@ -66,7 +74,7 @@ function SignInContent() {
           setError('Ocorreu um erro durante a autenticação. Tente novamente.');
       }
     }
-  }, [errorParam, router]);
+  }, [errorParam, router, mounted]);
 
   const handleGoogleSignIn = async () => {
     try {
@@ -77,7 +85,7 @@ function SignInContent() {
       
       const result = await signIn('google', {
         callbackUrl,
-        redirect: false,
+        redirect: true, // Changed to true for better handling
       });
 
       console.log('SignIn result:', result);
@@ -85,10 +93,6 @@ function SignInContent() {
       if (result?.error) {
         console.error('SignIn error:', result.error);
         setError('Erro ao fazer login com Google. Verifique se as credenciais estão configuradas corretamente.');
-      } else if (result?.url) {
-        // Successful sign in, redirect to the URL
-        console.log('Redirecting to:', result.url);
-        window.location.href = result.url;
       }
     } catch (error) {
       console.error('Erro no login:', error);
@@ -97,6 +101,21 @@ function SignInContent() {
       setIsLoading(false);
     }
   };
+
+  // Prevent hydration mismatch by not rendering dynamic content until mounted
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <Card>
+            <CardContent className="flex items-center justify-center p-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
@@ -139,7 +158,7 @@ function SignInContent() {
             </div>
 
             {/* Debug information for development */}
-            {process.env.NODE_ENV === 'development' && (
+            {process.env.NODE_ENV === 'development' && mounted && (
               <div className="mt-4 p-2 bg-gray-100 rounded text-xs">
                 <p><strong>Debug Info:</strong></p>
                 <p>Callback URL: {callbackUrl}</p>
@@ -148,8 +167,8 @@ function SignInContent() {
                 <p>Environment Variables Check:</p>
                 <ul className="list-disc list-inside ml-2">
                   <li>GOOGLE_CLIENT_ID: {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ? '✓ Set' : '✗ Missing'}</li>
-                  <li>NEXTAUTH_URL: {process.env.NEXTAUTH_URL ? '✓ Set' : '✗ Missing'}</li>
-                  <li>NEXTAUTH_SECRET: {process.env.NEXTAUTH_SECRET ? '✓ Set' : '✗ Missing'}</li>
+                  <li>NEXTAUTH_URL: {process.env.NEXT_PUBLIC_NEXTAUTH_URL ? '✓ Set' : '✗ Missing'}</li>
+                  <li>NEXTAUTH_SECRET: {typeof window === 'undefined' && process.env.NEXTAUTH_SECRET ? '✓ Set' : '✗ Missing'}</li>
                 </ul>
               </div>
             )}
