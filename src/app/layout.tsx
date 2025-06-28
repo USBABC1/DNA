@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/toaster";
-import { Providers } from './providers';
 import './globals.css';
 
 const fontSans = Inter({
@@ -17,25 +16,10 @@ const fontMono = JetBrains_Mono({
   display: 'swap',
 });
 
-// Get base URL with proper fallback for build time
-const getBaseUrl = () => {
-  if (typeof window !== 'undefined') {
-    return window.location.origin;
-  }
-  
-  const nextAuthUrl = process.env.NEXTAUTH_URL;
-  if (nextAuthUrl) {
-    return nextAuthUrl;
-  }
-  
-  // Fallback for build time
-  return 'https://dna-analysis.netlify.app';
-};
-
 export const metadata: Metadata = {
-  metadataBase: new URL(getBaseUrl()),
+  metadataBase: new URL(process.env.NEXTAUTH_URL || 'http://localhost:3000'),
   title: 'DNA - Deep Narrative Analysis | Análise Psicológica Avançada',
-  description: 'Plataforma profissional de análise narrativa profunda usando inteligência artificial avançada. Descubra padrões psicológicos através da sua narrativa pessoal.',
+  description: 'Plataforma profissional de análise narrativa profunda usando IA avançada. Descubra padrões psicológicos através da sua narrativa pessoal.',
   keywords: [
     'análise psicológica', 
     'DNA narrativo', 
@@ -95,13 +79,13 @@ export default function RootLayout({
         fontSans.variable,
         fontMono.variable
       )}>
-        <Providers>
-          <div className="relative">
-            {children}
-            <Toaster />
-          </div>
-        </Providers>
+        <div className="relative">
+          {children}
+          <Toaster />
+        </div>
       </body>
     </html>
   );
 }
+
+

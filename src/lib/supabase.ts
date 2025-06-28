@@ -1,20 +1,16 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Mock values for development when environment variables are not set
-const mockSupabaseUrl = 'https://mock-project.supabase.co';
-const mockSupabaseAnonKey = 'mock-anon-key';
-const mockSupabaseServiceKey = 'mock-service-key';
-
-// Get environment variables with fallbacks for development
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || mockSupabaseUrl;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || mockSupabaseAnonKey;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || mockSupabaseServiceKey;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 // Cliente Supabase para uso no frontend (com chave anônima)
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Cliente Supabase para uso no backend (com chave de serviço)
-export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+export const supabaseAdmin = createClient(
+  supabaseUrl,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 // Tipos para as tabelas do banco de dados
 export interface AnalysisSession {
@@ -33,3 +29,4 @@ export interface UserResponse {
   audio_file_drive_id: string;
   created_at: string;
 }
+

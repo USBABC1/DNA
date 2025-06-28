@@ -2,26 +2,23 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { SessionProvider } from 'next-auth/react';
 import { AnalysisComponent } from '@/components/AnalysisComponent';
 import { AuthComponent } from '@/components/AuthComponent';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Calendar, Clock, FileText, LogOut } from 'lucide-react';
+import { Plus, Calendar, Clock, FileText } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import { signOut } from 'next-auth/react';
 
 interface Session {
   id: string;
   created_at: string;
   final_synthesis?: string;
-  status?: string;
 }
 
-export default function DashboardPage() {
+function DashboardContent() {
   const { data: session, status } = useSession();
-  const router = useRouter();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -32,13 +29,6 @@ export default function DashboardPage() {
       fetchSessions();
     }
   }, [session]);
-
-  // Redireciona para home se não estiver autenticado
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/');
-    }
-  }, [status, router]);
 
   const fetchSessions = async () => {
     try {
@@ -80,10 +70,6 @@ export default function DashboardPage() {
     }
   };
 
-  const handleSignOut = async () => {
-    await signOut({ callbackUrl: '/' });
-  };
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('pt-BR', {
       day: '2-digit',
@@ -97,10 +83,7 @@ export default function DashboardPage() {
   if (status === 'loading' || isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Carregando dashboard...</p>
-        </div>
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-500"></div>
       </div>
     );
   }
@@ -142,39 +125,16 @@ export default function DashboardPage() {
             </p>
           </div>
           <div className="flex items-center gap-4">
-            {session.user?.image && (
-              <img
-                src={session.user.image}
-                alt={session.user?.name || ''}
-                className="w-10 h-10 rounded-full"
-              />
-            )}
-            <Button onClick={handleSignOut} variant="outline" className="flex items-center gap-2">
-              <LogOut className="h-4 w-4" />
+            <img
+              src={session.user?.image || ''}
+              alt={session.user?.name || ''}
+              className="w-10 h-10 rounded-full"
+            />
+            <Button onClick={() => window.location.href = '/api/auth/signout'}>
               Sair
             </Button>
           </div>
         </div>
-
-        {/* Boas-vindas e Call to Action */}
-        <Card className="bg-gradient-to-r from-green-500 to-blue-500 text-white">
-          <CardHeader>
-            <CardTitle className="text-2xl">🎉 Bem-vindo ao DNA Analysis!</CardTitle>
-            <CardDescription className="text-green-50">
-              Você está pronto para começar sua jornada de autoconhecimento. Inicie sua primeira análise narrativa profunda agora mesmo.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button 
-              onClick={createNewSession} 
-              size="lg" 
-              className="bg-white text-green-600 hover:bg-green-50"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Começar Minha Análise
-            </Button>
-          </CardContent>
-        </Card>
 
         {/* Nova Sessão */}
         <Card>
@@ -210,13 +170,9 @@ export default function DashboardPage() {
             {sessions.length === 0 ? (
               <div className="text-center py-8">
                 <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600 mb-4">
+                <p className="text-gray-600">
                   Você ainda não possui sessões de análise. Crie sua primeira sessão para começar!
                 </p>
-                <Button onClick={createNewSession} className="bg-green-600 hover:bg-green-700">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Criar Primeira Sessão
-                </Button>
               </div>
             ) : (
               <div className="space-y-4">
@@ -296,3 +252,12 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+export default function DashboardPage() {
+  return (
+    <SessionProvider>
+      <DashboardContent />
+    </SessionProvider>
+  );
+}
+
