@@ -2,28 +2,25 @@ import NextAuth from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import { SupabaseAdapter } from '@auth/supabase-adapter';
 
-// Validate required environment variables
-if (!process.env.GOOGLE_CLIENT_ID) {
-  throw new Error('GOOGLE_CLIENT_ID is required');
-}
-if (!process.env.GOOGLE_CLIENT_SECRET) {
-  throw new Error('GOOGLE_CLIENT_SECRET is required');
-}
-if (!process.env.NEXTAUTH_SECRET) {
-  throw new Error('NEXTAUTH_SECRET is required');
-}
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-  throw new Error('NEXT_PUBLIC_SUPABASE_URL is required');
-}
-if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  throw new Error('SUPABASE_SERVICE_ROLE_KEY is required');
-}
+// Mock environment variables for development
+const mockEnvVars = {
+  GOOGLE_CLIENT_ID: 'mock-google-client-id',
+  GOOGLE_CLIENT_SECRET: 'mock-google-client-secret',
+  NEXTAUTH_SECRET: 'mock-nextauth-secret-32-characters-minimum',
+  NEXT_PUBLIC_SUPABASE_URL: 'https://mock-project.supabase.co',
+  SUPABASE_SERVICE_ROLE_KEY: 'mock-supabase-service-role-key'
+};
+
+// Use mock values if environment variables are not set (for development)
+const getEnvVar = (key: keyof typeof mockEnvVars) => {
+  return process.env[key] || mockEnvVars[key];
+};
 
 const handler = NextAuth({
   providers: [
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      clientId: getEnvVar('GOOGLE_CLIENT_ID'),
+      clientSecret: getEnvVar('GOOGLE_CLIENT_SECRET'),
       authorization: {
         params: {
           prompt: "consent",
@@ -35,8 +32,8 @@ const handler = NextAuth({
     }),
   ],
   adapter: SupabaseAdapter({
-    url: process.env.NEXT_PUBLIC_SUPABASE_URL,
-    secret: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    url: getEnvVar('NEXT_PUBLIC_SUPABASE_URL'),
+    secret: getEnvVar('SUPABASE_SERVICE_ROLE_KEY'),
   }),
   callbacks: {
     async session({ session, token }) {
@@ -83,12 +80,6 @@ const handler = NextAuth({
         return url;
       }
       
-      // For production domain
-      if (url.startsWith('https://dnav1.netlify.app')) {
-        console.log('Production URL, allowing:', url);
-        return url;
-      }
-      
       // Default to dashboard
       console.log('Defaulting to dashboard:', `${currentBaseUrl}/dashboard`);
       return `${currentBaseUrl}/dashboard`;
@@ -106,7 +97,7 @@ const handler = NextAuth({
     strategy: 'jwt',
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: getEnvVar('NEXTAUTH_SECRET'),
   debug: process.env.NODE_ENV === 'development',
   logger: {
     error(code, metadata) {

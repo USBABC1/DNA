@@ -44,6 +44,16 @@ export function AudioRecorder({
 
   const startRecording = useCallback(async () => {
     try {
+      // Check if browser supports media recording
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        toast({
+          title: 'Erro',
+          description: 'Seu navegador não suporta gravação de áudio. Tente usar Chrome, Firefox ou Safari.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream);
       const chunks: BlobPart[] = [];
@@ -55,7 +65,7 @@ export function AudioRecorder({
       };
 
       mediaRecorder.onstop = () => {
-        const blob = new Blob(chunks, { type: 'audio/mp3' });
+        const blob = new Blob(chunks, { type: 'audio/webm' });
         setAudioBlob(blob);
         
         // Para todas as faixas do stream para liberar o microfone
@@ -72,11 +82,16 @@ export function AudioRecorder({
         setRecordingTime(prev => prev + 1);
       }, 1000);
 
+      toast({
+        title: 'Gravação Iniciada',
+        description: 'Fale naturalmente sobre a pergunta apresentada.',
+      });
+
     } catch (error) {
       console.error('Erro ao acessar microfone:', error);
       toast({
         title: 'Erro',
-        description: 'Não foi possível acessar o microfone. Verifique as permissões.',
+        description: 'Não foi possível acessar o microfone. Verifique as permissões do navegador.',
         variant: 'destructive',
       });
     }
@@ -91,8 +106,13 @@ export function AudioRecorder({
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
+
+      toast({
+        title: 'Gravação Finalizada',
+        description: 'Você pode reproduzir o áudio ou gravar novamente.',
+      });
     }
-  }, [isRecording]);
+  }, [isRecording, toast]);
 
   const playRecording = useCallback(() => {
     if (audioBlob && !isPlaying) {
@@ -104,11 +124,19 @@ export function AudioRecorder({
         URL.revokeObjectURL(audioUrl);
       };
       
-      audio.play();
+      audio.play().catch(error => {
+        console.error('Erro ao reproduzir áudio:', error);
+        toast({
+          title: 'Erro',
+          description: 'Não foi possível reproduzir o áudio.',
+          variant: 'destructive',
+        });
+      });
+      
       audioRef.current = audio;
       setIsPlaying(true);
     }
-  }, [audioBlob, isPlaying]);
+  }, [audioBlob, isPlaying, toast]);
 
   const stopPlaying = useCallback(() => {
     if (audioRef.current) {
@@ -125,7 +153,7 @@ export function AudioRecorder({
     
     try {
       const formData = new FormData();
-      formData.append('audio', audioBlob, 'recording.mp3');
+      formData.append('audio', audioBlob, 'recording.webm');
       formData.append('sessionId', sessionId);
       formData.append('questionIndex', questionIndex.toString());
       formData.append('questionText', questionText);
@@ -300,6 +328,19 @@ export function AudioRecorder({
           <div className="flex flex-col items-center space-y-2">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
             <p className="text-sm text-gray-600">Processando áudio...</p>
+          </div>
+        )}
+
+        {/* Instruções de uso */}
+        {!transcript && !audioBlob && !isRecording && (
+          <div className="text-center text-sm text-gray-600 bg-blue-50 p-4 rounded-lg">
+            <p className="mb-2">💡 <strong>Dicas para uma boa gravação:</strong></p>
+            <ul className="text-left space-y-1">
+              <li>• Fale em um ambiente silencioso</li>
+              <li>• Mantenha o microfone próximo</li>
+              <li>• Responda de forma natural e espontânea</li>
+              <li>• Não há limite de tempo - fale o quanto precisar</li>
+            </ul>
           </div>
         )}
       </CardContent>

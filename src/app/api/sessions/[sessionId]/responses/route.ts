@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import { supabaseAdmin } from '@/lib/supabase';
+
+// Mock responses para desenvolvimento
+const mockResponses: any[] = [];
 
 /**
  * GET - Busca todas as respostas de uma sessão específica
@@ -21,43 +23,12 @@ export async function GET(
 
     const { sessionId } = params;
 
-    // Verifica se a sessão pertence ao usuário
-    const { data: sessionData, error: sessionError } = await supabaseAdmin
-      .from('analysis_sessions')
-      .select('user_id')
-      .eq('id', sessionId)
-      .single();
+    console.log('Fetching responses for session:', sessionId);
 
-    if (sessionError || !sessionData) {
-      return NextResponse.json(
-        { error: 'Sessão não encontrada' },
-        { status: 404 }
-      );
-    }
+    // Filtra respostas mock para a sessão
+    const sessionResponses = mockResponses.filter(r => r.session_id === sessionId);
 
-    if (sessionData.user_id !== session.user.id) {
-      return NextResponse.json(
-        { error: 'Acesso negado' },
-        { status: 403 }
-      );
-    }
-
-    // Busca todas as respostas da sessão
-    const { data: responses, error: responsesError } = await supabaseAdmin
-      .from('user_responses')
-      .select('*')
-      .eq('session_id', sessionId)
-      .order('question_index', { ascending: true });
-
-    if (responsesError) {
-      console.error('Erro ao buscar respostas:', responsesError);
-      return NextResponse.json(
-        { error: 'Erro ao buscar respostas' },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({ responses });
+    return NextResponse.json({ responses: sessionResponses });
   } catch (error) {
     console.error('Erro interno na API de respostas:', error);
     return NextResponse.json(

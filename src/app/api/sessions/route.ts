@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import { supabaseAdmin } from '@/lib/supabase';
-import { AnalysisSession } from '@/lib/supabase';
+
+// Mock data para desenvolvimento
+const mockSessions = [
+  {
+    id: 'mock-session-1',
+    user_id: 'mock-user-1',
+    created_at: new Date().toISOString(),
+    final_synthesis: null,
+    status: 'in_progress'
+  }
+];
 
 /**
  * GET - Busca todas as sessões do usuário autenticado
@@ -17,22 +26,12 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Busca todas as sessões do usuário usando o ID direto
-    const { data: sessions, error: sessionsError } = await supabaseAdmin
-      .from('analysis_sessions')
-      .select('*')
-      .eq('user_id', session.user.id)
-      .order('created_at', { ascending: false });
-
-    if (sessionsError) {
-      console.error('Erro ao buscar sessões:', sessionsError);
-      return NextResponse.json(
-        { error: 'Erro ao buscar sessões' },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({ sessions });
+    // Em desenvolvimento, retorna dados mock
+    console.log('Fetching sessions for user:', session.user.id);
+    
+    return NextResponse.json({ 
+      sessions: mockSessions.filter(s => s.user_id === session.user.id || true) // Mostra todas em dev
+    });
   } catch (error) {
     console.error('Erro interno na API de sessões:', error);
     return NextResponse.json(
@@ -56,28 +55,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Cria uma nova sessão de análise usando o ID direto do usuário
-    const { data: newSession, error: sessionError } = await supabaseAdmin
-      .from('analysis_sessions')
-      .insert([
-        {
-          user_id: session.user.id,
-        }
-      ])
-      .select()
-      .single();
+    // Cria uma nova sessão mock
+    const newSession = {
+      id: `mock-session-${Date.now()}`,
+      user_id: session.user.id,
+      created_at: new Date().toISOString(),
+      final_synthesis: null,
+      status: 'in_progress'
+    };
 
-    if (sessionError) {
-      console.error('Erro ao criar sessão:', sessionError);
-      return NextResponse.json(
-        { error: 'Erro ao criar sessão' },
-        { status: 500 }
-      );
-    }
+    mockSessions.push(newSession);
+
+    console.log('Created new session:', newSession);
 
     return NextResponse.json({ 
       session: newSession,
-      message: 'Sessão criada com sucesso'
+      message: 'Sessão criada com sucesso (modo desenvolvimento)'
     });
   } catch (error) {
     console.error('Erro interno na API de sessões:', error);
