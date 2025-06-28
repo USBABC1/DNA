@@ -83,8 +83,7 @@ const handler = NextAuth({
     },
   },
   secret: process.env.NEXTAUTH_SECRET,
-  debug: process.env.NODE_ENV === 'development',
-  trustHost: true, // Important for Netlify deployment
+  debug: process.env.NODE_ENV === 'development'
 });
 
 export { handler as GET, handler as POST };
