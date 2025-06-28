@@ -6,8 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Home } from 'lucide-react';
 import Link from 'next/link';
+import { Suspense } from 'react';
 
-export default function AuthErrorPage() {
+function AuthErrorContent() {
   const searchParams = useSearchParams();
   const error = searchParams.get('error');
 
@@ -82,9 +83,45 @@ export default function AuthErrorPage() {
                 Se o problema persistir, entre em contato com nosso suporte técnico.
               </p>
             </div>
+
+            {/* Instructions for fixing OAuth callback error */}
+            {error === 'Callback' && (
+              <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-xs">
+                <p className="font-semibold text-yellow-800 mb-2">Para corrigir este erro:</p>
+                <ol className="list-decimal list-inside space-y-1 text-yellow-700">
+                  <li>Acesse o <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" className="underline">Google Cloud Console</a></li>
+                  <li>Vá para APIs & Services → Credentials</li>
+                  <li>Clique no seu OAuth 2.0 Client ID</li>
+                  <li>Adicione esta URL em "Authorized redirect URIs":</li>
+                  <li className="font-mono bg-white p-1 rounded">https://dnav1.netlify.app/api/auth/callback/google</li>
+                </ol>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
     </div>
+  );
+}
+
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <Card>
+          <CardContent className="flex items-center justify-center p-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500"></div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+export default function AuthErrorPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <AuthErrorContent />
+    </Suspense>
   );
 }
