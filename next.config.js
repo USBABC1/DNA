@@ -32,6 +32,11 @@ const nextConfig = {
         destination: '/auth/signin',
         permanent: true,
       },
+      {
+        source: '/error',
+        destination: '/auth/error',
+        permanent: true,
+      },
     ]
   },
   // Ensure trailing slash consistency
