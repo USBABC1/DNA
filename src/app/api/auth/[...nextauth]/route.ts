@@ -36,11 +36,25 @@ const handler = NextAuth({
       return token;
     },
     async redirect({ url, baseUrl }) {
+      // Ensure baseUrl is properly set
+      const cleanBaseUrl = baseUrl || 'http://localhost:3000';
+      
+      // Check if url is null, undefined, or empty
+      if (!url) {
+        return cleanBaseUrl;
+      }
+      
       // Permite redirecionamentos para URLs do mesmo domínio
-      if (url.startsWith("/")) return `${baseUrl}${url}`;
+      if (url.startsWith("/")) {
+        return `${cleanBaseUrl}${url}`;
+      }
+      
       // Permite redirecionamentos para o domínio base
-      else if (new URL(url).origin === baseUrl) return url;
-      return baseUrl;
+      if (url.startsWith(cleanBaseUrl)) {
+        return url;
+      }
+      
+      return cleanBaseUrl;
     },
   },
   pages: {
@@ -52,8 +66,6 @@ const handler = NextAuth({
   },
   secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === 'development',
-  // Explicitly set the URL to handle cases where NEXTAUTH_URL might not be available
-  url: process.env.NEXTAUTH_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : undefined),
 });
 
 export { handler as GET, handler as POST };
