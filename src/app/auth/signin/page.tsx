@@ -29,6 +29,7 @@ export default function SignInPage() {
     if (errorParam) {
       switch (errorParam) {
         case 'OAuthCallback':
+        case 'Callback':
           setError('Erro na configuração do Google OAuth. Verifique se as URLs de redirecionamento estão corretas no Google Cloud Console.');
           break;
         case 'OAuthAccountNotLinked':
@@ -36,9 +37,6 @@ export default function SignInPage() {
           break;
         case 'EmailCreateAccount':
           setError('Não foi possível criar a conta com este email.');
-          break;
-        case 'Callback':
-          setError('Erro no callback de autenticação. Tente novamente.');
           break;
         case 'OAuthCreateAccount':
           setError('Não foi possível criar a conta OAuth.');

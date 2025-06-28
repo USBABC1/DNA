@@ -22,54 +22,37 @@ const handler = NextAuth({
   }),
   callbacks: {
     async session({ session, token }) {
-      // Adiciona o ID do usuário à sessão para uso em outras partes da aplicação
       if (token?.sub) {
         session.user.id = token.sub;
       }
       return session;
     },
-    async jwt({ token, user, account }) {
-      // Preserva o ID do usuário no token JWT
+    async jwt({ token, user }) {
       if (user) {
         token.sub = user.id;
       }
       return token;
     },
     async redirect({ url, baseUrl }) {
-      // Get the correct base URL for the environment
-      const getBaseUrl = () => {
-        // In production, use the NEXTAUTH_URL or infer from the request
-        if (process.env.NEXTAUTH_URL) {
-          return process.env.NEXTAUTH_URL;
-        }
-        
-        // For Netlify deployment
-        if (process.env.NETLIFY) {
-          return `https://${process.env.DEPLOY_PRIME_URL || 'dnav1.netlify.app'}`;
-        }
-        
-        // Fallback to provided baseUrl or localhost
-        return baseUrl || 'http://localhost:3000';
-      };
-
-      const correctBaseUrl = getBaseUrl();
+      // Determine the correct base URL
+      const correctBaseUrl = process.env.NEXTAUTH_URL || 'https://dnav1.netlify.app';
       
-      // Check if url is null, undefined, or empty
+      // If no URL provided, redirect to dashboard
       if (!url) {
         return `${correctBaseUrl}/dashboard`;
       }
       
-      // Permite redirecionamentos para URLs do mesmo domínio
+      // If relative URL, make it absolute
       if (url.startsWith("/")) {
         return `${correctBaseUrl}${url}`;
       }
       
-      // Permite redirecionamentos para o domínio base
+      // If URL starts with our domain, allow it
       if (url.startsWith(correctBaseUrl)) {
         return url;
       }
       
-      // Default redirect to dashboard
+      // Default to dashboard
       return `${correctBaseUrl}/dashboard`;
     },
   },
