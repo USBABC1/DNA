@@ -1,36 +1,20 @@
+# Configuração de Build
+# O comando para construir o projeto e a pasta de publicação.
 [build]
   command = "npm run build"
   publish = ".next"
 
+# Plugin do Next.js para Netlify
+# Este plugin cuida automaticamente de todas as configurações necessárias,
+# incluindo os redirecionamentos para as rotas da API e páginas do Next.js.
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
-# Configurações de função para NextAuth
-[functions]
-  external_node_modules = ["next-auth"]
-
-# Headers de segurança
+# Cabeçalhos de Segurança (Opcional, mas recomendado)
+# Aplica headers de segurança a todas as páginas do site.
 [[headers]]
-  for = "/api/auth/*"
+  for = "/*"
   [headers.values]
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
-
-# Cache para assets estáticos
-[[headers]]
-  for = "/static/*"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
-# Redirecionamentos para NextAuth
-[[redirects]]
-  from = "/api/auth/*"
-  to = "/.netlify/functions/___netlify-handler"
-  status = 200
-
-# Fallback para SPA
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
