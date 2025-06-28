@@ -1,16 +1,16 @@
+# Configurações de Build para Netlify com Next.js
 [build]
-  # This command builds your Next.js application.
+  # O comando para construir seu projeto Next.js
   command = "npm run build"
   
-  # The publish directory is where Next.js outputs its build files.
-  # The default for Next.js is ".next".
+  # O diretório onde o Next.js gera os arquivos de produção.
+  # O padrão para o Next.js é ".next".
   publish = ".next"
 
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+# O plugin do Next.js na Netlify cuida dos redirecionamentos necessários.
+# A regra manual "/* -> /index.html" foi removida para corrigir o erro 404.
 
+# Regras de Cache para otimização
 [[headers]]
   for = "/static/*"
   [headers.values]
