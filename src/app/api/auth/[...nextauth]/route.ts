@@ -37,12 +37,6 @@ const handler = NextAuth({
   adapter: SupabaseAdapter({
     url: process.env.NEXT_PUBLIC_SUPABASE_URL,
     secret: process.env.SUPABASE_SERVICE_ROLE_KEY,
-    // CORREÇÃO CRÍTICA: Especificar o schema correto
-    options: {
-      db: {
-        schema: 'public'
-      }
-    }
   }),
   callbacks: {
     async session({ session, token }) {
