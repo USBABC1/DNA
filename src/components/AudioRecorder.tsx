@@ -1,18 +1,17 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Mic, MicOff, Play, Pause, Square } from 'lucide-react';
+import { Mic, MicOff, Play, Pause, Square, RotateCcw } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
 interface AudioRecorderProps {
   questionText: string;
   questionIndex: number;
   sessionId: string;
-  onTranscriptionComplete: (transcript: string) => void;
-  onNext: () => void;
+  onTranscriptionComplete: (transcript: string, responseId: string) => void;
+  existingTranscript?: string;
 }
 
 export function AudioRecorder({
@@ -20,19 +19,28 @@ export function AudioRecorder({
   questionIndex,
   sessionId,
   onTranscriptionComplete,
-  onNext
+  existingTranscript
 }: AudioRecorderProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  const [transcript, setTranscript] = useState<string>('');
+  const [transcript, setTranscript] = useState<string>(existingTranscript || '');
   const [isProcessing, setIsProcessing] = useState(false);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
+
+  // Atualiza o transcript quando existingTranscript muda
+  useEffect(() => {
+    if (existingTranscript) {
+      setTranscript(existingTranscript);
+    } else {
+      setTranscript('');
+    }
+  }, [existingTranscript]);
 
   const startRecording = useCallback(async () => {
     try {
@@ -133,7 +141,7 @@ export function AudioRecorder({
 
       const data = await response.json();
       setTranscript(data.transcript);
-      onTranscriptionComplete(data.transcript);
+      onTranscriptionComplete(data.transcript, data.response_id);
 
       toast({
         title: 'Sucesso',
@@ -182,37 +190,60 @@ export function AudioRecorder({
       </CardHeader>
       
       <CardContent className="space-y-6">
-        {/* Controles de Gravação */}
-        <div className="flex flex-col items-center space-y-4">
-          <div className="text-2xl font-mono">
-            {formatTime(recordingTime)}
-          </div>
-          
-          <div className="flex gap-4">
-            {!isRecording && !audioBlob && (
-              <Button
-                onClick={startRecording}
-                size="lg"
-                className="bg-red-500 hover:bg-red-600 text-white"
-              >
-                <Mic className="h-5 w-5 mr-2" />
-                Iniciar Gravação
-              </Button>
-            )}
+        {/* Mostra transcrição existente se houver */}
+        {transcript && !audioBlob && (
+          <div className="space-y-4">
+            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+              <h3 className="font-semibold mb-2 text-green-800">Resposta Salva:</h3>
+              <p className="text-gray-700">{transcript}</p>
+            </div>
             
-            {isRecording && (
-              <Button
-                onClick={stopRecording}
-                size="lg"
+            <div className="flex justify-center">
+              <Button 
+                onClick={resetRecording} 
                 variant="outline"
-                className="border-red-500 text-red-500 hover:bg-red-50"
+                className="flex items-center gap-2"
               >
-                <Square className="h-5 w-5 mr-2" />
-                Parar Gravação
+                <RotateCcw className="h-4 w-4" />
+                Gravar Nova Resposta
               </Button>
-            )}
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Controles de Gravação */}
+        {!transcript && (
+          <div className="flex flex-col items-center space-y-4">
+            <div className="text-2xl font-mono">
+              {formatTime(recordingTime)}
+            </div>
+            
+            <div className="flex gap-4">
+              {!isRecording && !audioBlob && (
+                <Button
+                  onClick={startRecording}
+                  size="lg"
+                  className="bg-red-500 hover:bg-red-600 text-white"
+                >
+                  <Mic className="h-5 w-5 mr-2" />
+                  Iniciar Gravação
+                </Button>
+              )}
+              
+              {isRecording && (
+                <Button
+                  onClick={stopRecording}
+                  size="lg"
+                  variant="outline"
+                  className="border-red-500 text-red-500 hover:bg-red-50"
+                >
+                  <Square className="h-5 w-5 mr-2" />
+                  Parar Gravação
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Visualização da Gravação */}
         {isRecording && (
@@ -249,6 +280,7 @@ export function AudioRecorder({
               </Button>
               
               <Button onClick={resetRecording} variant="outline">
+                <RotateCcw className="h-4 w-4 mr-2" />
                 Gravar Novamente
               </Button>
               
@@ -258,29 +290,6 @@ export function AudioRecorder({
                 className="bg-green-600 hover:bg-green-700"
               >
                 {isProcessing ? 'Processando...' : 'Enviar'}
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Transcrição */}
-        {transcript && (
-          <div className="space-y-4">
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <h3 className="font-semibold mb-2">Transcrição:</h3>
-              <p className="text-gray-700">{transcript}</p>
-            </div>
-            
-            <div className="flex justify-center gap-4">
-              <Button onClick={resetRecording} variant="outline">
-                Gravar Novamente
-              </Button>
-              
-              <Button 
-                onClick={onNext}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                Próxima Pergunta
               </Button>
             </div>
           </div>
@@ -297,4 +306,3 @@ export function AudioRecorder({
     </Card>
   );
 }
-
