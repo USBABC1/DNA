@@ -1,18 +1,6 @@
 import NextAuth from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import { SupabaseAdapter } from '@auth/supabase-adapter';
-import { createClient } from '@supabase/supabase-js';
-
-// Configuração do cliente Supabase para o adaptador
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    db: {
-      schema: 'next_auth',
-    },
-  }
-);
 
 const handler = NextAuth({
   providers: [
@@ -52,4 +40,3 @@ const handler = NextAuth({
 });
 
 export { handler as GET, handler as POST };
-
