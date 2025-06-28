@@ -8,7 +8,7 @@ const nextConfig = {
     domains: ["lh3.googleusercontent.com"],
   },
   env: {
-    NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000',
+    NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'https://dnav1.netlify.app/',
   },
   // Use Webpack's built-in minifier instead of SWC
   webpack: (config, { dev, isServer }) => {
