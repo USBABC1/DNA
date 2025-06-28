@@ -34,33 +34,41 @@ const handler = NextAuth({
       return token;
     },
     async redirect({ url, baseUrl }) {
-      // Use the correct base URL from environment or fallback
-      const correctBaseUrl = process.env.NEXTAUTH_URL || baseUrl || 'https://dnav1.netlify.app';
+      // For local development
+      if (process.env.NODE_ENV === 'development') {
+        const localBaseUrl = 'http://localhost:3000';
+        
+        if (!url) {
+          return `${localBaseUrl}/dashboard`;
+        }
+        
+        if (url.startsWith("/")) {
+          return `${localBaseUrl}${url}`;
+        }
+        
+        if (url.startsWith(localBaseUrl)) {
+          return url;
+        }
+        
+        return `${localBaseUrl}/dashboard`;
+      }
       
-      console.log('Redirect callback:', { url, baseUrl, correctBaseUrl });
+      // For production
+      const prodBaseUrl = process.env.NEXTAUTH_URL || baseUrl || 'https://dnav1.netlify.app';
       
-      // If no URL provided, redirect to dashboard
       if (!url) {
-        return `${correctBaseUrl}/dashboard`;
+        return `${prodBaseUrl}/dashboard`;
       }
       
-      // If relative URL, make it absolute
       if (url.startsWith("/")) {
-        return `${correctBaseUrl}${url}`;
+        return `${prodBaseUrl}${url}`;
       }
       
-      // If URL starts with our domain, allow it
-      if (url.startsWith(correctBaseUrl)) {
+      if (url.startsWith(prodBaseUrl)) {
         return url;
       }
       
-      // For localhost development
-      if (url.startsWith('http://localhost:3000')) {
-        return url;
-      }
-      
-      // Default to dashboard
-      return `${correctBaseUrl}/dashboard`;
+      return `${prodBaseUrl}/dashboard`;
     },
   },
   pages: {

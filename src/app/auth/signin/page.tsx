@@ -30,15 +30,24 @@ function SignInContent() {
       console.log('OAuth Error:', errorParam);
       
       switch (errorParam) {
+        case 'Configuration':
+          setError('Erro de configuração do servidor. Verifique se as variáveis de ambiente estão configuradas corretamente.');
+          break;
+        case 'AccessDenied':
+          setError('Acesso negado. Você cancelou o login ou não tem permissão.');
+          break;
+        case 'Verification':
+          setError('Token de verificação inválido ou expirado.');
+          break;
         case 'OAuthCallback':
         case 'Callback':
-          setError('Erro na configuração do Google OAuth. Verifique se as URLs de redirecionamento estão corretas no Google Cloud Console.');
+          setError('Erro no callback do OAuth. Verifique se as URLs de redirecionamento estão corretas no Google Cloud Console.');
           break;
         case 'OAuthAccountNotLinked':
-          setError('Esta conta já está vinculada a outro provedor.');
+          setError('Esta conta já está vinculada a outro provedor de login.');
           break;
         case 'EmailCreateAccount':
-          setError('Não foi possível criar a conta com este email.');
+          setError('Não foi possível criar uma conta com este email.');
           break;
         case 'OAuthCreateAccount':
           setError('Não foi possível criar a conta OAuth.');
@@ -47,14 +56,12 @@ function SignInContent() {
           setError('Não foi possível enviar o email de login.');
           break;
         case 'CredentialsSignin':
-          setError('Credenciais inválidas.');
+          setError('Credenciais de login inválidas.');
           break;
         case 'SessionRequired':
           setError('Você precisa estar logado para acessar esta página.');
           break;
-        case 'Configuration':
-          setError('Erro de configuração do servidor. As variáveis de ambiente podem não estar configuradas corretamente.');
-          break;
+        case 'Default':
         default:
           setError('Ocorreu um erro durante a autenticação. Tente novamente.');
       }
@@ -138,18 +145,26 @@ function SignInContent() {
                 <p>Callback URL: {callbackUrl}</p>
                 <p>Error: {errorParam || 'None'}</p>
                 <p>Current URL: {typeof window !== 'undefined' ? window.location.href : 'N/A'}</p>
+                <p>Environment Variables Check:</p>
+                <ul className="list-disc list-inside ml-2">
+                  <li>GOOGLE_CLIENT_ID: {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ? '✓ Set' : '✗ Missing'}</li>
+                  <li>NEXTAUTH_URL: {process.env.NEXTAUTH_URL ? '✓ Set' : '✗ Missing'}</li>
+                  <li>NEXTAUTH_SECRET: {process.env.NEXTAUTH_SECRET ? '✓ Set' : '✗ Missing'}</li>
+                </ul>
               </div>
             )}
 
             {/* Instructions for fixing OAuth */}
-            {errorParam === 'Callback' && (
+            {(errorParam === 'Callback' || errorParam === 'Configuration') && (
               <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-xs">
                 <p className="font-semibold text-yellow-800 mb-2">Para corrigir este erro:</p>
                 <ol className="list-decimal list-inside space-y-1 text-yellow-700">
+                  <li>Verifique se todas as variáveis de ambiente estão configuradas no arquivo .env.local</li>
                   <li>Acesse o <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" className="underline">Google Cloud Console</a></li>
                   <li>Vá para APIs & Services → Credentials</li>
                   <li>Clique no seu OAuth 2.0 Client ID</li>
-                  <li>Adicione esta URL em "Authorized redirect URIs":</li>
+                  <li>Adicione estas URLs em "Authorized redirect URIs":</li>
+                  <li className="font-mono bg-white p-1 rounded">http://localhost:3000/api/auth/callback/google</li>
                   <li className="font-mono bg-white p-1 rounded">https://dnav1.netlify.app/api/auth/callback/google</li>
                 </ol>
               </div>
