@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { SessionProvider } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { AnalysisComponent } from '@/components/AnalysisComponent';
 import { AuthComponent } from '@/components/AuthComponent';
@@ -17,9 +16,10 @@ interface Session {
   id: string;
   created_at: string;
   final_synthesis?: string;
+  status?: string;
 }
 
-function DashboardContent() {
+export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -142,11 +142,13 @@ function DashboardContent() {
             </p>
           </div>
           <div className="flex items-center gap-4">
-            <img
-              src={session.user?.image || ''}
-              alt={session.user?.name || ''}
-              className="w-10 h-10 rounded-full"
-            />
+            {session.user?.image && (
+              <img
+                src={session.user.image}
+                alt={session.user?.name || ''}
+                className="w-10 h-10 rounded-full"
+              />
+            )}
             <Button onClick={handleSignOut} variant="outline" className="flex items-center gap-2">
               <LogOut className="h-4 w-4" />
               Sair
@@ -292,13 +294,5 @@ function DashboardContent() {
         </Card>
       </div>
     </div>
-  );
-}
-
-export default function DashboardPage() {
-  return (
-    <SessionProvider>
-      <DashboardContent />
-    </SessionProvider>
   );
 }

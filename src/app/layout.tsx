@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/toaster";
+import { Providers } from './providers';
 import './globals.css';
 
 const fontSans = Inter({
@@ -33,7 +34,7 @@ const getBaseUrl = () => {
 export const metadata: Metadata = {
   metadataBase: new URL(getBaseUrl()),
   title: 'DNA - Deep Narrative Analysis | Análise Psicológica Avançada',
-  description: 'Plataforma profissional de análise narrativa profunda usando IA avançada. Descubra padrões psicológicos através da sua narrativa pessoal.',
+  description: 'Plataforma profissional de análise narrativa profunda usando inteligência artificial avançada. Descubra padrões psicológicos através da sua narrativa pessoal.',
   keywords: [
     'análise psicológica', 
     'DNA narrativo', 
@@ -93,10 +94,12 @@ export default function RootLayout({
         fontSans.variable,
         fontMono.variable
       )}>
-        <div className="relative">
-          {children}
-          <Toaster />
-        </div>
+        <Providers>
+          <div className="relative">
+            {children}
+            <Toaster />
+          </div>
+        </Providers>
       </body>
     </html>
   );
