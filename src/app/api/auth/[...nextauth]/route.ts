@@ -15,14 +15,12 @@ const handler = NextAuth({
   }),
   callbacks: {
     async session({ session, token }) {
-      // Adiciona o ID do usuário à sessão para uso em outras partes da aplicação
       if (token?.sub) {
         session.user.id = token.sub;
       }
       return session;
     },
     async jwt({ token, user }) {
-      // Preserva o ID do usuário no token JWT
       if (user) {
         token.sub = user.id;
       }
