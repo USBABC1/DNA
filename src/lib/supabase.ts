@@ -1,32 +1,48 @@
 import { createClient } from '@supabase/supabase-js';
- 
+
 // Função para criar cliente Supabase com verificação de ambiente
 function createSupabaseClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    // Durante o build ou quando as variáveis não estão disponíveis, retorna um cliente mock
-    if (typeof window === 'undefined' || process.env.NODE_ENV === 'production') {
-      console.warn('Supabase credentials not configured, using mock client');
-      return {
-        auth: {
-          signInWithPassword: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
-          signUp: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
-          getUser: () => Promise.resolve({ data: { user: null }, error: new Error('Supabase not configured') }),
-          admin: {
-            getUserById: () => Promise.resolve({ data: { user: null }, error: new Error('Supabase not configured') }),
-            createUser: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
-          }
-        },
-        from: () => ({
-          select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }) }) }),
-          insert: () => ({ select: () => ({ single: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }) }) }),
-        })
-      } as any;
-    }
+    console.warn('Supabase credentials not configured. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables.');
     
-    throw new Error('Supabase URL and Anon Key are required');
+    // Retorna um cliente mock que não quebra a aplicação
+    return {
+      auth: {
+        signInWithPassword: () => Promise.resolve({ 
+          data: null, 
+          error: { message: 'Supabase not configured' } 
+        }),
+        signUp: () => Promise.resolve({ 
+          data: null, 
+          error: { message: 'Supabase not configured' } 
+        }),
+        getUser: () => Promise.resolve({ 
+          data: { user: null }, 
+          error: { message: 'Supabase not configured' } 
+        }),
+      },
+      from: () => ({
+        select: () => ({ 
+          eq: () => ({ 
+            single: () => Promise.resolve({ 
+              data: null, 
+              error: { message: 'Supabase not configured' } 
+            }) 
+          }) 
+        }),
+        insert: () => ({ 
+          select: () => ({ 
+            single: () => Promise.resolve({ 
+              data: null, 
+              error: { message: 'Supabase not configured' } 
+            }) 
+          }) 
+        }),
+      })
+    } as any;
   }
 
   return createClient(supabaseUrl, supabaseAnonKey);
@@ -37,33 +53,45 @@ function createSupabaseAdminClient() {
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !supabaseServiceKey) {
-    // Durante o build ou quando as variáveis não estão disponíveis, retorna um cliente mock
-    if (typeof window === 'undefined' || process.env.NODE_ENV === 'production') {
-      console.warn('Supabase admin credentials not configured, using mock client');
-      return {
-        auth: {
-          admin: {
-            getUserById: () => Promise.resolve({ data: { user: null }, error: new Error('Supabase not configured') }),
-            createUser: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
-          }
-        },
-        from: () => ({
-          select: () => ({ 
-            eq: () => ({ 
-              single: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
-              order: () => Promise.resolve({ data: [], error: new Error('Supabase not configured') })
-            }) 
-          }),
-          insert: () => ({ 
-            select: () => ({ 
-              single: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }) 
-            }) 
-          }),
-        })
-      } as any;
-    }
+    console.warn('Supabase admin credentials not configured. Please set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables.');
     
-    throw new Error('Supabase URL and Service Role Key are required');
+    // Retorna um cliente mock que não quebra a aplicação
+    return {
+      auth: {
+        admin: {
+          getUserById: () => Promise.resolve({ 
+            data: { user: null }, 
+            error: { message: 'Supabase not configured' } 
+          }),
+          createUser: () => Promise.resolve({ 
+            data: null, 
+            error: { message: 'Supabase not configured' } 
+          }),
+        }
+      },
+      from: () => ({
+        select: () => ({ 
+          eq: () => ({ 
+            single: () => Promise.resolve({ 
+              data: null, 
+              error: { message: 'Supabase not configured' } 
+            }),
+            order: () => Promise.resolve({ 
+              data: [], 
+              error: { message: 'Supabase not configured' } 
+            })
+          }) 
+        }),
+        insert: () => ({ 
+          select: () => ({ 
+            single: () => Promise.resolve({ 
+              data: null, 
+              error: { message: 'Supabase not configured' } 
+            }) 
+          }) 
+        }),
+      })
+    } as any;
   }
 
   return createClient(supabaseUrl, supabaseServiceKey);
