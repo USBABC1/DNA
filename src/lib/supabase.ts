@@ -6,8 +6,9 @@ function createSupabaseClient() {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    // Durante o build, retorna um cliente mock para evitar erros
-    if (typeof window === 'undefined') {
+    // Durante o build ou quando as variáveis não estão disponíveis, retorna um cliente mock
+    if (typeof window === 'undefined' || process.env.NODE_ENV === 'production') {
+      console.warn('Supabase credentials not configured, using mock client');
       return {
         auth: {
           signInWithPassword: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
@@ -36,8 +37,9 @@ function createSupabaseAdminClient() {
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !supabaseServiceKey) {
-    // Durante o build, retorna um cliente mock para evitar erros
-    if (typeof window === 'undefined') {
+    // Durante o build ou quando as variáveis não estão disponíveis, retorna um cliente mock
+    if (typeof window === 'undefined' || process.env.NODE_ENV === 'production') {
+      console.warn('Supabase admin credentials not configured, using mock client');
       return {
         auth: {
           admin: {

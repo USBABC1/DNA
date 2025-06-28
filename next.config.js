@@ -9,6 +9,9 @@ const nextConfig = {
   },
   env: {
     NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'https://dnav1.netlify.app/',
+    // Ensure Supabase variables are available at build time
+    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   },
   // Use Webpack's built-in minifier instead of SWC
   webpack: (config, { dev, isServer }) => {
