@@ -112,7 +112,7 @@ export interface AnalysisSession {
   final_synthesis?: string;
   status: string;
 }
-
+ 
 export interface UserResponse {
   id: string;
   session_id: string;
