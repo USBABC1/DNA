@@ -47,15 +47,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Importações dinâmicas para evitar erro durante o build
-    const { DeepgramClient, createClient } = await import('@deepgram/sdk');
+    const { createClient } = await import('@deepgram/sdk');
     const { supabaseAdmin } = await import('@/lib/supabase');
     const { googleDriveService } = await import('@/services/googleDrive');
 
     // Converte o arquivo para buffer
     const audioBuffer = Buffer.from(await audioFile.arrayBuffer());
 
-    // Inicializa o cliente da Deepgram
-    const deepgram: DeepgramClient = createClient(process.env.DEEPGRAM_API_KEY);
+    // Inicializa o cliente da Deepgram (deixa o TypeScript inferir o tipo)
+    const deepgram = createClient(process.env.DEEPGRAM_API_KEY);
 
     // Executa operações em paralelo para máxima eficiência
     const [transcriptionResult, userFolderId] = await Promise.all([
