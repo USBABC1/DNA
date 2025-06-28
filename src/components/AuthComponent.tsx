@@ -1,10 +1,12 @@
 'use client';
 
-import { signIn, signOut, useSession } from 'next-auth/react';
-import { Button } from '@/components/ui/button';
+import { useSession } from 'next-auth/react';
+import { AuthForm } from '@/components/AuthForm';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { LogIn, LogOut, User } from 'lucide-react';
+import { LogOut, User } from 'lucide-react';
+import { signOut } from 'next-auth/react';
 
 export function AuthComponent() {
   const { data: session, status } = useSession();
@@ -64,33 +66,5 @@ export function AuthComponent() {
     );
   }
 
-  return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader className="text-center">
-        <CardTitle className="text-2xl font-bold text-green-600">
-          DNA - Deep Narrative Analysis
-        </CardTitle>
-        <CardDescription>
-          Faça login para começar sua jornada de autoconhecimento através da análise narrativa profunda
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Button 
-          onClick={() => signIn('google')}
-          className="w-full flex items-center justify-center gap-2 bg-white text-gray-900 border border-gray-300 hover:bg-gray-50"
-        >
-          <LogIn className="h-4 w-4" />
-          Entrar com Google
-        </Button>
-        
-        <div className="mt-4 text-xs text-center text-muted-foreground">
-          <p>
-            Ao fazer login, você concorda com nossos termos de uso e política de privacidade.
-            Seus dados são protegidos e utilizados apenas para análise psicológica.
-          </p>
-        </div>
-      </CardContent>
-    </Card>
-  );
+  return <AuthForm onSuccess={() => window.location.href = '/dashboard'} />;
 }
-
