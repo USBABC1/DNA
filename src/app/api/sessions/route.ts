@@ -10,18 +10,32 @@ export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession();
     
-    if (!session?.user?.id) {
+    if (!session?.user?.email) {
       return NextResponse.json(
         { error: 'Usuário não autenticado' },
         { status: 401 }
       );
     }
 
-    // Busca todas as sessões do usuário usando o ID direto
+    // Busca o usuário no Supabase usando o email
+    const { data: user, error: userError } = await supabaseAdmin
+      .from('users')
+      .select('id')
+      .eq('email', session.user.email)
+      .single();
+
+    if (userError || !user) {
+      return NextResponse.json(
+        { error: 'Usuário não encontrado' },
+        { status: 404 }
+      );
+    }
+
+    // Busca todas as sessões do usuário
     const { data: sessions, error: sessionsError } = await supabaseAdmin
       .from('analysis_sessions')
       .select('*')
-      .eq('user_id', session.user.id)
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
     if (sessionsError) {
@@ -49,19 +63,33 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession();
     
-    if (!session?.user?.id) {
+    if (!session?.user?.email) {
       return NextResponse.json(
         { error: 'Usuário não autenticado' },
         { status: 401 }
       );
     }
 
-    // Cria uma nova sessão de análise usando o ID direto do usuário
+    // Busca o usuário no Supabase usando o email
+    const { data: user, error: userError } = await supabaseAdmin
+      .from('users')
+      .select('id')
+      .eq('email', session.user.email)
+      .single();
+
+    if (userError || !user) {
+      return NextResponse.json(
+        { error: 'Usuário não encontrado' },
+        { status: 404 }
+      );
+    }
+
+    // Cria uma nova sessão de análise
     const { data: newSession, error: sessionError } = await supabaseAdmin
       .from('analysis_sessions')
       .insert([
         {
-          user_id: session.user.id,
+          user_id: user.id,
         }
       ])
       .select()
@@ -87,3 +115,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+

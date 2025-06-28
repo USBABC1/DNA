@@ -6,7 +6,7 @@ import { AudioRecorder } from '@/components/AudioRecorder';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle, ArrowLeft, ArrowRight } from 'lucide-react';
+import { CheckCircle, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
 // Perguntas da análise narrativa profunda
@@ -27,83 +27,35 @@ interface AnalysisComponentProps {
   sessionId: string;
 }
 
-interface UserResponse {
-  id: string;
-  question_index: number;
-  transcript_text: string;
-}
-
 export function AnalysisComponent({ sessionId }: AnalysisComponentProps) {
   const { data: session } = useSession();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [completedQuestions, setCompletedQuestions] = useState<Set<number>>(new Set());
-  const [responses, setResponses] = useState<Record<number, UserResponse>>({});
+  const [transcripts, setTranscripts] = useState<string[]>([]);
   const [isCompleted, setIsCompleted] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   const progress = (completedQuestions.size / ANALYSIS_QUESTIONS.length) * 100;
 
-  // Carrega respostas existentes ao montar o componente
-  useEffect(() => {
-    loadExistingResponses();
-  }, [sessionId]);
-
-  const loadExistingResponses = async () => {
-    try {
-      const response = await fetch(`/api/sessions/${sessionId}/responses`);
-      if (response.ok) {
-        const data = await response.json();
-        const responsesMap: Record<number, UserResponse> = {};
-        const completed = new Set<number>();
-        
-        data.responses.forEach((resp: UserResponse) => {
-          responsesMap[resp.question_index] = resp;
-          completed.add(resp.question_index);
-        });
-        
-        setResponses(responsesMap);
-        setCompletedQuestions(completed);
-        
-        if (completed.size === ANALYSIS_QUESTIONS.length) {
-          setIsCompleted(true);
-        }
-      }
-    } catch (error) {
-      console.error('Erro ao carregar respostas:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleTranscriptionComplete = (transcript: string, responseId: string) => {
-    const newResponse: UserResponse = {
-      id: responseId,
-      question_index: currentQuestionIndex,
-      transcript_text: transcript
-    };
-    
-    setResponses(prev => ({
-      ...prev,
-      [currentQuestionIndex]: newResponse
-    }));
+  const handleTranscriptionComplete = (transcript: string) => {
+    const newTranscripts = [...transcripts];
+    newTranscripts[currentQuestionIndex] = transcript;
+    setTranscripts(newTranscripts);
     
     const newCompleted = new Set(completedQuestions);
     newCompleted.add(currentQuestionIndex);
     setCompletedQuestions(newCompleted);
-
-    if (newCompleted.size === ANALYSIS_QUESTIONS.length) {
-      setIsCompleted(true);
-      toast({
-        title: 'Análise Concluída!',
-        description: 'Todas as perguntas foram respondidas. Sua análise será processada.',
-      });
-    }
   };
 
   const handleNext = () => {
     if (currentQuestionIndex < ANALYSIS_QUESTIONS.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
+    } else {
+      setIsCompleted(true);
+      toast({
+        title: 'Análise Concluída!',
+        description: 'Todas as perguntas foram respondidas. Sua análise será processada.',
+      });
     }
   };
 
@@ -116,14 +68,6 @@ export function AnalysisComponent({ sessionId }: AnalysisComponentProps) {
   const handleQuestionSelect = (index: number) => {
     setCurrentQuestionIndex(index);
   };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-500"></div>
-      </div>
-    );
-  }
 
   if (isCompleted) {
     return (
@@ -157,25 +101,6 @@ export function AnalysisComponent({ sessionId }: AnalysisComponentProps) {
                 Revisar Respostas
               </Button>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Resumo das Respostas */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Resumo das Suas Respostas</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {Object.entries(responses).map(([index, response]) => (
-              <div key={index} className="border-l-4 border-green-500 pl-4">
-                <h4 className="font-semibold text-sm text-gray-600 mb-2">
-                  Pergunta {parseInt(index) + 1}
-                </h4>
-                <p className="text-sm text-gray-800 bg-gray-50 p-3 rounded">
-                  {response.transcript_text}
-                </p>
-              </div>
-            ))}
           </CardContent>
         </Card>
       </div>
@@ -242,7 +167,7 @@ export function AnalysisComponent({ sessionId }: AnalysisComponentProps) {
         questionIndex={currentQuestionIndex}
         sessionId={sessionId}
         onTranscriptionComplete={handleTranscriptionComplete}
-        existingTranscript={responses[currentQuestionIndex]?.transcript_text}
+        onNext={handleNext}
       />
 
       {/* Controles de Navegação */}
@@ -265,13 +190,27 @@ export function AnalysisComponent({ sessionId }: AnalysisComponentProps) {
         
         <Button
           onClick={handleNext}
-          disabled={currentQuestionIndex === ANALYSIS_QUESTIONS.length - 1}
+          disabled={!completedQuestions.has(currentQuestionIndex)}
           className="flex items-center gap-2"
         >
-          Próxima
-          <ArrowRight className="h-4 w-4" />
+          {currentQuestionIndex === ANALYSIS_QUESTIONS.length - 1 ? 'Finalizar' : 'Próxima'}
         </Button>
       </div>
+
+      {/* Resumo das Respostas */}
+      {transcripts[currentQuestionIndex] && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Sua Resposta</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-700 bg-gray-50 p-4 rounded-lg">
+              {transcripts[currentQuestionIndex]}
+            </p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
+

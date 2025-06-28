@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     // Verifica autenticação
     const session = await getServerSession();
     
-    if (!session?.user?.email || !session?.user?.id) {
+    if (!session?.user?.email) {
       return NextResponse.json(
         { error: 'Usuário não autenticado' },
         { status: 401 }
@@ -116,3 +116,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
