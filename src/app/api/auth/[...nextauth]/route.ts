@@ -11,7 +11,8 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export const authOptions: NextAuthOptions = {
+// As opções do NextAuth não devem ser exportadas de um arquivo de rota.
+const authOptions: NextAuthOptions = {
   // Configure um ou mais provedores de autenticação
   providers: [
     GoogleProvider({
