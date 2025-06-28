@@ -23,14 +23,12 @@ const handler = NextAuth({
   }),
   callbacks: {
     async session({ session, token }) {
-      // Adiciona o ID do usuário à sessão para uso em outras partes da aplicação
       if (token?.sub) {
         session.user.id = token.sub;
       }
       return session;
     },
     async jwt({ token, user, account }) {
-      // Preserva o ID do usuário no token JWT
       if (user) {
         token.sub = user.id;
       }
@@ -40,26 +38,7 @@ const handler = NextAuth({
       // Ensure baseUrl is properly set from environment
       const cleanBaseUrl = process.env.NEXTAUTH_URL || baseUrl || 'https://dnav1.netlify.app';
       
-      // Check if url is null, undefined, or empty
-      if (!url) {
-        return `${cleanBaseUrl}/dashboard`;
-      }
-      
-      // Permite redirecionamentos para URLs do mesmo domínio
-      if (url.startsWith("/")) {
-        return `${cleanBaseUrl}${url}`;
-      }
-      
-      // Permite redirecionamentos para o domínio base
-      if (url.startsWith(cleanBaseUrl)) {
-        return url;
-      }
-      
-      // Se for uma URL externa, redireciona para o dashboard
-      if (url.startsWith("http")) {
-        return `${cleanBaseUrl}/dashboard`;
-      }
-      
+      // Always redirect to the dashboard after successful login
       return `${cleanBaseUrl}/dashboard`;
     },
   },
@@ -87,4 +66,3 @@ const handler = NextAuth({
 });
 
 export { handler as GET, handler as POST };
-
