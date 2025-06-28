@@ -47,7 +47,7 @@ const authOptions = {
       return token;
     },
   },
-  pages: {
+  pages: { 
     signIn: '/auth/signin',
     error: '/auth/error',
   },
