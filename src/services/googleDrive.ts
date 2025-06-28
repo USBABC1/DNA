@@ -5,26 +5,40 @@ export class GoogleDriveService {
   private auth: any;
 
   constructor() {
-    // Configuração da autenticação OAuth2
-    this.auth = new google.auth.OAuth2(
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET,
-      'urn:ietf:wg:oauth:2.0:oob' // Para aplicações server-side
-    );
+    // Verifica se as variáveis de ambiente estão disponíveis
+    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET || !process.env.GOOGLE_DRIVE_ADMIN_REFRESH_TOKEN) {
+      console.warn('Google Drive credentials not configured');
+      return;
+    }
 
-    // Define o refresh token para autenticação automática
-    this.auth.setCredentials({
-      refresh_token: process.env.GOOGLE_DRIVE_ADMIN_REFRESH_TOKEN,
-    });
+    try {
+      // Configuração da autenticação OAuth2
+      this.auth = new google.auth.OAuth2(
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_CLIENT_SECRET,
+        'urn:ietf:wg:oauth:2.0:oob' // Para aplicações server-side
+      );
 
-    // Inicializa o cliente do Google Drive
-    this.drive = google.drive({ version: 'v3', auth: this.auth });
+      // Define o refresh token para autenticação automática
+      this.auth.setCredentials({
+        refresh_token: process.env.GOOGLE_DRIVE_ADMIN_REFRESH_TOKEN,
+      });
+
+      // Inicializa o cliente do Google Drive
+      this.drive = google.drive({ version: 'v3', auth: this.auth });
+    } catch (error) {
+      console.error('Erro ao inicializar Google Drive Service:', error);
+    }
   }
 
   /**
    * Cria uma pasta para o usuário no Google Drive se não existir
    */
   async createUserFolder(userEmail: string): Promise<string> {
+    if (!this.drive) {
+      throw new Error('Google Drive não configurado');
+    }
+
     try {
       const folderName = `DNA_Analysis_${userEmail.replace('@', '_at_')}`;
       const parentFolderId = process.env.GOOGLE_DRIVE_PARENT_FOLDER_ID;
@@ -66,6 +80,10 @@ export class GoogleDriveService {
     fileName: string,
     userFolderId: string
   ): Promise<string> {
+    if (!this.drive) {
+      throw new Error('Google Drive não configurado');
+    }
+
     try {
       const fileMetadata = {
         name: fileName,
@@ -101,4 +119,3 @@ export class GoogleDriveService {
 
 // Instância singleton do serviço
 export const googleDriveService = new GoogleDriveService();
-

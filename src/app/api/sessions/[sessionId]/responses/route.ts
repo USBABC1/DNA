@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import { supabaseAdmin } from '@/lib/supabase';
 
 /**
  * GET - Busca todas as respostas de uma sessão específica
@@ -20,6 +19,17 @@ export async function GET(
     }
 
     const { sessionId } = params;
+
+    // Verificar se as variáveis de ambiente estão configuradas
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return NextResponse.json(
+        { error: 'Serviço temporariamente indisponível' },
+        { status: 503 }
+      );
+    }
+
+    // Importação dinâmica para evitar erro durante o build
+    const { supabaseAdmin } = await import('@/lib/supabase');
 
     // Verifica se a sessão pertence ao usuário
     const { data: sessionData, error: sessionError } = await supabaseAdmin
@@ -57,7 +67,7 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ responses });
+    return NextResponse.json({ responses: responses || [] });
   } catch (error) {
     console.error('Erro interno na API de respostas:', error);
     return NextResponse.json(

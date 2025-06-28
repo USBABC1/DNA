@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import { DeepgramClient, createClient } from '@deepgram/sdk';
-import { supabaseAdmin } from '@/lib/supabase';
-import { googleDriveService } from '@/services/googleDrive';
 
 /**
  * API Route para transcrever áudio e salvar dados
@@ -33,9 +30,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verifica se a chave da API da Deepgram está configurada
-    const deepgramApiKey = process.env.DEEPGRAM_API_KEY;
-    if (!deepgramApiKey) {
+    // Verifica se as variáveis de ambiente estão configuradas
+    if (!process.env.DEEPGRAM_API_KEY) {
       console.error('Chave da API da Deepgram não configurada');
       return NextResponse.json(
         { error: 'Serviço de transcrição não configurado' },
@@ -43,11 +39,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return NextResponse.json(
+        { error: 'Serviço de banco de dados não configurado' },
+        { status: 503 }
+      );
+    }
+
+    // Importações dinâmicas para evitar erro durante o build
+    const { DeepgramClient, createClient } = await import('@deepgram/sdk');
+    const { supabaseAdmin } = await import('@/lib/supabase');
+    const { googleDriveService } = await import('@/services/googleDrive');
+
     // Converte o arquivo para buffer
     const audioBuffer = Buffer.from(await audioFile.arrayBuffer());
 
     // Inicializa o cliente da Deepgram
-    const deepgram: DeepgramClient = createClient(deepgramApiKey);
+    const deepgram: DeepgramClient = createClient(process.env.DEEPGRAM_API_KEY);
 
     // Executa operações em paralelo para máxima eficiência
     const [transcriptionResult, userFolderId] = await Promise.all([

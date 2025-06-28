@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import { supabaseAdmin } from '@/lib/supabase';
-import { AnalysisSession } from '@/lib/supabase';
 
 /**
  * GET - Busca todas as sessões do usuário autenticado
@@ -16,6 +14,17 @@ export async function GET(request: NextRequest) {
         { status: 401 }
       );
     }
+
+    // Verificar se as variáveis de ambiente estão configuradas
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return NextResponse.json(
+        { error: 'Serviço temporariamente indisponível' },
+        { status: 503 }
+      );
+    }
+
+    // Importação dinâmica para evitar erro durante o build
+    const { supabaseAdmin } = await import('@/lib/supabase');
 
     // Busca todas as sessões do usuário usando o ID direto
     const { data: sessions, error: sessionsError } = await supabaseAdmin
@@ -32,7 +41,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ sessions });
+    return NextResponse.json({ sessions: sessions || [] });
   } catch (error) {
     console.error('Erro interno na API de sessões:', error);
     return NextResponse.json(
@@ -55,6 +64,17 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
+
+    // Verificar se as variáveis de ambiente estão configuradas
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return NextResponse.json(
+        { error: 'Serviço temporariamente indisponível' },
+        { status: 503 }
+      );
+    }
+
+    // Importação dinâmica para evitar erro durante o build
+    const { supabaseAdmin } = await import('@/lib/supabase');
 
     // Cria uma nova sessão de análise usando o ID direto do usuário
     const { data: newSession, error: sessionError } = await supabaseAdmin
