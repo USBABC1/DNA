@@ -17,7 +17,7 @@ const fontMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXTAUTH_URL || 'http://localhost:3000'),
+  metadataBase: new URL(process.env.NEXTAUTH_URL || 'https://dnav1.netlify.app'),
   title: 'DNA - Deep Narrative Analysis | Análise Psicológica Avançada',
   description: 'Plataforma profissional de análise narrativa profunda usando IA avançada. Descubra padrões psicológicos através da sua narrativa pessoal.',
   keywords: [
@@ -39,7 +39,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'pt_BR',
-    url: 'https://dna-analysis.com',
+    url: 'https://dnav1.netlify.app',
     title: 'DNA - Deep Narrative Analysis',
     description: 'Análise psicológica profissional através da narrativa pessoal',
     siteName: 'DNA Analysis',
@@ -87,5 +87,3 @@ export default function RootLayout({
     </html>
   );
 }
-
-

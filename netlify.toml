@@ -22,3 +22,15 @@
   for = "/static/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
+
+# Redirecionamentos para NextAuth
+[[redirects]]
+  from = "/api/auth/*"
+  to = "/.netlify/functions/___netlify-handler"
+  status = 200
+
+# Fallback para SPA
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

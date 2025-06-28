@@ -96,7 +96,12 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
       } else if (error.message === 'Email not confirmed') {
         setError('Por favor, confirme seu email antes de fazer login.');
       } else if (error.message === 'Supabase not configured') {
-        setError('Sistema de autenticação não configurado. Entre em contato com o suporte.');
+        setError('Sistema de autenticação não configurado. Usando modo demonstração.');
+        // Em modo demo, simula login bem-sucedido
+        setSuccess('Login realizado com sucesso! (Modo demonstração)');
+        setTimeout(() => {
+          onSuccess?.();
+        }, 1000);
       } else {
         setError('Erro ao fazer login. Tente novamente.');
       }
@@ -182,7 +187,12 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
       if (error.message === 'User already registered') {
         setError('Este email já está cadastrado. Tente fazer login.');
       } else if (error.message === 'Supabase not configured') {
-        setError('Sistema de autenticação não configurado. Entre em contato com o suporte.');
+        setError('Sistema de autenticação não configurado. Usando modo demonstração.');
+        // Em modo demo, simula registro bem-sucedido
+        setSuccess('Conta criada com sucesso! (Modo demonstração)');
+        setTimeout(() => {
+          onSuccess?.();
+        }, 1000);
       } else {
         setError('Erro ao criar conta. Tente novamente.');
       }
