@@ -1,8 +1,8 @@
-import NextAuth from "next-auth";
+import NextAuth, { type AuthOptions, type SessionStrategy } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { supabase } from "@/lib/supabase";
 
-export const authOptions = {
+export const authOptions: AuthOptions = {
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -11,29 +11,46 @@ export const authOptions = {
         password: { label: "Senha", type: "password" }
       },
       async authorize(credentials) {
-        // Autenticação usando Supabase
         const { data, error } = await supabase.auth.signInWithPassword({
-          email: credentials?.email,
-          password: credentials?.password
+          email: credentials?.email ?? "",
+          password: credentials?.password ?? ""
         });
 
         if (error || !data.user) {
           throw new Error("Email ou senha inválidos");
         }
 
-        // Você pode retornar outros dados do usuário aqui
         return {
           id: data.user.id,
-          email: data.user.email
+          email: data.user.email,
+          name: data.user.user_metadata?.name ?? data.user.email
         };
       }
     })
   ],
   session: {
-    strategy: "jwt"
+    strategy: "jwt" as SessionStrategy
   },
   pages: {
-    signIn: "/login"
+    signIn: "/auth/signin" // Página de login correta do seu projeto
+  },
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.email = user.email;
+        token.name = user.name;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (token) {
+        session.user.id = token.id as string;
+        session.user.email = token.email as string;
+        session.user.name = token.name as string;
+      }
+      return session;
+    }
   }
 };
 
